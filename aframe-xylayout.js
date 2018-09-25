@@ -7,6 +7,7 @@ if (typeof AFRAME === 'undefined') {
 }
 
 AFRAME.registerComponent('xyrect', {
+    dependencies: ['position'],
     schema: {
         width: { type: 'number', default: -1 },
         height: { type: 'number', default: -1 },
@@ -16,9 +17,6 @@ AFRAME.registerComponent('xyrect', {
     init: function () {
         this.height = 0;
         this.width = 0;
-        if (!this.el.components.position) {
-            this.el.setAttribute("position", {});
-        }
     },
     update: function () {
         if (this.el.components.rounded) {
@@ -52,28 +50,48 @@ AFRAME.registerComponent('xyrect', {
 });
 
 AFRAME.registerComponent('xyclipping', {
+    dependencies: ['xyrect'],
     schema: {
-        exclude: { type: 'selector', default: null }
+        exclude: { type: 'selector', default: null },
+        clipTop: { type: 'boolean', default: true },
+        clipBottom: { type: 'boolean', default: true },
+        clipLeft: { type: 'boolean', default: false },
+        clipRight: { type: 'boolean', default: false }
     },
     init: function () {
         this.el.sceneEl.renderer.localClippingEnabled = true;
+        this.clippingPlanesLocal = [];
         this.clippingPlanes = [];
         this.exclude = this.data.exclude;
         this.currentMatrix = null;
+        this.el.addEventListener('click', (ev) => {
+            if (!ev.path.includes(this.data.exclude)) {
+                if (ev.detail.intersection && this.isClipped(ev.detail.intersection.point)) {
+                    ev.stopPropagation();
+                }
+            }
+        }, true);
+    },
+    update: function () {
+        this.clippingPlanes = [];
+        this.clippingPlanesLocal = [];
+        var rect = this.el.components.xyrect;
+        if (this.data.clipBottom) this.clippingPlanesLocal.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
+        if (this.data.clipTop) this.clippingPlanesLocal.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), rect.height));
+        if (this.data.clipLeft) this.clippingPlanesLocal.push(new THREE.Plane(new THREE.Vector3(1, 0, 0), 0));
+        if (this.data.clipRight) this.clippingPlanesLocal.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), rect.width));
+        this.updateMatrix();
     },
     tick: function () {
         if (!this.el.object3D.matrixWorld.equals(this.currentMatrix)) {
-            this.update();
+            this.updateMatrix();
         }
     },
-    update: function () {
-        var wm = this.el.object3D.matrixWorld;
-        this.currentMatrix = wm.clone();
-        var rect = this.el.components.xyrect;
-        if (!rect) return;
-        // top, bottom
-        this.clippingPlanes[0] = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0).applyMatrix4(wm);
-        this.clippingPlanes[1] = new THREE.Plane(new THREE.Vector3(0, -1, 0), rect.height).applyMatrix4(wm);
+    updateMatrix: function () {
+        this.currentMatrix = this.el.object3D.matrixWorld.clone();
+        for (var i=0; i < this.clippingPlanesLocal.length; i++) {
+            this.clippingPlanes[i] = this.clippingPlanesLocal[i].clone().applyMatrix4(this.currentMatrix);
+        }
         this.applyClippings();
     },
     applyClippings: function () {
@@ -220,14 +238,6 @@ AFRAME.registerComponent('xyscroll', {
             if (this.dragLen > 1) {
                 ev.stopPropagation();
             }
-            if (!ev.path.includes(this.control)) {
-                var xyclipping = this.el.components.xyclipping;
-                if (xyclipping && ev.detail.intersection) {
-                    if (xyclipping.isClipped(ev.detail.intersection.point)) {
-                        ev.stopPropagation();
-                    }
-                }
-            }
         }, true);
         this.touchPlane = touchPlane;
 
@@ -305,7 +315,7 @@ AFRAME.registerComponent('xyscroll', {
 AFRAME.registerComponent('xylist', {
     schema: {
         width: { type: 'number', default: -1 },
-        itemHeight: { type: 'number', default: 1 },
+        itemHeight: { type: 'number', default: -1 },
         vertical: { type: 'boolean', default: true }
     },
     init: function () {
@@ -329,6 +339,10 @@ AFRAME.registerComponent('xylist', {
     setCallback(f, u) {
         this.elementFactory = f || this.elementFactory;
         this.elementUpdator = u || this.elementUpdator;
+        if (this.data.itemHeight < 0) {
+            var el = this.elementFactory(this.el, this.userData);
+            this.data.itemHeight = el.getAttribute("height") * 1.0;
+        }
     },
     setContents: function (data, size) {
         this.userData = data;
@@ -338,6 +352,10 @@ AFRAME.registerComponent('xylist', {
         for (var t = 0; t < this.elements.length; t++) {
             this.elements[t].setAttribute('visible', false);
             this.elements[t].dataset.listPosition = -1;
+        }
+        var scroll = this.el.parentNode.components.xyscroll;
+        if (scroll) {
+            scroll.contentChanged();
         }
         this.refresh();
     },
@@ -359,10 +377,6 @@ AFRAME.registerComponent('xylist', {
                 el.dataset.listPosition = -1;
                 this.el.appendChild(el);
                 this.elements.push(el);
-            }
-            var scroll = this.el.parentNode.components.xyscroll;
-            if (scroll) {
-                scroll.contentChanged();
             }
         }
         var retry = false;
