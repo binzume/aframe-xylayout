@@ -52,23 +52,60 @@ AFRAME.registerComponent('drag-rotation', {
     }
 });
 
+AFRAME.registerComponent('simplebutton', {
+    schema: {
+        color: { type: 'string', default: "#444" },
+        color2: { type: 'string', default: "#888" },
+        text: { type: 'string', default: "" }
+    },
+    init: function () {
+        this.el.addEventListener('mouseenter', (e) => {
+            this.el.setAttribute("material", { color: this.data.color2 });
+        });
+        this.el.addEventListener('mouseleave', (e) => {
+            this.el.setAttribute("material", { color: this.data.color });
+        });
+        this.labelText = null;
+    },
+    update: function () {
+        this.el.setAttribute("geometry", { primitive: "plane", width: this.data.width, height: this.data.height });
+        this.el.setAttribute("material", { color: this.data.color });
+        if (this.data.text != "") {
+            this.el.setAttribute("text", { value: this.data.text, wrapCount: 4, align: "center" });
+        } else {
+            this.el.removeAttribute("text");
+        }
+    }
+});
+
 AFRAME.registerComponent('xywindow', {
+    dependencies: ['xyrect'],
     schema: {
         title: { type: 'string', default: "" },
-        dialog: { type: 'bool', default: false }
+        dialog: { type: 'bool', default: false },
+        closable: { type: 'bool', default: true }
     },
     init: function () {
         this.el.setAttribute("xycontainer", {});
         this.controls = document.createElement('a-entity');
         this.el.appendChild(this.controls);
 
-        var dragButton = document.createElement('a-plane');
-        this.controls.appendChild(dragButton);
-        dragButton.setAttribute("width", 1);
-        dragButton.setAttribute("height", 0.5);
+        var dragButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
+            width: 1, height: 0.5
+        }, this.controls);
         dragButton.setAttribute("position", { x: 0.5, y: 0.3, z: 0 });
-        dragButton.setAttribute("material", { color: "#0f0" });
         dragButton.setAttribute("drag-rotation", { target: this.el });
+
+        if (this.data.closable) {
+            var closeButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
+                width: 0.5, height: 0.5,
+                color: "#444", color2: "#f00", text: " X"
+            }, this.controls);
+            closeButton.setAttribute("position", { x: this.el.components.xyrect.width - 0.5, y: 0.3, z: 0 });
+            closeButton.addEventListener('click', (ev) => {
+                this.el.parentNode.removeChild(this.el);
+            });
+        }
 
         this.titleText = document.createElement('a-text');
         this.controls.appendChild(this.titleText);
@@ -92,16 +129,94 @@ AFRAME.registerComponent('xywindow', {
     }
 });
 
+AFRAME.registerComponent('xybutton', {
+    dependencies: ['xyrect'],
+    schema: {
+        text: { type: 'string', default: null },
+        color2: { type: 'string', default: null }
+    },
+    init: function () {
+        this.el.sceneEl.systems.xylayout.createSimpleButton({
+            width: this.el.components.xyrect.width, height: this.el.components.xyrect.height,
+            color2: this.data.color2, text: this.data.text
+        }, null, this.el);
+    },
+    update: function () {
+    }
+});
+
+AFRAME.registerComponent('xyrange', {
+    dependencies: ['xyrect'],
+    schema: {
+        max: { type: 'number', default: 100 },
+        thumbSize: { type: 'number', default: 0.4 }
+    },
+    init: function () {
+        this.value = 50;
+
+        this.bar = document.createElement('a-entity');
+        this.bar.setAttribute("geometry", { primitive: "plane", width: this.el.components.xyrect.width - this.data.thumbSize, height: 0.05 });
+        this.bar.setAttribute("material", { color: "#fff" });
+        this.bar.setAttribute("position", {
+            x: (this.el.components.xyrect.width - this.data.thumbSize) * 0.5,
+            y: this.el.components.xyrect.height * 0.5,
+            z: 0
+        });
+        this.el.appendChild(this.bar);
+
+        this.thumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
+            width: this.data.thumbSize, height: this.data.thumbSize
+        }, this.el);
+    },
+    update: function () {
+        var r = this.el.components.xyrect.width - this.data.thumbSize;
+        this.thumb.setAttribute("position", {
+            x: r * this.value / this.data.max + this.data.thumbSize * 0.5,
+            y: this.el.components.xyrect.height * 0.5,
+            z: 0.01
+        });
+    },
+    setValue: function (value) {
+        this.value = Math.min(value, this.data.max);
+        this.update();
+    }
+});
+
 AFRAME.registerPrimitive('a-xywindow', {
     defaultComponents: {
         xycontainer: { mode: "none" },
-        xywindow: { dialog: false },
+        xywindow: { dialog: false }
     },
     mappings: {
         width: 'xycontainer.width',
         height: 'xycontainer.height',
         title: 'xywindow.title',
         dialog: 'xywindow.dialog'
+    }
+});
+
+AFRAME.registerPrimitive('a-xybutton', {
+    defaultComponents: {
+        xyrect: { },
+        xybutton: { }
+    },
+    mappings: {
+        width: 'xyrect.width',
+        height: 'xyrect.height',
+        label: 'xybutton.text'
+    }
+});
+
+
+AFRAME.registerPrimitive('a-xyrange', {
+    defaultComponents: {
+        xyrect: { },
+        xyrange: { }
+    },
+    mappings: {
+        width: 'xyrect.width',
+        height: 'xyrect.height',
+        max: 'xyrange.max'
     }
 });
 

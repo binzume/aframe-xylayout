@@ -6,6 +6,28 @@ if (typeof AFRAME === 'undefined') {
     throw 'AFRAME is not loaded.';
 }
 
+AFRAME.registerSystem('xylayout', {
+    createSimpleButton: function (params, parent, el) {
+        params.color = params.color || "#444";
+        params.color2 = params.color2 || "#888";
+        var button = el || document.createElement('a-entity');
+        button.addEventListener('mouseenter', (e) => {
+            button.setAttribute("material", { color: params.color2 });
+        });
+        button.addEventListener('mouseleave', (e) => {
+            button.setAttribute("material", { color: params.color });
+        });
+
+        button.setAttribute("geometry", { primitive: "plane", width: params.width, height: params.height });
+        button.setAttribute("material", { color: params.color });
+        if (params.text) {
+            button.setAttribute("text", { value: params.text, wrapCount: 4, align: "center" });
+        }
+        parent && parent.appendChild(button);
+        return button;
+    }
+});
+
 AFRAME.registerComponent('xyrect', {
     dependencies: ['position'],
     schema: {
@@ -89,7 +111,7 @@ AFRAME.registerComponent('xyclipping', {
     },
     updateMatrix: function () {
         this.currentMatrix = this.el.object3D.matrixWorld.clone();
-        for (var i=0; i < this.clippingPlanesLocal.length; i++) {
+        for (var i = 0; i < this.clippingPlanesLocal.length; i++) {
             this.clippingPlanes[i] = this.clippingPlanesLocal[i].clone().applyMatrix4(this.currentMatrix);
         }
         this.applyClippings();
@@ -180,55 +202,45 @@ AFRAME.registerComponent('xyscroll', {
     init: function () {
         this.scrollX = 0;
         this.scrollY = 0;
+        this.speedY = 0;
         this.scrollDelta = Math.max(this.data.height / 2, 0.5);
         this.control = document.createElement('a-entity');
         this.el.appendChild(this.control);
 
-        var upButton = document.createElement('a-plane');
-        this.control.appendChild(upButton);
-        this.speed = 0;
-        upButton.setAttribute("width", 0.4);
-        upButton.setAttribute("height", 0.4);
-        upButton.setAttribute("position", { x: this.data.width, y: this.data.height + 0.3, z: 0.05 });
-        upButton.setAttribute("material", { color: "#ccf" });
+        var upButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
+            width: 0.3, height: 0.5
+        }, this.control);
         upButton.addEventListener('click', (ev) => {
-            this.speed = -this.scrollDelta * 0.4;
+            this.speedY = -this.scrollDelta * 0.4;
         });
+        upButton.setAttribute("position", { x: this.data.width, y: this.data.height + 0.3, z: 0.05 });
+        upButton.setAttribute('visible', this.data.scrollbar);
 
-        var downButton = document.createElement('a-plane');
-        this.control.appendChild(downButton);
-        downButton.setAttribute("width", 0.4);
-        downButton.setAttribute("height", 0.4);
-        downButton.setAttribute("position", { x: this.data.width, y: -0.3, z: 0.05 });
-        downButton.setAttribute("material", { color: "#ccf" });
+        var downButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
+            width: 0.3, height: 0.5
+        }, this.control);
         downButton.addEventListener('click', (ev) => {
-            this.speed = this.scrollDelta * 0.4;
+            this.speedY = this.scrollDelta * 0.4;
         });
+        downButton.setAttribute("position", { x: this.data.width, y: -0.3, z: 0.05 });
+        downButton.setAttribute('visible', this.data.scrollbar);
 
-        var scrollThumb = document.createElement('a-plane');
-        this.control.appendChild(scrollThumb);
-        scrollThumb.setAttribute("width", 0.1);
-        scrollThumb.setAttribute("height", 0.2);
+        var scrollThumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
+            width: 0.2, height: 0.2
+        }, this.control);
         scrollThumb.setAttribute("position", { x: this.data.width + 0.05, y: 0, z: 0.05 });
         scrollThumb.setAttribute('visible', this.data.scrollbar);
         this.scrollThumb = scrollThumb;
-
-        var touchPlane = document.createElement('a-plane');
-        touchPlane.setAttribute("width", this.data.width);
-        touchPlane.setAttribute("height", this.data.height);
-        touchPlane.setAttribute("position", { x: this.data.width / 2, y: this.data.height / 2, z: -0.05 });
-        touchPlane.setAttribute("material", { visible: false });
-        this.control.appendChild(touchPlane);
 
         this.draggingRaycaster = null;
         this.draggingPoint = null;
         this.dragLen = 0.0;
         this.el.addEventListener('mousedown', (ev) => {
-            this.update();
             this.draggingPoint = null;
             this.dragLen = 0.0;
             if (ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster) {
-                this.draggingRaycaster = ev.detail.cursorEl.components.raycaster;
+                this.draggingRaycaster = ev.detail.cursorEl.components.raycaster.raycaster;
+                this.dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(this.el.object3D.matrixWorld);
             }
         });
         this.el.addEventListener('mouseup', (ev) => {
@@ -239,7 +251,6 @@ AFRAME.registerComponent('xyscroll', {
                 ev.stopPropagation();
             }
         }, true);
-        this.touchPlane = touchPlane;
 
         this.setScroll(0, 0);
     },
@@ -249,20 +260,20 @@ AFRAME.registerComponent('xyscroll', {
     },
     tick: function () {
         if (this.draggingRaycaster) {
-            var t = this.draggingRaycaster.intersections.find(i => i.object.el === this.touchPlane);
-            if (t) {
-                var point = this.el.object3D.worldToLocal(t.point);
+            var pointw = new THREE.Vector3();
+            if (this.draggingRaycaster.ray.intersectPlane(this.dragPlane, pointw) !== null) {
+                var point = this.el.object3D.worldToLocal(pointw);
                 if (this.draggingPoint) {
                     var dy = point.y - this.draggingPoint.y;
-                    this.speed = dy;
+                    this.speedY = dy;
                     this.dragLen += Math.abs(dy);
                 }
                 this.draggingPoint = point;
             }
         }
-        if (Math.abs(this.speed) > 0.001) {
-            this.setScroll(this.scrollX, this.scrollY + this.speed);
-            this.speed *= 0.75;
+        if (Math.abs(this.speedY) > 0.001) {
+            this.setScroll(this.scrollX, this.scrollY + this.speedY);
+            this.speedY *= 0.75;
         }
     },
     contentChanged: function () {
@@ -283,7 +294,7 @@ AFRAME.registerComponent('xyscroll', {
         this.scrollX = Math.max(0, x);
         this.scrollY = Math.max(0, Math.min(y, maxH - this.data.height));
 
-        var thumbH = Math.max(0.01, Math.min(this.data.height * this.data.height / maxH, 1.0));
+        var thumbH = Math.max(0.1, Math.min(this.data.height * this.data.height / maxH, 1.0));
         this.scrollThumb.setAttribute("height", thumbH);
         this.scrollThumb.setAttribute("position", {
             x: this.data.width + 0.05,
