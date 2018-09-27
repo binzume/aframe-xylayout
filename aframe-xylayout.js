@@ -157,14 +157,14 @@ AFRAME.registerComponent('xycontainer', {
         if (this.data.mode === "none") {
             return;
         }
-        var el = this.el;
+        var children = this.el.children;
         var p = 0;
         var vertical = this.data.mode === "vertical";
         var attrName = vertical ? "height" : "width";
-        for (var i = 0; i < el.children.length; i++) {
-            var item = el.children[i];
+        for (var i = 0; i < children.length; i++) {
+            var item = children[i];
             if (!item.components || !item.components.position) continue;
-            var sz = 0, offset = 0;
+            var sz, offset = 0;
             if (item.components.xyrect) {
                 if (this.data.mode === "fill") {
                     item.components.xyrect.doLayout(w, h);
@@ -178,16 +178,15 @@ AFRAME.registerComponent('xycontainer', {
                     offset = item.components.xyrect.data.pivotX;
                     item.components.xyrect.doLayout(sz, h);
                 }
-            } else if (el.children[i].getAttribute(attrName)) {
-                sz = el.children[i].getAttribute(attrName) * 1;
+            } else if (item.getAttribute(attrName)) {
+                sz = item.getAttribute(attrName) * 1;
             }
-            var pos = item.getAttribute("position");
+            var pos = item.object3D.position;
             if (vertical) {
-                pos.y = this.data[attrName] - sz - (p + offset * sz);
+                pos.y = this.data[attrName] - (p + (1 - offset) * sz);
             } else {
                 pos.x = p + offset * sz;
             }
-            item.setAttribute("position", pos);
             p += sz + this.data.spacing;
         }
     }
@@ -447,7 +446,8 @@ AFRAME.registerPrimitive('a-xylayout', {
     mappings: {
         width: 'xycontainer.width',
         height: 'xycontainer.height',
-        mode: 'xycontainer.mode'
+        mode: 'xycontainer.mode',
+        spacing: 'xycontainer.spacing'
     }
 });
 
