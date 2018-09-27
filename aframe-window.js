@@ -158,7 +158,7 @@ AFRAME.registerComponent('xyrange', {
         this.bar.setAttribute("geometry", { primitive: "plane", width: this.el.components.xyrect.width - this.data.thumbSize, height: 0.05 });
         this.bar.setAttribute("material", { color: "#fff" });
         this.bar.setAttribute("position", {
-            x: (this.el.components.xyrect.width - this.data.thumbSize) * 0.5,
+            x: (this.el.components.xyrect.width - this.data.thumbSize * 0.5) * 0.5,
             y: this.el.components.xyrect.height * 0.5,
             z: 0
         });
@@ -167,6 +167,36 @@ AFRAME.registerComponent('xyrange', {
         this.thumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
             width: this.data.thumbSize, height: this.data.thumbSize
         }, this.el);
+
+        this.draggingRaycaster = null;
+        this.thumb.addEventListener('mousedown', (ev) => {
+            if (ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster) {
+                this.draggingRaycaster = ev.detail.cursorEl.components.raycaster.raycaster;
+                this.dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(this.el.object3D.matrixWorld);
+                this.dragValue = this.value;
+                this.dragging();
+            }
+        });
+        window.addEventListener('mouseup', (ev) => {
+            if (this.draggingRaycaster) {
+                this.setValue(this.dragValue);
+                this.el.dispatchEvent(new CustomEvent('change', { detail: this.dragValue }));
+            }
+            this.draggingRaycaster = null;
+        });
+
+    },
+    dragging: function () {
+        if (this.draggingRaycaster !== null) {
+            var pointw = new THREE.Vector3();
+            if (this.draggingRaycaster.ray.intersectPlane(this.dragPlane, pointw) !== null) {
+                var point = this.el.object3D.worldToLocal(pointw);
+                var r = this.el.components.xyrect.width - this.data.thumbSize;
+                this.dragValue = ((point.x - this.data.thumbSize * 0.5) / r * this.data.max);
+                this.setValue(this.dragValue);
+            }
+            setTimeout(this.dragging.bind(this), 30);
+        }
     },
     update: function () {
         var r = this.el.components.xyrect.width - this.data.thumbSize;
@@ -177,7 +207,7 @@ AFRAME.registerComponent('xyrange', {
         });
     },
     setValue: function (value) {
-        this.value = Math.min(value, this.data.max);
+        this.value = Math.max(Math.min(value, this.data.max), 0);
         this.update();
     }
 });
@@ -197,8 +227,8 @@ AFRAME.registerPrimitive('a-xywindow', {
 
 AFRAME.registerPrimitive('a-xybutton', {
     defaultComponents: {
-        xyrect: { },
-        xybutton: { }
+        xyrect: {},
+        xybutton: {}
     },
     mappings: {
         width: 'xyrect.width',
@@ -210,8 +240,8 @@ AFRAME.registerPrimitive('a-xybutton', {
 
 AFRAME.registerPrimitive('a-xyrange', {
     defaultComponents: {
-        xyrect: { },
-        xyrange: { }
+        xyrect: {},
+        xyrange: {}
     },
     mappings: {
         width: 'xyrect.width',
