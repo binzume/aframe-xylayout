@@ -33,16 +33,18 @@ AFRAME.registerSystem('xylayout', {
             }
             var draggingRaycaster = ev.detail.cursorEl.components.raycaster.raycaster;
             var dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(el.object3D.matrixWorld);
-            var dragTimer = setInterval((ev) => {
+            var check = (first, last) => {
                 var pointw = new THREE.Vector3();
                 if (draggingRaycaster.ray.intersectPlane(dragPlane, pointw) !== null) {
-                    handler(el.object3D.worldToLocal(pointw));
+                    handler(el.object3D.worldToLocal(pointw), {raycaster: draggingRaycaster, last: last, first: first});
                 }
-            }, 30);
+            };
+            check(true, false);
+            var dragTimer = setInterval(check, 20, false, false);
             window.addEventListener('mouseup', function mouseup() {
                 window.removeEventListener('mouseup', mouseup);
                 clearInterval(dragTimer);
-                handler(null);
+                check(false, true);
             });
         });
     }
@@ -251,22 +253,20 @@ AFRAME.registerComponent('xyscroll', {
         this.scrollThumb.setAttribute("position", { x: this.data.width + 0.05, y: 0, z: 0.05 });
         this.scrollThumb.setAttribute('visible', this.data.scrollbar);
         this.el.sceneEl.systems.xylayout.addDragHandler(this.scrollThumb, this.el, (point) => {
-            if (point) {
-                var thumbH = this.scrollThumb.getAttribute("height") * 0;
-                var y = (this.data.height - thumbH / 2 - point.y) * Math.max(0.01, this.contentHeight - this.data.height) / (this.data.height - thumbH);
-                this.setScroll(this.scrollX, y);
-            }
+            var thumbH = this.scrollThumb.getAttribute("height") * 0;
+            var y = (this.data.height - thumbH / 2 - point.y) * Math.max(0.01, this.contentHeight - this.data.height) / (this.data.height - thumbH);
+            this.setScroll(this.scrollX, y);
         });
 
         var draggingPoint = null;
         var dragLen = 0.0;
-        this.el.sceneEl.systems.xylayout.addDragHandler(this.el, this.el, (point) => {
-            if (draggingPoint && point) {
+        this.el.sceneEl.systems.xylayout.addDragHandler(this.el, this.el, (point, detail) => {
+            if (detail.first) {
+                dragLen = 0.0;
+            } else {
                 var dy = point.y - draggingPoint.y;
                 this.speedY = dy;
                 dragLen += Math.abs(dy);
-            } else if (point) {
-                dragLen = 0.0;
             }
             draggingPoint = point;
         });

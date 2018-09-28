@@ -12,20 +12,27 @@ AFRAME.registerComponent('drag-rotation', {
     },
     init: function () {
         this.target = this.data.target || this.el;
-        this.draggingRaycaster = null;
+
         this.dragLen = 0;
         this.dragThreshold = 0.2;
-        this.el.addEventListener('mousedown', (e) => {
-            this.dragLen = 0;
-            if (e.detail.cursorEl && e.detail.cursorEl.components.raycaster) {
-                this.draggingRaycaster = e.detail.cursorEl.components.raycaster.raycaster;
-                this.draggingDirection = this.draggingRaycaster.ray.direction.clone();
+        this.draggingDirection = null;
+
+        this.el.sceneEl.systems.xylayout.addDragHandler(this.el, this.el, (point, detail) => {
+            var direction = detail.raycaster.ray.direction.clone();
+            if (detail.first) {
+                this.dragLen = 0;
+            } else {
+                this.dragLen += this.draggingDirection.manhattanDistanceTo(direction);
+                if (this.dragLen < this.dragThreshold) return;
+                var rot = new THREE.Quaternion().setFromUnitVectors(this.draggingDirection, direction);
+                var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
+                var o = detail.raycaster.ray.origin;
+                var tr = new THREE.Matrix4();
+                matrix.multiply(tr.makeTranslation(-o.x, -o.y, -o.z));
+                matrix.premultiply(tr.makeTranslation(o.x, o.y, o.z));
+                this.target.object3D.applyMatrix(matrix);
             }
-            var onmouseup = (e) => {
-                this.draggingRaycaster = null;
-                window.removeEventListener('mouseup', onmouseup);
-            };
-            window.addEventListener('mouseup', onmouseup);
+            this.draggingDirection = direction;
         });
         this.el.parentNode.addEventListener('click', (ev) => {
             if (this.dragLen > this.dragThreshold && ev.path.includes(this.el)) {
@@ -33,22 +40,6 @@ AFRAME.registerComponent('drag-rotation', {
             }
             this.dragLen = 0;
         }, true);
-    },
-    tick: function () {
-        if (this.draggingRaycaster != null) {
-            //TODO: ray.origin as center
-            var direction = this.draggingRaycaster.ray.direction.clone();
-            this.dragLen += direction.manhattanDistanceTo(this.draggingDirection);
-            if (this.dragLen < this.dragThreshold) return;
-            var rot = new THREE.Quaternion().setFromUnitVectors(this.draggingDirection, direction);
-            var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
-            var o = this.draggingRaycaster.ray.origin;
-            var tr = new THREE.Matrix4();
-            matrix.multiply(tr.makeTranslation(-o.x, -o.y, -o.z));
-            matrix.premultiply(tr.makeTranslation(o.x, o.y, o.z));
-            this.target.object3D.applyMatrix(matrix);
-            this.draggingDirection = direction;
-        }
     }
 });
 
@@ -168,14 +159,13 @@ AFRAME.registerComponent('xyrange', {
             width: this.data.thumbSize, height: this.data.thumbSize
         }, this.el);
         this.dragging = false;
-        this.el.sceneEl.systems.xylayout.addDragHandler(this.thumb, this.el, (point) => {
-            if (point) {
-                this.dragging = true;
-                var r = this.el.components.xyrect.width - this.data.thumbSize;
-                this.setValue(((point.x - this.data.thumbSize * 0.5) / r * this.data.max), true);
-            } else {
-                this.el.dispatchEvent(new CustomEvent('change', { detail: this.value }));
+        this.el.sceneEl.systems.xylayout.addDragHandler(this.thumb, this.el, (point, detail) => {
+            this.dragging = true;
+            var r = this.el.components.xyrect.width - this.data.thumbSize;
+            this.setValue(((point.x - this.data.thumbSize * 0.5) / r * this.data.max), true);
+            if (detail.last) {
                 this.dragging = false;
+                this.el.dispatchEvent(new CustomEvent('change', { detail: this.value }));
             }
         });
     },
