@@ -25,6 +25,26 @@ AFRAME.registerSystem('xylayout', {
         }
         parent && parent.appendChild(button);
         return button;
+    },
+    addDragHandler: function (target, el, handler) {
+        target.addEventListener('mousedown', (ev) => {
+            if (!ev.detail.cursorEl || !ev.detail.cursorEl.components.raycaster) {
+                return;
+            }
+            var draggingRaycaster = ev.detail.cursorEl.components.raycaster.raycaster;
+            var dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(el.object3D.matrixWorld);
+            var dragTimer = setInterval((ev) => {
+                var pointw = new THREE.Vector3();
+                if (draggingRaycaster.ray.intersectPlane(dragPlane, pointw) !== null) {
+                    handler(el.object3D.worldToLocal(pointw));
+                }
+            }, 30);
+            window.addEventListener('mouseup', function mouseup() {
+                window.removeEventListener('mouseup', mouseup);
+                clearInterval(dragTimer);
+                handler(null);
+            });
+        });
     }
 });
 
@@ -202,6 +222,7 @@ AFRAME.registerComponent('xyscroll', {
         this.scrollX = 0;
         this.scrollY = 0;
         this.speedY = 0;
+        this.contentHeight = 0;
         this.scrollDelta = Math.max(this.data.height / 2, 0.5);
         this.control = document.createElement('a-entity');
         this.el.appendChild(this.control);
@@ -224,29 +245,33 @@ AFRAME.registerComponent('xyscroll', {
         downButton.setAttribute("position", { x: this.data.width, y: -0.3, z: 0.05 });
         downButton.setAttribute('visible', this.data.scrollbar);
 
-        var scrollThumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
+        this.scrollThumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
             width: 0.2, height: 0.2
         }, this.control);
-        scrollThumb.setAttribute("position", { x: this.data.width + 0.05, y: 0, z: 0.05 });
-        scrollThumb.setAttribute('visible', this.data.scrollbar);
-        this.scrollThumb = scrollThumb;
-
-        this.draggingRaycaster = null;
-        this.draggingPoint = null;
-        this.dragLen = 0.0;
-        this.el.addEventListener('mousedown', (ev) => {
-            this.draggingPoint = null;
-            this.dragLen = 0.0;
-            if (ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster) {
-                this.draggingRaycaster = ev.detail.cursorEl.components.raycaster.raycaster;
-                this.dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(this.el.object3D.matrixWorld);
+        this.scrollThumb.setAttribute("position", { x: this.data.width + 0.05, y: 0, z: 0.05 });
+        this.scrollThumb.setAttribute('visible', this.data.scrollbar);
+        this.el.sceneEl.systems.xylayout.addDragHandler(this.scrollThumb, this.el, (point) => {
+            if (point) {
+                var thumbH = this.scrollThumb.getAttribute("height") * 0;
+                var y = (this.data.height - thumbH / 2 - point.y) * Math.max(0.01, this.contentHeight - this.data.height) / (this.data.height - thumbH);
+                this.setScroll(this.scrollX, y);
             }
         });
-        this.el.addEventListener('mouseup', (ev) => {
-            this.draggingRaycaster = null;
+
+        var draggingPoint = null;
+        var dragLen = 0.0;
+        this.el.sceneEl.systems.xylayout.addDragHandler(this.el, this.el, (point) => {
+            if (draggingPoint && point) {
+                var dy = point.y - draggingPoint.y;
+                this.speedY = dy;
+                dragLen += Math.abs(dy);
+            } else if (point) {
+                dragLen = 0.0;
+            }
+            draggingPoint = point;
         });
         this.el.addEventListener('click', (ev) => {
-            if (this.dragLen > 1) {
+            if (dragLen > 1) {
                 ev.stopPropagation();
             }
         }, true);
@@ -258,18 +283,6 @@ AFRAME.registerComponent('xyscroll', {
         this.el.setAttribute("xyclipping", { exclude: this.control });
     },
     tick: function () {
-        if (this.draggingRaycaster) {
-            var pointw = new THREE.Vector3();
-            if (this.draggingRaycaster.ray.intersectPlane(this.dragPlane, pointw) !== null) {
-                var point = this.el.object3D.worldToLocal(pointw);
-                if (this.draggingPoint) {
-                    var dy = point.y - this.draggingPoint.y;
-                    this.speedY = dy;
-                    this.dragLen += Math.abs(dy);
-                }
-                this.draggingPoint = point;
-            }
-        }
         if (Math.abs(this.speedY) > 0.001) {
             this.setScroll(this.scrollX, this.scrollY + this.speedY);
             this.speedY *= 0.75;
@@ -280,29 +293,31 @@ AFRAME.registerComponent('xyscroll', {
         this.setScroll(this.scrollX, this.scrollY);
     },
     setScroll: function (x, y) {
-        var el = this.el;
+        var children = this.el.children;
         var maxH = 0.001;
-        for (var i = 0; i < el.children.length; i++) {
-            var child = el.children[i];
+        for (var i = 0; i < children.length; i++) {
+            var child = children[i];
             if (child === this.control) continue;
             if (!child.components.xyrect) {
                 child.setAttribute("xyrect", {});
             }
             maxH = Math.max(maxH, child.components.xyrect.height);
         }
-        this.scrollX = Math.max(0, x);
-        this.scrollY = Math.max(0, Math.min(y, maxH - this.data.height));
+        this.contentHeight = maxH;
 
-        var thumbH = Math.max(0.1, Math.min(this.data.height * this.data.height / maxH, 1.0));
+        this.scrollX = Math.max(0, x);
+        this.scrollY = Math.max(0, Math.min(y, this.contentHeight - this.data.height));
+
+        var thumbH = Math.max(0.1, Math.min(this.data.height * this.data.height / this.contentHeight, 1.0));
         this.scrollThumb.setAttribute("height", thumbH);
         this.scrollThumb.setAttribute("position", {
             x: this.data.width + 0.05,
-            y: this.data.height - thumbH / 2 - (this.data.height - thumbH) * this.scrollY / Math.max(0.01, maxH - this.data.height),
+            y: this.data.height - thumbH / 2 - (this.data.height - thumbH) * this.scrollY / Math.max(0.01, this.contentHeight - this.data.height),
             z: 0.05
         });
 
-        for (var i = 0; i < el.children.length; i++) {
-            var item = el.children[i];
+        for (var i = 0; i < children.length; i++) {
+            var item = children[i];
             if (item === this.control) continue;
             if (item.classList.contains("xyscroll-fixed")) {
                 continue;

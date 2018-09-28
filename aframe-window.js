@@ -167,36 +167,17 @@ AFRAME.registerComponent('xyrange', {
         this.thumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
             width: this.data.thumbSize, height: this.data.thumbSize
         }, this.el);
-
-        this.draggingRaycaster = null;
-        this.thumb.addEventListener('mousedown', (ev) => {
-            if (ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster) {
-                this.draggingRaycaster = ev.detail.cursorEl.components.raycaster.raycaster;
-                this.dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(this.el.object3D.matrixWorld);
-                this.dragValue = this.value;
-                this.dragging();
-            }
-        });
-        window.addEventListener('mouseup', (ev) => {
-            if (this.draggingRaycaster) {
-                this.setValue(this.dragValue);
-                this.el.dispatchEvent(new CustomEvent('change', { detail: this.dragValue }));
-            }
-            this.draggingRaycaster = null;
-        });
-
-    },
-    dragging: function () {
-        if (this.draggingRaycaster !== null) {
-            var pointw = new THREE.Vector3();
-            if (this.draggingRaycaster.ray.intersectPlane(this.dragPlane, pointw) !== null) {
-                var point = this.el.object3D.worldToLocal(pointw);
+        this.dragging = false;
+        this.el.sceneEl.systems.xylayout.addDragHandler(this.thumb, this.el, (point) => {
+            if (point) {
+                this.dragging = true;
                 var r = this.el.components.xyrect.width - this.data.thumbSize;
-                this.dragValue = ((point.x - this.data.thumbSize * 0.5) / r * this.data.max);
-                this.setValue(this.dragValue);
+                this.setValue(((point.x - this.data.thumbSize * 0.5) / r * this.data.max), true);
+            } else {
+                this.el.dispatchEvent(new CustomEvent('change', { detail: this.value }));
+                this.dragging = false;
             }
-            setTimeout(this.dragging.bind(this), 30);
-        }
+        });
     },
     update: function () {
         var r = this.el.components.xyrect.width - this.data.thumbSize;
@@ -206,9 +187,11 @@ AFRAME.registerComponent('xyrange', {
             z: 0.01
         });
     },
-    setValue: function (value) {
-        this.value = Math.max(Math.min(value, this.data.max), 0);
-        this.update();
+    setValue: function (value, force) {
+        if (!this.dragging || force) {
+            this.value = Math.max(Math.min(value, this.data.max), 0);
+            this.update();
+        }
     }
 });
 
