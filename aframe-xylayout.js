@@ -21,7 +21,7 @@ AFRAME.registerSystem('xylayout', {
         button.setAttribute("geometry", { primitive: "plane", width: params.width, height: params.height });
         button.setAttribute("material", { color: params.color });
         if (params.text) {
-            button.setAttribute("text", { value: params.text, wrapCount: 4, align: "center" });
+            button.setAttribute("text", { value: params.text, wrapCount: Math.max(4, params.text.length), align: "center" });
         }
         parent && parent.appendChild(button);
         return button;
@@ -165,6 +165,7 @@ AFRAME.registerComponent('xyclipping', {
 });
 
 AFRAME.registerComponent('xycontainer', {
+    dependencies: ['xyrect'],
     schema: {
         width: { type: 'number', default: 1.0 },
         height: { type: 'number', default: 1.0 },
@@ -180,9 +181,9 @@ AFRAME.registerComponent('xycontainer', {
             return;
         }
         var children = this.el.children;
-        var p = 0;
         var vertical = this.data.mode === "vertical";
         var attrName = vertical ? "height" : "width";
+        var p = vertical ? (- this.el.components.xyrect.data.pivotY * h) : (- this.el.components.xyrect.data.pivotX * w) ;
         for (var i = 0; i < children.length; i++) {
             var item = children[i];
             if (!item.components || !item.components.position) continue;
@@ -456,7 +457,8 @@ AFRAME.registerComponent('xycanvas', {
 
 AFRAME.registerPrimitive('a-xylayout', {
     defaultComponents: {
-        xycontainer: {}
+        xycontainer: {},
+        xyrect: {pivotY: 0, pivotX: 0}
     },
     mappings: {
         width: 'xycontainer.width',

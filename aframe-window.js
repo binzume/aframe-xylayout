@@ -8,38 +8,51 @@ if (typeof AFRAME === 'undefined') {
 
 AFRAME.registerComponent('drag-rotation', {
     schema: {
-        target: { type: 'selector', default: null }
+        target: { type: 'selector', default: null },
+        draggable: { type: 'string', default: "" },
+        mode: { type: 'string', default: "pan" }
     },
     init: function () {
         this.target = this.data.target || this.el;
+        var draggable = Array.isArray(this.data.draggable) ? this.data.draggable :
+            this.data.draggable != "" ? this.el.querySelectorAll(this.data.draggable) : [this.el];
 
         this.dragLen = 0;
         this.dragThreshold = 0.2;
         this.draggingDirection = null;
 
-        this.el.sceneEl.systems.xylayout.addDragHandler(this.el, this.el, (point, detail) => {
+        var dragFun = (point, detail) => {
             var direction = detail.raycaster.ray.direction.clone();
             if (detail.first) {
                 this.dragLen = 0;
             } else {
                 this.dragLen += this.draggingDirection.manhattanDistanceTo(direction);
                 if (this.dragLen < this.dragThreshold) return;
-                var rot = new THREE.Quaternion().setFromUnitVectors(this.draggingDirection, direction);
-                var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
-                var o = detail.raycaster.ray.origin;
-                var tr = new THREE.Matrix4();
-                matrix.multiply(tr.makeTranslation(-o.x, -o.y, -o.z));
-                matrix.premultiply(tr.makeTranslation(o.x, o.y, o.z));
-                this.target.object3D.applyMatrix(matrix);
+                if (this.data.mode == "move") {
+                    var d = direction.clone().sub(this.draggingDirection).applyQuaternion(this.el.sceneEl.camera.getWorldQuaternion().inverse());
+                    this.target.object3D.position.add(d.multiplyScalar(16).applyQuaternion(this.el.object3D.getWorldQuaternion()));
+                } else {
+                    var rot = new THREE.Quaternion().setFromUnitVectors(this.draggingDirection, direction);
+                    var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
+                    var o = detail.raycaster.ray.origin;
+                    var tr = new THREE.Matrix4();
+                    matrix.multiply(tr.makeTranslation(-o.x, -o.y, -o.z));
+                    matrix.premultiply(tr.makeTranslation(o.x, o.y, o.z));
+                    this.target.object3D.applyMatrix(matrix);
+                }
             }
             this.draggingDirection = direction;
-        });
-        this.el.parentNode.addEventListener('click', (ev) => {
+        };
+        var clickFun = (ev) => {
             if (this.dragLen > this.dragThreshold && ev.path.includes(this.el)) {
                 ev.stopImmediatePropagation();
             }
             this.dragLen = 0;
-        }, true);
+        };
+        for (var i = 0; i < draggable.length; i++) {
+            this.el.sceneEl.systems.xylayout.addDragHandler(draggable[i], draggable[i], dragFun);
+            draggable[i].parentNode.addEventListener('click', clickFun, true);
+        }
     }
 });
 
@@ -193,6 +206,7 @@ AFRAME.registerPrimitive('a-xywindow', {
     mappings: {
         width: 'xycontainer.width',
         height: 'xycontainer.height',
+        layoutmode: 'xycontainer.mode',
         title: 'xywindow.title',
         dialog: 'xywindow.dialog'
     }
