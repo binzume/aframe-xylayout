@@ -11,6 +11,7 @@ AFRAME.registerSystem('xylayout', {
         params.color = params.color || "#444";
         params.color2 = params.color2 || "#888";
         var button = el || document.createElement('a-entity');
+        button.classList.add("clickable");
         button.addEventListener('mouseenter', (e) => {
             button.setAttribute("material", { color: params.color2 });
         });
@@ -27,6 +28,7 @@ AFRAME.registerSystem('xylayout', {
         return button;
     },
     addDragHandler: function (target, el, handler) {
+        target.classList.add("clickable");
         target.addEventListener('mousedown', (ev) => {
             if (!ev.detail.cursorEl || !ev.detail.cursorEl.components.raycaster) {
                 return;
@@ -53,7 +55,7 @@ AFRAME.registerSystem('xylayout', {
 AFRAME.registerComponent('xyrect', {
     dependencies: ['position'],
     schema: {
-        width: { type: 'number', default: -1 },
+        width: { type: 'number', default: -1 }, // -1 : auto
         height: { type: 'number', default: -1 },
         pivotX: { type: 'number', default: 0.5 },
         pivotY: { type: 'number', default: 0.5 }
@@ -108,6 +110,7 @@ AFRAME.registerComponent('xyclipping', {
         this.clippingPlanes = [];
         this.exclude = this.data.exclude;
         this.currentMatrix = null;
+        this.el.classList.add("clickable");
         this.el.addEventListener('click', (ev) => {
             if (!ev.path.includes(this.data.exclude)) {
                 if (ev.detail.intersection && this.isClipped(ev.detail.intersection.point)) {
@@ -196,7 +199,11 @@ AFRAME.registerComponent('xycontainer', {
                 sz = item.components.xyrect[attrName];
                 if (vertical) {
                     offset = item.components.xyrect.data.pivotY;
-                    item.components.xyrect.doLayout(w, sz);
+                    var scaledw = w;
+                    if (item.components.scale) {
+                        scaledw /= item.components.scale.data.x;
+                    }
+                    item.components.xyrect.doLayout(scaledw, sz);
                 } else {
                     offset = item.components.xyrect.data.pivotX;
                     item.components.xyrect.doLayout(sz, h);
@@ -271,6 +278,7 @@ AFRAME.registerComponent('xyscroll', {
             }
             draggingPoint = point;
         });
+        this.el.classList.add("clickable");
         this.el.addEventListener('click', (ev) => {
             if (dragLen > 1) {
                 ev.stopPropagation();
@@ -353,6 +361,7 @@ AFRAME.registerComponent('xylist', {
         this.itemClicked = null;
         this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.itemHeight, pivotX: 0, pivotY: 0 });
         this.setRect(0, 0, 0, 0);
+        this.el.classList.add("clickable");
         this.el.addEventListener('click', (ev) => {
             for (var i = 0; i < ev.path.length; i++) {
                 if (ev.path[i].parentNode == this.el && ev.path[i].dataset.listPosition != null) {
@@ -401,6 +410,7 @@ AFRAME.registerComponent('xylist', {
             while (n > this.elements.length) {
                 var el = this.elementFactory(this.el, this.userData);
                 el.dataset.listPosition = -1;
+                el.classList.add("clickable");
                 this.el.appendChild(el);
                 this.elements.push(el);
             }

@@ -83,14 +83,13 @@ AFRAME.registerComponent('simplebutton', {
 });
 
 AFRAME.registerComponent('xywindow', {
-    dependencies: ['xyrect'],
+    dependencies: ['xycontainer'],
     schema: {
         title: { type: 'string', default: "" },
         dialog: { type: 'bool', default: false },
         closable: { type: 'bool', default: true }
     },
     init: function () {
-        this.el.setAttribute("xycontainer", {});
         this.controls = document.createElement('a-entity');
         this.el.appendChild(this.controls);
 
