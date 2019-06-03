@@ -65,7 +65,7 @@ AFRAME.registerComponent('xyrect', {
         this.width = 0;
     },
     update: function () {
-        if (this.el.components.rounded) {
+        if (this.el.components.rounded || this.el.tagName == "A-INPUT") {
             // hack for a-frame-material
             this.data.pivotX = 0;
             this.data.pivotY = 0;
@@ -177,7 +177,7 @@ AFRAME.registerComponent('xycontainer', {
     },
     update: function () {
         this.doLayout(this.data.width, this.data.height);
-        this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.height, pivotY: 0, pivotX: 0 });
+        this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.height });
     },
     doLayout: function (w, h) {
         if (this.data.mode === "none") {
@@ -191,30 +191,33 @@ AFRAME.registerComponent('xycontainer', {
             var item = children[i];
             if (!item.components || !item.components.position) continue;
             var sz, offset = 0;
-            if (item.components.xyrect) {
+            var childRect = item.components.xyrect;
+            var childScale = item.getAttribute("scale");
+            if (childRect) {
+                var scaledw = (childScale && childScale.x > 0) ? w / childScale.x : w;
+                var scaledh = (childScale && childScale.y > 0) ? h / childScale.y : h;
                 if (this.data.mode === "fill") {
-                    item.components.xyrect.doLayout(w, h);
+                    childRect.doLayout(scaledw, scaledh);
                     continue;
                 }
-                sz = item.components.xyrect[attrName];
                 if (vertical) {
-                    offset = item.components.xyrect.data.pivotY;
-                    var scaledw = w;
-                    if (item.components.scale) {
-                        scaledw /= item.components.scale.data.x;
-                    }
-                    item.components.xyrect.doLayout(scaledw, sz);
+                    sz = childRect.height;
+                    offset = childRect.data.pivotY;
+                    childRect.doLayout(scaledw, sz);
                 } else {
-                    offset = item.components.xyrect.data.pivotX;
-                    item.components.xyrect.doLayout(sz, h);
+                    sz = childRect.width;
+                    offset = childRect.data.pivotX;
+                    childRect.doLayout(sz, scaledh);
                 }
             } else if (item.getAttribute(attrName)) {
                 sz = item.getAttribute(attrName) * 1;
             }
             var pos = item.object3D.position;
             if (vertical) {
+                sz = childScale ? sz * childScale.y : sz;
                 pos.y = this.data[attrName] - (p + (1 - offset) * sz);
             } else {
+                sz = childScale ? sz * childScale.x : sz;
                 pos.x = p + offset * sz;
             }
             p += sz + this.data.spacing;
@@ -419,7 +422,7 @@ AFRAME.registerComponent('xylist', {
         for (var position = st; position < en; position++) {
             retry |= !this.updateElement(position);
         }
-        this.tick = retry ? this.refresh : function () { };
+        if (retry) setTimeout(this.refresh.bind(this), 100);
 
         for (var t = 0; t < this.elements.length; t++) {
             var p = this.elements[t].dataset.listPosition;
@@ -473,7 +476,7 @@ AFRAME.registerPrimitive('a-xylayout', {
     mappings: {
         width: 'xycontainer.width',
         height: 'xycontainer.height',
-        mode: 'xycontainer.mode',
+        layoutmode: 'xycontainer.mode',
         spacing: 'xycontainer.spacing'
     }
 });

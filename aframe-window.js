@@ -104,10 +104,12 @@ AFRAME.registerComponent('xywindow', {
                 width: 0.5, height: 0.5,
                 color: "#444", color2: "#f00", text: " X"
             }, this.controls);
-            closeButton.setAttribute("position", { x: this.el.components.xyrect.width - 0.5, y: 0.3, z: 0 });
             closeButton.addEventListener('click', (ev) => {
-                this.el.parentNode.removeChild(this.el);
+                if (this.data.closable) {
+                    this.el.parentNode.removeChild(this.el);
+                }
             });
+            this.closeButton = closeButton;
         }
 
         this.titleText = document.createElement('a-text');
@@ -123,6 +125,9 @@ AFRAME.registerComponent('xywindow', {
             y: this.el.components.xyrect.height * 0.5,
             z: 0.01
         });
+        if (this.closeButton) {
+            this.closeButton.setAttribute("position", { x: this.el.components.xyrect.width - 0.5, y: 0.3, z: 0 });
+        }
         if (this.data.width > 0 && this.data.height > 0) {
             return;
         }
