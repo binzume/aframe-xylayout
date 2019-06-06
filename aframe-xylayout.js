@@ -6,10 +6,36 @@ if (typeof AFRAME === 'undefined') {
     throw 'AFRAME is not loaded.';
 }
 
+AFRAME.registerGeometry('xy-rounded-rect', {
+    schema: {
+        height: { default: 1, min: 0 },
+        width: { default: 1, min: 0 },
+        radius: { default: 0.05, min: 0 }
+    },
+    init: function (data) {
+        var shape = new THREE.Shape();
+        var radius = data.radius;
+        var w = data.width, h = data.height;
+        var x = -w / 2, y = -h / 2;
+        shape.moveTo(x, y + radius);
+        shape.lineTo(x, y + h - radius);
+        shape.quadraticCurveTo(x, y + h, x + radius, y + h);
+        shape.lineTo(x + w - radius, y + h);
+        shape.quadraticCurveTo(x + w, y + h, x + w, y + h - radius);
+        shape.lineTo(x + w, y + radius);
+        shape.quadraticCurveTo(x + w, y, x + w - radius, y);
+        shape.lineTo(x + radius, y);
+        shape.quadraticCurveTo(x, y, x, y + radius);
+        this.geometry = new THREE.ShapeGeometry(shape);
+    }
+});
+
 AFRAME.registerSystem('xylayout', {
-    createSimpleButton: function (params, parent, el) {
-        params.color = params.color || "#444";
+    defaultButtonGeometry: 'xy-rounded-rect',
+    createSimpleButton: function (params, parent, el, geometry) {
+        params.color = params.color || "#222";
         params.color2 = params.color2 || "#888";
+        var geometry = params.geometry || this.defaultButtonGeometry;
         var button = el || document.createElement('a-entity');
         button.classList.add("clickable");
         button.addEventListener('mouseenter', (e) => {
@@ -19,7 +45,7 @@ AFRAME.registerSystem('xylayout', {
             button.setAttribute("material", { color: params.color });
         });
 
-        button.setAttribute("geometry", { primitive: "plane", width: params.width, height: params.height });
+        button.setAttribute("geometry", { primitive: geometry, width: params.width, height: params.height });
         button.setAttribute("material", { color: params.color });
         if (params.text) {
             button.setAttribute("text", { value: params.text, wrapCount: Math.max(4, params.text.length), align: "center" });
@@ -38,7 +64,7 @@ AFRAME.registerSystem('xylayout', {
             var check = (first, last) => {
                 var pointw = new THREE.Vector3();
                 if (draggingRaycaster.ray.intersectPlane(dragPlane, pointw) !== null) {
-                    handler(el.object3D.worldToLocal(pointw), {raycaster: draggingRaycaster, last: last, first: first});
+                    handler(el.object3D.worldToLocal(pointw), { raycaster: draggingRaycaster, last: last, first: first });
                 }
             };
             check(true, false);
@@ -76,11 +102,11 @@ AFRAME.registerComponent('xyrect', {
         if (this.data.height < 0 && this.el.getAttribute("height")) {
             this.height = this.el.getAttribute("height") * 1;
         }
-        if (this.data.height > 0) {
-            this.height = this.data.height;
-        }
-        if (this.data.width > 0) {
+        if (this.data.width >= 0) {
             this.width = this.data.width;
+        }
+        if (this.data.height >= 0) {
+            this.height = this.data.height;
         }
     },
     doLayout: function (w, h) {
@@ -173,6 +199,7 @@ AFRAME.registerComponent('xycontainer', {
         width: { type: 'number', default: 1.0 },
         height: { type: 'number', default: 1.0 },
         spacing: { type: 'number', default: 0.05 },
+        padding: { type: 'number', default: 0 },
         mode: { type: 'string', default: "vertical", oneOf: ['none', 'fill', 'vertical', 'horizontal'] }
     },
     update: function () {
@@ -185,41 +212,46 @@ AFRAME.registerComponent('xycontainer', {
         }
         var children = this.el.children;
         var vertical = this.data.mode === "vertical";
-        var attrName = vertical ? "height" : "width";
-        var p = vertical ? (- this.el.components.xyrect.data.pivotY * h) : (- this.el.components.xyrect.data.pivotX * w) ;
+        var p = vertical ? ((this.el.components.xyrect.data.pivotY - 1) * h) : (- this.el.components.xyrect.data.pivotX * w);
+        p += this.data.padding;
         for (var i = 0; i < children.length; i++) {
             var item = children[i];
-            if (!item.components || !item.components.position) continue;
-            var sz, offset = 0;
+            if (item.classList.contains("xy-ignorelayout")) {
+                continue;
+            }
             var childRect = item.components.xyrect;
-            var childScale = item.getAttribute("scale");
+            var childScale = item.getAttribute("scale") || { x: 1, y: 1 };
+            var pivot = 0.5;
             if (childRect) {
-                var scaledw = (childScale && childScale.x > 0) ? w / childScale.x : w;
-                var scaledh = (childScale && childScale.y > 0) ? h / childScale.y : h;
+                var scaledw = (childScale.x != 0) ? w / childScale.x : w;
+                var scaledh = (childScale.y != 0) ? h / childScale.y : h;
                 if (this.data.mode === "fill") {
                     childRect.doLayout(scaledw, scaledh);
                     continue;
                 }
                 if (vertical) {
-                    sz = childRect.height;
-                    offset = childRect.data.pivotY;
-                    childRect.doLayout(scaledw, sz);
+                    pivot = childRect.data.pivotY;
+                    childRect.doLayout(scaledw, childRect.height);
                 } else {
-                    sz = childRect.width;
-                    offset = childRect.data.pivotX;
-                    childRect.doLayout(sz, scaledh);
+                    pivot = childRect.data.pivotX;
+                    childRect.doLayout(childRect.width, scaledh);
                 }
-            } else if (item.getAttribute(attrName)) {
-                sz = item.getAttribute(attrName) * 1;
-            }
-            var pos = item.object3D.position;
-            if (vertical) {
-                sz = childScale ? sz * childScale.y : sz;
-                pos.y = this.data[attrName] - (p + (1 - offset) * sz);
             } else {
-                sz = childScale ? sz * childScale.x : sz;
-                pos.x = p + offset * sz;
+                childRect = {
+                    width: item.getAttribute("width") * 1,
+                    height: item.getAttribute("height") * 1
+                };
             }
+            var pos = item.getAttribute("position") || { x: 0, y: 0, z: 0 };
+            var sz;
+            if (vertical) {
+                sz = childRect.height * childScale.y;
+                pos.y = - (p + (1 - pivot) * sz);
+            } else {
+                sz = childRect.width * childScale.x;
+                pos.x = p + pivot * sz;
+            }
+            item.setAttribute("position", pos);
             p += sz + this.data.spacing;
         }
     }
@@ -471,13 +503,14 @@ AFRAME.registerComponent('xycanvas', {
 AFRAME.registerPrimitive('a-xylayout', {
     defaultComponents: {
         xycontainer: {},
-        xyrect: {pivotY: 0, pivotX: 0}
+        xyrect: {}
     },
     mappings: {
         width: 'xycontainer.width',
         height: 'xycontainer.height',
         layoutmode: 'xycontainer.mode',
-        spacing: 'xycontainer.spacing'
+        spacing: 'xycontainer.spacing',
+        padding: 'xycontainer.padding'
     }
 });
 

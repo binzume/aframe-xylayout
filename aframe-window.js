@@ -6,7 +6,7 @@ if (typeof AFRAME === 'undefined') {
     throw 'AFRAME is not loaded.';
 }
 
-AFRAME.registerComponent('drag-rotation', {
+AFRAME.registerComponent('xy-drag-rotation', {
     schema: {
         target: { type: 'selector', default: null },
         draggable: { type: 'string', default: "" },
@@ -56,32 +56,6 @@ AFRAME.registerComponent('drag-rotation', {
     }
 });
 
-AFRAME.registerComponent('simplebutton', {
-    schema: {
-        color: { type: 'string', default: "#444" },
-        color2: { type: 'string', default: "#888" },
-        text: { type: 'string', default: "" }
-    },
-    init: function () {
-        this.el.addEventListener('mouseenter', (e) => {
-            this.el.setAttribute("material", { color: this.data.color2 });
-        });
-        this.el.addEventListener('mouseleave', (e) => {
-            this.el.setAttribute("material", { color: this.data.color });
-        });
-        this.labelText = null;
-    },
-    update: function () {
-        this.el.setAttribute("geometry", { primitive: "plane", width: this.data.width, height: this.data.height });
-        this.el.setAttribute("material", { color: this.data.color });
-        if (this.data.text != "") {
-            this.el.setAttribute("text", { value: this.data.text, wrapCount: 4, align: "center" });
-        } else {
-            this.el.removeAttribute("text");
-        }
-    }
-});
-
 AFRAME.registerComponent('xywindow', {
     dependencies: ['xycontainer'],
     schema: {
@@ -91,18 +65,20 @@ AFRAME.registerComponent('xywindow', {
     },
     init: function () {
         this.controls = document.createElement('a-entity');
+        this.controls.setAttribute("position", { x: 0, y: 0, z: -0.05 });
         this.el.appendChild(this.controls);
 
         var dragButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
-            width: 1, height: 0.5
+            width: 1, height: 0.5, color2: "#333"
         }, this.controls);
-        dragButton.setAttribute("position", { x: 0.5, y: 0.3, z: 0 });
-        dragButton.setAttribute("drag-rotation", { target: this.el });
+        dragButton.setAttribute("position", { x: -0.1, y: 0.3, z: 0 });
+        dragButton.setAttribute("xy-drag-rotation", { target: this.el });
+        this.dragButton = dragButton;
 
         if (this.data.closable) {
             var closeButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
                 width: 0.5, height: 0.5,
-                color: "#444", color2: "#f00", text: " X"
+                color: "#333", color2: "#f00", text: " X"
             }, this.controls);
             closeButton.addEventListener('click', (ev) => {
                 if (this.data.closable) {
@@ -110,24 +86,24 @@ AFRAME.registerComponent('xywindow', {
                 }
             });
             this.closeButton = closeButton;
+            dragButton.setAttribute("position", { x: -0.4, y: 0.3, z: 0 });
         }
 
         this.titleText = document.createElement('a-text');
         this.controls.appendChild(this.titleText);
-        this.titleText.setAttribute("position", { x: 1.3, y: 0.3, z: 0 });
         this.setTitle(this.data.title);
     },
     update: function () {
     },
     tick: function () {
-        this.controls.setAttribute("position", {
-            x: -this.el.components.xyrect.width * 0.5,
-            y: this.el.components.xyrect.height * 0.5,
-            z: 0.01
-        });
+        var a = 0.2;
         if (this.closeButton) {
-            this.closeButton.setAttribute("position", { x: this.el.components.xyrect.width - 0.5, y: 0.3, z: 0 });
+            this.closeButton.setAttribute("position", { x: this.el.components.xyrect.width / 2 - 0.5, y: 0.3, z: 0 });
+            a += 0.6;
         }
+        this.controls.setAttribute("position", "y", this.el.components.xyrect.height * 0.5);
+        this.dragButton.setAttribute("geometry", "width", this.el.components.xyrect.width - a);
+        this.titleText.setAttribute("position", { x: -this.el.components.xyrect.width / 2 + 0.3, y: 0.3, z: 0.02 });
         if (this.data.width > 0 && this.data.height > 0) {
             return;
         }
