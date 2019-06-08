@@ -138,13 +138,9 @@ AFRAME.registerComponent('xyclipping', {
         this.exclude = this.data.exclude;
         this.currentMatrix = null;
         this.el.classList.add("clickable");
-        this.el.addEventListener('click', (ev) => {
-            if (!ev.path.includes(this.data.exclude)) {
-                if (ev.detail.intersection && this.isClipped(ev.detail.intersection.point)) {
-                    ev.stopPropagation();
-                }
-            }
-        }, true);
+        this._filterEvent = this._filterEvent.bind(this);
+        this.filterTargets = ['click', 'mousedown', 'mouseenter', 'mouseleave', 'mousemove'];
+        this.filterTargets.forEach(t => this.el.addEventListener(t, this._filterEvent, true));
     },
     update: function () {
         this.clippingPlanes = [];
@@ -156,9 +152,26 @@ AFRAME.registerComponent('xyclipping', {
         if (this.data.clipRight) this.clippingPlanesLocal.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), rect.width));
         this.updateMatrix();
     },
+    remove: function () {
+        this.filterTargets.forEach(t => this.el.removeEventListener(t, this._filterEvent, true));
+    },
     tick: function () {
         if (!this.el.object3D.matrixWorld.equals(this.currentMatrix)) {
             this.updateMatrix();
+        }
+    },
+    _filterEvent: function (ev) {
+        if (!ev.path.includes(this.data.exclude)) {
+            if (ev.detail.intersection && this.isClipped(ev.detail.intersection.point)) {
+                ev.stopPropagation();
+                if (ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster) {
+                    let targets = ev.detail.cursorEl.components.raycaster.intersectedEls;
+                    let c = targets.indexOf(ev.target);
+                    if (c >= 0 && c + 1 < targets.length) {
+                        targets[c + 1].dispatchEvent(new CustomEvent(ev.type, ev));
+                    }
+                }
+            }
         }
     },
     updateMatrix: function () {
