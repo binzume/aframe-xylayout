@@ -1,12 +1,13 @@
 # A-Frame xyLayout
 
-Simple 2D layout components.
+Simple 2D layout components for [A-Frame](https://aframe.io/).
 
-## Example
+## Examples
 
-```html
+- [Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
+- [Window UI](https://binzume.github.io/aframe-xylayout/examples/window.html)
 
-```
+![Layout example](./examples/layout.png)
 
 ## Primitives
 
@@ -19,7 +20,16 @@ T.B.D.
 
 T.B.D.
 
-- xyrect
-- xycontainer
-- xyscroll
-- xylist
+### xycontainer
+
+属性値の扱いはFlexboxに似ていますが，最小限の機能しかありません．
+
+
+- direction
+- alignItems
+- justifyItems
+
+### xyitem
+### xyrect
+### xyscroll
+### xylist
