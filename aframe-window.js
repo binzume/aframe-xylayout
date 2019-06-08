@@ -134,20 +134,17 @@ AFRAME.registerComponent('xybutton', {
 AFRAME.registerComponent('xyrange', {
     dependencies: ['xyrect'],
     schema: {
+        min: { type: 'number', default: 0 },
         max: { type: 'number', default: 100 },
+        value: { type: 'number', default: 0 },
         thumbSize: { type: 'number', default: 0.4 }
     },
     init: function () {
-        this.value = 50;
+        this.value = this.data.value;
 
         this.bar = document.createElement('a-entity');
         this.bar.setAttribute("geometry", { primitive: "plane", width: this.el.components.xyrect.width - this.data.thumbSize, height: 0.05 });
         this.bar.setAttribute("material", { color: "#fff" });
-        this.bar.setAttribute("position", {
-            x: (this.el.components.xyrect.width - this.data.thumbSize * 0.5) * 0.5,
-            y: this.el.components.xyrect.height * 0.5,
-            z: 0
-        });
         this.el.appendChild(this.bar);
 
         this.thumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
@@ -157,7 +154,7 @@ AFRAME.registerComponent('xyrange', {
         this.el.sceneEl.systems.xylayout.addDragHandler(this.thumb, this.el, (point, detail) => {
             this.dragging = true;
             var r = this.el.components.xyrect.width - this.data.thumbSize;
-            this.setValue(((point.x - this.data.thumbSize * 0.5) / r * this.data.max), true);
+            this.setValue(((point.x + r * 0.5) / r * this.data.max) + this.data.min, true);
             if (detail.last) {
                 this.dragging = false;
                 this.el.dispatchEvent(new CustomEvent('change', { detail: this.value }));
@@ -167,15 +164,15 @@ AFRAME.registerComponent('xyrange', {
     update: function () {
         var r = this.el.components.xyrect.width - this.data.thumbSize;
         this.thumb.setAttribute("position", {
-            x: r * this.value / this.data.max + this.data.thumbSize * 0.5,
-            y: this.el.components.xyrect.height * 0.5,
+            x: r * this.value / this.data.max - r * 0.5,
+            y: 0,
             z: 0.01
         });
     },
     setValue: function (value, force) {
         if (!this.dragging || force) {
-            this.value = Math.max(Math.min(value, this.data.max), 0);
-            this.update();
+            this.value = Math.max(Math.min(value, this.data.max), this.data.min);
+            this.el.setAttribute("xyrange", "value", this.value);
         }
     }
 });
@@ -214,9 +211,11 @@ AFRAME.registerPrimitive('a-xyrange', {
         xyrange: {}
     },
     mappings: {
+        min: 'xyrange.min',
+        max: 'xyrange.max',
+        value: 'xyrange.value',
         width: 'xyrect.width',
-        height: 'xyrect.height',
-        max: 'xyrange.max'
+        height: 'xyrect.height'
     }
 });
 
