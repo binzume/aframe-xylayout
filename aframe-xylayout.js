@@ -296,6 +296,7 @@ AFRAME.registerComponent('xycontainer', {
                 } else if (align == "end") {
                     pos.x = (this.el.components.xyrect.data.pivotX * w - pivot * childRect.width);
                 } else if (align == "stretch" && item.getAttribute("width") !== null) {
+                    pos.x = - (this.el.components.xyrect.data.pivotX * w - pivot * childRect.width);
                     item.setAttribute("width", w);
                 }
             } else {
@@ -308,6 +309,7 @@ AFRAME.registerComponent('xycontainer', {
                 } else if (align == "end") {
                     pos.y = ((this.el.components.xyrect.data.pivotY - 1) * h) + pivot * childRect.width;
                 } else if (align == "stretch" && item.getAttribute("height") !== null) {
+                    pos.y = -((this.el.components.xyrect.data.pivotY - 1) * h) - pivot * childRect.width;
                     item.setAttribute("height", h);
                 }
             }
