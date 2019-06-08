@@ -235,9 +235,14 @@ AFRAME.registerComponent('xycontainer', {
         }
         var children = this.el.children;
         var vertical = this.data.direction === "vertical" || this.data.direction === "column";
-        var p = vertical ? ((this.el.components.xyrect.data.pivotY - 1) * h) : (- this.el.components.xyrect.data.pivotX * w);
+        var containerRect = this.el.components.xyrect;
+        var p = vertical ? ((containerRect.data.pivotY - 1) * h) : (- containerRect.data.pivotX * w);
         var spacing = this.data.spacing;
         var sizeSum = 0;
+        w -= this.data.padding * 2;
+        h -= this.data.padding * 2;
+        var containerSize = (vertical ? h : w);
+        var stretchScale = null;
         if (this.data.justifyItems != "") {
             var itemCount = 0;
             for (var i = 0; i < children.length; i++) {
@@ -256,16 +261,27 @@ AFRAME.registerComponent('xycontainer', {
             if (itemCount == 0) {
                 return;
             }
-            var containerSize = (vertical ? h : w) - this.data.padding * 2;
             if (this.data.justifyItems == "center") {
                 p += (containerSize - sizeSum - spacing * itemCount) / 2;
             } else if (this.data.justifyItems == "end") {
                 p += (containerSize - sizeSum - spacing * itemCount);
+            } else if (this.data.justifyItems == "stretch") {
+                stretchScale = (containerSize - spacing * (itemCount - 1)) / sizeSum;
             } else if (this.data.justifyItems == "space-between") {
                 spacing = (containerSize - sizeSum) / (itemCount - 1);
             }
         }
 
+        let alignFn = (align, size, pivot, containerSize, containerPivot) => {
+            if (align == "start") {
+                return - (containerPivot * containerSize - pivot * size);
+            } else if (align == "end") {
+                return (containerPivot * containerSize - pivot * size);
+            } else if (align == "stretch") {
+                return - (containerPivot * containerSize - pivot * containerSize);
+            }
+            return 0;
+        }
         p += this.data.padding;
         for (var i = 0; i < children.length; i++) {
             var item = children[i];
@@ -276,54 +292,46 @@ AFRAME.registerComponent('xycontainer', {
             var childRect = item.components.xyrect;
             var align = (layoutItem && layoutItem.data.align) || this.data.alignItems;
             var childScale = item.getAttribute("scale") || { x: 1, y: 1 };
-            var pivot = 0.5;
-            if (childRect) {
-                var scaledw = (childScale.x != 0) ? w / childScale.x : w;
-                var scaledh = (childScale.y != 0) ? h / childScale.y : h;
-                if (this.data.direction === "fill") {
-                    childRect.doLayout(scaledw, scaledh);
-                    continue;
-                }
-                if (vertical) {
-                    pivot = childRect.data.pivotY;
-                    childRect.doLayout(scaledw, childRect.height);
-                } else {
-                    pivot = childRect.data.pivotX;
-                    childRect.doLayout(childRect.width, scaledh);
-                }
-            } else {
+            if (childRect == null) {
                 childRect = {
                     width: item.getAttribute("width") * 1,
-                    height: item.getAttribute("height") * 1
+                    height: item.getAttribute("height") * 1,
+                    pivotX: 0.5, pivotY: 0.5
                 };
             }
             var pos = item.getAttribute("position") || { x: 0, y: 0, z: 0 };
             var sz;
             if (vertical) {
+                let pivot = childRect.pivotY || childRect.data.pivotY;
                 sz = childRect.height * childScale.y;
+                if (stretchScale !== null) {
+                    item.setAttribute("height", childRect.height * stretchScale);
+                    sz *= stretchScale;
+                }
                 pos.y = - (p + (1 - pivot) * sz);
-                if (align == "center") {
-                    pos.x = 0;
-                } else if (align == "start") {
-                    pos.x = - (this.el.components.xyrect.data.pivotX * w - pivot * childRect.width);
-                } else if (align == "end") {
-                    pos.x = (this.el.components.xyrect.data.pivotX * w - pivot * childRect.width);
-                } else if (align == "stretch" && item.getAttribute("width") !== null) {
-                    pos.x = - (this.el.components.xyrect.data.pivotX * w - pivot * w);
-                    item.setAttribute("width", w);
+                if (align != "") {
+                    let pivot2 = childRect.pivotX || childRect.data.pivotX
+                    pos.x = alignFn(align, childRect.width, pivot2, w, containerRect.data.pivotX);
+                    if (align == "stretch") {
+                        var scaledw = (childScale.x != 0) ? w / childScale.x : w;
+                        item.setAttribute("width", scaledw);
+                    }
                 }
             } else {
+                let pivot = childRect.pivotX || childRect.data.pivotX;
                 sz = childRect.width * childScale.x;
+                if (stretchScale !== null) {
+                    item.setAttribute("width", childRect.width * stretchScale);
+                    sz *= stretchScale;
+                }
                 pos.x = p + pivot * sz;
-                if (align == "center") {
-                    pos.y = 0;
-                } else if (align == "start") {
-                    pos.y = -((this.el.components.xyrect.data.pivotY - 1) * h) - pivot * childRect.width;
-                } else if (align == "end") {
-                    pos.y = ((this.el.components.xyrect.data.pivotY - 1) * h) + pivot * childRect.width;
-                } else if (align == "stretch" && item.getAttribute("height") !== null) {
-                    pos.y = -((this.el.components.xyrect.data.pivotY - 1) * h) - pivot * h;
-                    item.setAttribute("height", h);
+                if (align != "") {
+                    let pivot2 = childRect.pivotY || childRect.data.pivotY;
+                    pos.y = - alignFn(align, childRect.height, pivot2, h, containerRect.data.pivotY);
+                    if (align == "stretch") {
+                        var scaledh = (childScale.y != 0) ? h / childScale.y : h;
+                        item.setAttribute("height", scaledh);
+                    }
                 }
             }
             item.setAttribute("position", pos);
