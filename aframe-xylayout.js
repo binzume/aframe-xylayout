@@ -15,7 +15,7 @@ AFRAME.registerGeometry('xy-rounded-rect', {
     init: function (data) {
         var shape = new THREE.Shape();
         var radius = data.radius;
-        var w = data.width, h = data.height;
+        var w = data.width || 0.01, h = data.height || 0.01;
         var x = -w / 2, y = -h / 2;
         shape.moveTo(x, y + radius);
         shape.lineTo(x, y + h - radius);
@@ -32,7 +32,7 @@ AFRAME.registerGeometry('xy-rounded-rect', {
 
 AFRAME.registerSystem('xylayout', {
     defaultButtonGeometry: 'xy-rounded-rect',
-    createSimpleButton: function (params, parent, el, geometry) {
+    createSimpleButton: function (params, parent, el) {
         params.color = params.color || "#222";
         params.color2 = params.color2 || "#888";
         var geometry = params.geometry || this.defaultButtonGeometry;
@@ -48,7 +48,7 @@ AFRAME.registerSystem('xylayout', {
         button.setAttribute("geometry", { primitive: geometry, width: params.width, height: params.height });
         button.setAttribute("material", { color: params.color });
         if (params.text) {
-            button.setAttribute("text", { value: params.text, wrapCount: Math.max(4, params.text.length), align: "center" });
+            button.setAttribute("text", { value: params.text, wrapCount: Math.max(4, params.text.length), zOffset: 0.01, align: "center" });
         }
         parent && parent.appendChild(button);
         return button;
@@ -108,6 +108,7 @@ AFRAME.registerComponent('xyrect', {
         if (this.data.height >= 0) {
             this.height = this.data.height;
         }
+        this.el.dispatchEvent(new CustomEvent('xyresize', { detail: { xyrect: this } }));
     },
     doLayout: function (w, h) {
         if (this.data.width < 0) {
@@ -193,6 +194,13 @@ AFRAME.registerComponent('xyclipping', {
     }
 });
 
+AFRAME.registerComponent('xyitem', {
+    schema: {
+        fixed: { type: 'boolean', default: false },
+        align: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'stretch'] }
+    }
+});
+
 AFRAME.registerComponent('xycontainer', {
     dependencies: ['xyrect'],
     schema: {
@@ -200,32 +208,66 @@ AFRAME.registerComponent('xycontainer', {
         height: { type: 'number', default: 1.0 },
         spacing: { type: 'number', default: 0.05 },
         padding: { type: 'number', default: 0 },
-        mode: { type: 'string', default: "vertical", oneOf: ['none', 'fill', 'vertical', 'horizontal'] }
+        direction: { type: 'string', default: "vertical", oneOf: ['', 'row', 'column', 'fill', 'vertical', 'horizontal'] },
+        alignItems: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'stretch'] },
+        justifyItems: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'space-between', 'stretch'] },
     },
     update: function () {
         this.doLayout(this.data.width, this.data.height);
         this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.height });
     },
     doLayout: function (w, h) {
-        if (this.data.mode === "none") {
+        if (this.data.direction === "") {
             return;
         }
         var children = this.el.children;
-        var vertical = this.data.mode === "vertical";
+        var vertical = this.data.direction === "vertical" || this.data.direction === "column";
         var p = vertical ? ((this.el.components.xyrect.data.pivotY - 1) * h) : (- this.el.components.xyrect.data.pivotX * w);
+        var spacing = this.data.spacing;
+        var sizeSum = 0;
+        if (this.data.justifyItems != "") {
+            var itemCount = 0;
+            for (var i = 0; i < children.length; i++) {
+                var item = children[i];
+                var layoutItem = item.components.xyitem;
+                if (layoutItem && layoutItem.data.fixed || item.classList.contains("xy-ignorelayout")) {
+                    continue; // xy-ignorelayout: DEPRECATED
+                }
+                itemCount++;
+                var childRect = item.components.xyrect || {
+                    width: item.getAttribute("width") * 1,
+                    height: item.getAttribute("height") * 1
+                };
+                sizeSum += vertical ? childRect.height : childRect.width;
+            }
+            if (itemCount == 0) {
+                return;
+            }
+            var containerSize = (vertical ? h : w) - this.data.padding * 2;
+            if (this.data.justifyItems == "center") {
+                p += (containerSize - sizeSum - spacing * itemCount) / 2;
+            } else if (this.data.justifyItems == "end") {
+                p += (containerSize - sizeSum - spacing * itemCount);
+            } else if (this.data.justifyItems == "space-between") {
+                spacing = (containerSize - sizeSum) / (itemCount - 1);
+            }
+        }
+
         p += this.data.padding;
         for (var i = 0; i < children.length; i++) {
             var item = children[i];
-            if (item.classList.contains("xy-ignorelayout")) {
-                continue;
+            var layoutItem = item.components.xyitem;
+            if (layoutItem && layoutItem.data.fixed || item.classList.contains("xy-ignorelayout")) {
+                continue; // xy-ignorelayout: DEPRECATED
             }
             var childRect = item.components.xyrect;
+            var align = (layoutItem && layoutItem.data.align) || this.data.alignItems;
             var childScale = item.getAttribute("scale") || { x: 1, y: 1 };
             var pivot = 0.5;
             if (childRect) {
                 var scaledw = (childScale.x != 0) ? w / childScale.x : w;
                 var scaledh = (childScale.y != 0) ? h / childScale.y : h;
-                if (this.data.mode === "fill") {
+                if (this.data.direction === "fill") {
                     childRect.doLayout(scaledw, scaledh);
                     continue;
                 }
@@ -247,12 +289,30 @@ AFRAME.registerComponent('xycontainer', {
             if (vertical) {
                 sz = childRect.height * childScale.y;
                 pos.y = - (p + (1 - pivot) * sz);
+                if (align == "center") {
+                    pos.x = 0;
+                } else if (align == "start") {
+                    pos.x = - (this.el.components.xyrect.data.pivotX * w - pivot * childRect.width);
+                } else if (align == "end") {
+                    pos.x = (this.el.components.xyrect.data.pivotX * w - pivot * childRect.width);
+                } else if (align == "stretch" && item.getAttribute("width") !== null) {
+                    item.setAttribute("width", w);
+                }
             } else {
                 sz = childRect.width * childScale.x;
                 pos.x = p + pivot * sz;
+                if (align == "center") {
+                    pos.y = 0;
+                } else if (align == "start") {
+                    pos.y = -((this.el.components.xyrect.data.pivotY - 1) * h) - pivot * childRect.width;
+                } else if (align == "end") {
+                    pos.y = ((this.el.components.xyrect.data.pivotY - 1) * h) + pivot * childRect.width;
+                } else if (align == "stretch" && item.getAttribute("height") !== null) {
+                    item.setAttribute("height", h);
+                }
             }
             item.setAttribute("position", pos);
-            p += sz + this.data.spacing;
+            p += sz + spacing;
         }
     }
 });
@@ -271,35 +331,7 @@ AFRAME.registerComponent('xyscroll', {
         this.scrollDelta = Math.max(this.data.height / 2, 0.5);
         this.control = document.createElement('a-entity');
         this.el.appendChild(this.control);
-
-        var upButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
-            width: 0.3, height: 0.5
-        }, this.control);
-        upButton.addEventListener('click', (ev) => {
-            this.speedY = -this.scrollDelta * 0.4;
-        });
-        upButton.setAttribute("position", { x: this.data.width, y: this.data.height + 0.3, z: 0.05 });
-        upButton.setAttribute('visible', this.data.scrollbar);
-
-        var downButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
-            width: 0.3, height: 0.5
-        }, this.control);
-        downButton.addEventListener('click', (ev) => {
-            this.speedY = this.scrollDelta * 0.4;
-        });
-        downButton.setAttribute("position", { x: this.data.width, y: -0.3, z: 0.05 });
-        downButton.setAttribute('visible', this.data.scrollbar);
-
-        this.scrollThumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
-            width: 0.2, height: 0.2
-        }, this.control);
-        this.scrollThumb.setAttribute("position", { x: this.data.width + 0.05, y: 0, z: 0.05 });
-        this.scrollThumb.setAttribute('visible', this.data.scrollbar);
-        this.el.sceneEl.systems.xylayout.addDragHandler(this.scrollThumb, this.el, (point) => {
-            var thumbH = this.scrollThumb.getAttribute("height") * 0;
-            var y = (this.data.height - thumbH / 2 - point.y) * Math.max(0.01, this.contentHeight - this.data.height) / (this.data.height - thumbH);
-            this.setScroll(this.scrollX, y);
-        });
+        this._initScrollBar(this.control, 0.3);
 
         var draggingPoint = null;
         var dragLen = 0.0;
@@ -322,14 +354,47 @@ AFRAME.registerComponent('xyscroll', {
 
         this.setScroll(0, 0);
     },
+    _initScrollBar: function (el, w) {
+        this.upButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
+            width: w, height: 0.3
+        }, el);
+        this.upButton.addEventListener('click', (ev) => {
+            this.speedY = -this.scrollDelta * 0.4;
+        });
+
+        this.downButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
+            width: w, height: 0.3
+        }, el);
+        this.downButton.addEventListener('click', (ev) => {
+            this.speedY = this.scrollDelta * 0.4;
+        });
+        this.scrollThumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
+            width: w * 0.7, height: 0.2
+        }, el);
+        this.el.sceneEl.systems.xylayout.addDragHandler(this.scrollThumb, this.el, (point) => {
+            var thumbH = this.scrollThumb.getAttribute("height") * 0;
+            var scrollY = (this.scrollStart - thumbH / 2 - point.y) * Math.max(0.01, this.contentHeight - this.data.height) / (this.scrollLength - thumbH);
+            this.setScroll(this.scrollX, scrollY);
+        });
+    },
     update: function () {
         this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.height });
         this.el.setAttribute("xyclipping", { exclude: this.control });
+
+        this.upButton.setAttribute('visible', this.data.scrollbar);
+        this.upButton.setAttribute("position", { x: this.data.width + 0.1, y: this.data.height - 0.15, z: 0.05 });
+        this.downButton.setAttribute('visible', this.data.scrollbar);
+        this.downButton.setAttribute("position", { x: this.data.width + 0.1, y: 0.15, z: 0.05 });
+        this.scrollThumb.setAttribute('visible', this.data.scrollbar);
+        this.scrollThumb.setAttribute("position", { x: this.data.width + 0.1, y: 0.4, z: 0.05 });
+
+        this.scrollStart = this.data.height - 0.3;
+        this.scrollLength = this.data.height - 0.6;
     },
     tick: function () {
         if (Math.abs(this.speedY) > 0.001) {
             this.setScroll(this.scrollX, this.scrollY + this.speedY);
-            this.speedY *= 0.75;
+            this.speedY *= 0.8;
         }
     },
     contentChanged: function () {
@@ -352,13 +417,10 @@ AFRAME.registerComponent('xyscroll', {
         this.scrollX = Math.max(0, x);
         this.scrollY = Math.max(0, Math.min(y, this.contentHeight - this.data.height));
 
-        var thumbH = Math.max(0.1, Math.min(this.data.height * this.data.height / this.contentHeight, 1.0));
-        this.scrollThumb.setAttribute("height", thumbH);
-        this.scrollThumb.setAttribute("position", {
-            x: this.data.width + 0.05,
-            y: this.data.height - thumbH / 2 - (this.data.height - thumbH) * this.scrollY / Math.max(0.01, this.contentHeight - this.data.height),
-            z: 0.05
-        });
+        var thumbH = Math.max(0.2, Math.min(this.scrollLength * this.data.height / this.contentHeight, this.scrollLength));
+        this.scrollThumb.hasAttribute("geometry") && this.scrollThumb.setAttribute("geometry", "height", thumbH);
+        var thumbY = this.scrollStart - thumbH / 2 - (this.scrollLength - thumbH) * this.scrollY / Math.max(0.01, this.contentHeight - this.data.height);
+        this.scrollThumb.setAttribute("position", { x: this.data.width + 0.1, y: thumbY, z: 0.05 });
 
         for (var i = 0; i < children.length; i++) {
             var item = children[i];
@@ -508,14 +570,18 @@ AFRAME.registerPrimitive('a-xylayout', {
     mappings: {
         width: 'xycontainer.width',
         height: 'xycontainer.height',
-        layoutmode: 'xycontainer.mode',
+        direction: 'xycontainer.direction',
+        layoutmode: 'xycontainer.direction', // deprecated
         spacing: 'xycontainer.spacing',
-        padding: 'xycontainer.padding'
+        padding: 'xycontainer.padding',
+        "align-items": 'xycontainer.alignItems',
+        "justify-items": 'xycontainer.justifyItems'
     }
 });
 
 AFRAME.registerPrimitive('a-xyscroll', {
     defaultComponents: {
+        xyrect: { pivotX: 0, pivotY: 0 },
         xyscroll: {}
     },
     mappings: {

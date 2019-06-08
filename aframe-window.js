@@ -65,13 +65,12 @@ AFRAME.registerComponent('xywindow', {
     },
     init: function () {
         this.controls = document.createElement('a-entity');
-        this.controls.setAttribute("position", { x: 0, y: 0, z: -0.05 });
+        this.controls.setAttribute("position", { x: 0, y: 0, z: 0.05 });
         this.el.appendChild(this.controls);
 
         var dragButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
             width: 1, height: 0.5, color2: "#333"
         }, this.controls);
-        dragButton.setAttribute("position", { x: -0.1, y: 0.3, z: 0 });
         dragButton.setAttribute("xy-drag-rotation", { target: this.el });
         this.dragButton = dragButton;
 
@@ -86,7 +85,6 @@ AFRAME.registerComponent('xywindow', {
                 }
             });
             this.closeButton = closeButton;
-            dragButton.setAttribute("position", { x: -0.4, y: 0.3, z: 0 });
         }
 
         this.titleText = document.createElement('a-text');
@@ -96,13 +94,14 @@ AFRAME.registerComponent('xywindow', {
     update: function () {
     },
     tick: function () {
-        var a = 0.2;
+        var a = 0;
         if (this.closeButton) {
-            this.closeButton.setAttribute("position", { x: this.el.components.xyrect.width / 2 - 0.5, y: 0.3, z: 0 });
-            a += 0.6;
+            this.closeButton.setAttribute("position", { x: this.el.components.xyrect.width / 2 - 0.25, y: 0.3, z: 0 });
+            a += 0.52;
         }
         this.controls.setAttribute("position", "y", this.el.components.xyrect.height * 0.5);
         this.dragButton.setAttribute("geometry", "width", this.el.components.xyrect.width - a);
+        this.dragButton.setAttribute("position", { x: -a / 2, y: 0.3, z: 0 });
         this.titleText.setAttribute("position", { x: -this.el.components.xyrect.width / 2 + 0.3, y: 0.3, z: 0.02 });
         if (this.data.width > 0 && this.data.height > 0) {
             return;
@@ -124,6 +123,9 @@ AFRAME.registerComponent('xybutton', {
             width: this.el.components.xyrect.width, height: this.el.components.xyrect.height,
             color2: this.data.color2, text: this.data.text
         }, null, this.el);
+        this.el.addEventListener('xyresize', (ev) => {
+            this.el.setAttribute("geometry", { width: ev.detail.xyrect.width, height: ev.detail.xyrect.height });
+        });
     },
     update: function () {
     }
@@ -180,13 +182,14 @@ AFRAME.registerComponent('xyrange', {
 
 AFRAME.registerPrimitive('a-xywindow', {
     defaultComponents: {
-        xycontainer: { mode: "none" },
-        xywindow: { dialog: false }
+        xycontainer: { alignItems: "stretch" },
+        xywindow: {}
     },
     mappings: {
         width: 'xycontainer.width',
         height: 'xycontainer.height',
-        layoutmode: 'xycontainer.mode',
+        layoutmode: 'xycontainer.direction',
+        direction: 'xycontainer.direction',
         title: 'xywindow.title',
         dialog: 'xywindow.dialog'
     }
