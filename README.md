@@ -26,7 +26,7 @@ T.B.D.
 
 レイアウトのコンテナ．
 
-属性値の扱いはFlexboxに似ていますが，最小限の機能しかありません．
+属性値の扱いはFlexboxに似ていますが，flexではありません．
 
 Attributes
 
@@ -35,6 +35,8 @@ Attributes
 | direction    | レイアウト方向 |'vertical', 'horizontal'|
 | justifyItems | レイアウト方向の小要素の挙動 |'', 'center', 'start', 'end', 'space-between', 'stretch'|
 | alignItems   | レイアウトに対し垂直方向の小要素の挙動 |'', 'center', 'start', 'end', 'stretch'|
+| spacing      | レイアウト間隔 | number |
+| padding      | 上下左右の余白 | number |
 
 ### xyitem
 
@@ -45,7 +47,7 @@ Attributes
 
 | name | type | desc |
 | ---- | ---- | ---- |
-| layout | boolean | falseに設定するとレイアウト時に無視されます |
+| fixed | boolean | trueに設定するとレイアウト時に無視されます |
 | align  | align | alignItems参照 |
 
 ### xyrect
@@ -57,8 +59,8 @@ xycontainerは要素のwidth,height属性を見ますが，width,heightからサ
 | ---- | ---- | ---- |
 | width  | number | 要素の幅を明示．無指定時(-1)は要素のwidth属性を使います |
 | height | number | 要素の高さを明示．無指定時(-1)は要素のheight属性を使います |
-| pivotX | number | 要素の原点の位置 |
-| pivotY | number | 要素の原点の位置 |
+| pivotX | number | 要素の原点の位置  (default:0.5) |
+| pivotY | number | 要素の原点の位置  (default:0.5) |
 
 pivotは，左下が(0,0)です．a-frame のほとんどの要素は中心 (0.5, 0.5) が原点です．
 
@@ -70,8 +72,8 @@ pivotは，左下が(0,0)です．a-frame のほとんどの要素は中心 (0.5
 
 | name | type | desc |
 | ---- | ---- | ---- |
-| clipTop    | boolean  | 上部をクリッピングします |
-| clipBottom | boolean  | 下部をクリッピングします |
+| clipTop    | boolean  | 上部をクリッピングします (default:true) |
+| clipBottom | boolean  | 下部をクリッピングします (default:true) |
 | clipLeft   | boolean  | 左側をクリッピングします |
 | clipRight  | boolean  | 右側をクリッピングします |
 | exclude    | selector | クリッピングから除外する要素 |
@@ -84,6 +86,32 @@ THREE.js標準のシェーダを使っている場合のみ正しく動きます
 小要素の高さがはみ出す場合にスクロールバーによるスクロールができるようにします．横スクロールは未対応です．
 
 このコンポーネントだけは，要素の中心ではなく左下を原点として扱います．
+
+| name | type | desc |
+| ---- | ---- | ---- |
+| scrollbar | boolean  | スクロールバーを表示 (default:true) |
+
+### xywindow
+
+| name | type | desc |
+| ---- | ---- | ---- |
+| title    | string  | ウィンドウタイトル |
+| closable | boolean  | 閉じるボタンの表示 (default:true) |
+
+### xybutton
+
+| name | type | desc |
+| ---- | ---- | ---- |
+| label | string  | ボタンのラベル |
+
+### xyrange
+
+| name | type | desc |
+| ---- | ---- | ---- |
+| min   | number | 最小値 |
+| max   | number | 最大値 |
+| value | number | 初期値 |
+| thumbSize | number | つまみサイズ |
 
 ### xylist
 
