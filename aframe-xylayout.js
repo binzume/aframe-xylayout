@@ -353,6 +353,7 @@ AFRAME.registerComponent('xyscroll', {
         this.contentHeight = 0;
         this.scrollDelta = Math.max(this.data.height / 2, 0.5);
         this.control = document.createElement('a-entity');
+        this.thumbLen = 0.2;
         this.el.appendChild(this.control);
         this._initScrollBar(this.control, 0.3);
 
@@ -374,28 +375,26 @@ AFRAME.registerComponent('xyscroll', {
                 ev.stopPropagation();
             }
         }, true);
-
-        this.setScroll(0, 0);
     },
     _initScrollBar: function (el, w) {
         this.upButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
             width: w, height: 0.3
         }, el);
         this.upButton.addEventListener('click', (ev) => {
-            this.speedY = -this.scrollDelta * 0.4;
+            this.speedY = -this.scrollDelta * 0.3;
         });
 
         this.downButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
             width: w, height: 0.3
         }, el);
         this.downButton.addEventListener('click', (ev) => {
-            this.speedY = this.scrollDelta * 0.4;
+            this.speedY = this.scrollDelta * 0.3;
         });
         this.scrollThumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
-            width: w * 0.7, height: 0.2
+            width: w * 0.7, height: this.thumbLen
         }, el);
         this.el.sceneEl.systems.xylayout.addDragHandler(this.scrollThumb, this.el, (point) => {
-            var thumbH = this.scrollThumb.getAttribute("height") * 0;
+            var thumbH = this.thumbLen;
             var scrollY = (this.scrollStart - thumbH / 2 - point.y) * Math.max(0.01, this.contentHeight - this.data.height) / (this.scrollLength - thumbH);
             this.setScroll(this.scrollX, scrollY);
         });
@@ -409,10 +408,10 @@ AFRAME.registerComponent('xyscroll', {
         this.downButton.setAttribute('visible', this.data.scrollbar);
         this.downButton.setAttribute("position", { x: this.data.width + 0.1, y: 0.15, z: 0.05 });
         this.scrollThumb.setAttribute('visible', this.data.scrollbar);
-        this.scrollThumb.setAttribute("position", { x: this.data.width + 0.1, y: 0.4, z: 0.05 });
 
         this.scrollStart = this.data.height - 0.3;
         this.scrollLength = this.data.height - 0.6;
+        this.setScroll(0, 0);
     },
     tick: function () {
         if (Math.abs(this.speedY) > 0.001) {
@@ -441,8 +440,9 @@ AFRAME.registerComponent('xyscroll', {
         this.scrollY = Math.max(0, Math.min(y, this.contentHeight - this.data.height));
 
         var thumbH = Math.max(0.2, Math.min(this.scrollLength * this.data.height / this.contentHeight, this.scrollLength));
-        this.scrollThumb.hasAttribute("geometry") && this.scrollThumb.setAttribute("geometry", "height", thumbH);
         var thumbY = this.scrollStart - thumbH / 2 - (this.scrollLength - thumbH) * this.scrollY / Math.max(0.01, this.contentHeight - this.data.height);
+        this.thumbLen = thumbH;
+        this.scrollThumb.hasAttribute("geometry") && this.scrollThumb.setAttribute("geometry", "height", thumbH);
         this.scrollThumb.setAttribute("position", { x: this.data.width + 0.1, y: thumbY, z: 0.05 });
 
         for (var i = 0; i < children.length; i++) {
@@ -594,7 +594,6 @@ AFRAME.registerPrimitive('a-xylayout', {
         width: 'xycontainer.width',
         height: 'xycontainer.height',
         direction: 'xycontainer.direction',
-        layoutmode: 'xycontainer.direction', // deprecated
         spacing: 'xycontainer.spacing',
         padding: 'xycontainer.padding',
         "align-items": 'xycontainer.alignItems',
@@ -609,6 +608,7 @@ AFRAME.registerPrimitive('a-xyscroll', {
     },
     mappings: {
         width: 'xyscroll.width',
-        height: 'xyscroll.height'
+        height: 'xyscroll.height',
+        scrollbar: 'xyscroll.scrollbar'
     }
 });
