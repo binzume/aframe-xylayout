@@ -48,7 +48,8 @@ AFRAME.registerSystem('xylayout', {
         button.setAttribute("geometry", { primitive: geometry, width: params.width, height: params.height });
         button.setAttribute("material", { color: params.color });
         if (params.text) {
-            button.setAttribute("text", { value: params.text, wrapCount: Math.max(4, params.text.length), zOffset: 0.01, align: "center" });
+            var h = (params.height > 0 ? (params.width / params.height * 1.5) : 2) + 2;
+            button.setAttribute("text", { value: params.text, wrapCount: Math.max(h, params.text.length), zOffset: 0.01, align: "center" });
         }
         parent && parent.appendChild(button);
         return button;
@@ -209,8 +210,10 @@ AFRAME.registerComponent('xyclipping', {
 
 AFRAME.registerComponent('xyitem', {
     schema: {
-        fixed: { type: 'boolean', default: false },
-        align: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'stretch'] }
+        align: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'baseline', 'stretch'] },
+        grow: { type: 'number', default: 1 },
+        shrink: { type: 'number', default: 1 },
+        fixed: { type: 'boolean', default: false }
     }
 });
 
@@ -222,8 +225,8 @@ AFRAME.registerComponent('xycontainer', {
         spacing: { type: 'number', default: 0.05 },
         padding: { type: 'number', default: 0 },
         direction: { type: 'string', default: "vertical", oneOf: ['', 'row', 'column', 'fill', 'vertical', 'horizontal'] },
-        alignItems: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'stretch'] },
-        justifyItems: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'space-between', 'stretch'] },
+        alignItems: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'baseline', 'stretch'] },
+        justifyItems: { type: 'string', default: "start", oneOf: ['center', 'start', 'end', 'space-between', 'space-around', 'stretch'] },
     },
     update: function () {
         this.doLayout(this.data.width, this.data.height);
@@ -242,14 +245,17 @@ AFRAME.registerComponent('xycontainer', {
         w -= this.data.padding * 2;
         h -= this.data.padding * 2;
         var containerSize = (vertical ? h : w);
-        var stretchScale = null;
-        if (this.data.justifyItems != "") {
+        var stretchFactor = 0;
+        if (this.data.justifyItems != "start") {
+            // update: stretchFactor, spacing, p
             var itemCount = 0;
+            var growSum = 0;
+            var shrinkSum = 0;
             for (var i = 0; i < children.length; i++) {
                 var item = children[i];
                 var layoutItem = item.components.xyitem;
-                if (layoutItem && layoutItem.data.fixed || item.classList.contains("xy-ignorelayout")) {
-                    continue; // xy-ignorelayout: DEPRECATED
+                if (layoutItem && layoutItem.data.fixed) {
+                    continue;
                 }
                 itemCount++;
                 var childRect = item.components.xyrect || {
@@ -257,6 +263,8 @@ AFRAME.registerComponent('xycontainer', {
                     height: item.getAttribute("height") * 1
                 };
                 sizeSum += vertical ? childRect.height : childRect.width;
+                growSum += layoutItem ? layoutItem.data.grow : 1;
+                shrinkSum += layoutItem ? layoutItem.data.shrink : 1;
             }
             if (itemCount == 0) {
                 return;
@@ -266,9 +274,18 @@ AFRAME.registerComponent('xycontainer', {
             } else if (this.data.justifyItems == "end") {
                 p += (containerSize - sizeSum - spacing * itemCount);
             } else if (this.data.justifyItems == "stretch") {
-                stretchScale = (containerSize - spacing * (itemCount - 1)) / sizeSum;
+                stretchFactor = containerSize - sizeSum - spacing * (itemCount - 1);
+                if (stretchFactor > 0) {
+                    stretchFactor = growSum > 0 ? stretchFactor / growSum : 0;
+                } else {
+                    stretchFactor = shrinkSum > 0 ? stretchFactor / shrinkSum : 0;
+                }
+                // stretchScale = (containerSize - spacing * (itemCount - 1)) / sizeSum;
             } else if (this.data.justifyItems == "space-between") {
                 spacing = (containerSize - sizeSum) / (itemCount - 1);
+            } else if (this.data.justifyItems == "space-around") {
+                spacing = (containerSize - sizeSum) / itemCount;
+                p += spacing * 0.5;
             }
         }
 
@@ -279,8 +296,10 @@ AFRAME.registerComponent('xycontainer', {
                 return (containerPivot * containerSize - pivot * size);
             } else if (align == "stretch") {
                 return - (containerPivot * containerSize - pivot * containerSize);
+            } else if (align == "center") {
+                return (pivot - 0.5) * size;
             }
-            return 0;
+            return 0; // baseline
         }
         p += this.data.padding;
         for (var i = 0; i < children.length; i++) {
@@ -299,44 +318,47 @@ AFRAME.registerComponent('xycontainer', {
                     pivotX: 0.5, pivotY: 0.5
                 };
             }
+            var stretch = layoutItem ? (stretchFactor > 0 ? layoutItem.data.grow : layoutItem.data.shrink) : 1;
+            stretch *= stretchFactor;
             var pos = item.getAttribute("position") || { x: 0, y: 0, z: 0 };
             var sz;
             if (vertical) {
                 let pivot = childRect.pivotY || childRect.data.pivotY;
                 sz = childRect.height * childScale.y;
-                if (stretchScale !== null) {
-                    item.setAttribute("height", childRect.height * stretchScale);
-                    sz *= stretchScale;
+                if (childScale.y > 0 && stretch != 0) {
+                    item.setAttribute("height", childRect.height + stretch / childScale.y);
+                    sz += stretch;
                 }
                 pos.y = - (p + (1 - pivot) * sz);
                 if (align != "") {
                     let pivot2 = childRect.pivotX || childRect.data.pivotX
                     pos.x = alignFn(align, childRect.width, pivot2, w, containerRect.data.pivotX);
-                    if (align == "stretch") {
-                        var scaledw = (childScale.x != 0) ? w / childScale.x : w;
-                        item.setAttribute("width", scaledw);
+                    if (align == "stretch" && childScale.x != 0) {
+                        item.setAttribute("width", w / childScale.x);
                     }
                 }
             } else {
                 let pivot = childRect.pivotX || childRect.data.pivotX;
                 sz = childRect.width * childScale.x;
-                if (stretchScale !== null) {
-                    item.setAttribute("width", childRect.width * stretchScale);
-                    sz *= stretchScale;
+                if (childScale.x > 0 && stretch != 0) {
+                    item.setAttribute("width", childRect.width + stretch / childScale.x);
+                    sz += stretch;
                 }
                 pos.x = p + pivot * sz;
                 if (align != "") {
                     let pivot2 = childRect.pivotY || childRect.data.pivotY;
                     pos.y = - alignFn(align, childRect.height, pivot2, h, containerRect.data.pivotY);
-                    if (align == "stretch") {
-                        var scaledh = (childScale.y != 0) ? h / childScale.y : h;
-                        item.setAttribute("height", scaledh);
+                    if (align == "stretch" && childScale.y != 0) {
+                        item.setAttribute("height", h / childScale.y);
                     }
                 }
             }
             item.setAttribute("position", pos);
             p += sz + spacing;
         }
+    },
+    requestLayoutUpdate: function () {
+        this.doLayout(this.data.width, this.data.height);
     }
 });
 
