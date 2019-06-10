@@ -21,7 +21,7 @@
         </a-entity>
 
         <!-- vertical---->
-        <a-xylayout position="0 3 -16" width="32" height="5" direction="horizontal" spacing="0.5">
+        <a-xylayout position="0 6 -16" width="32" height="5" direction="horizontal" spacing="0.5">
 
             <a-xylayout width="5" height="5" direction="vertical" spacing="0.1">
                 <a-text xyitem="fixed:true" width="5" height="0.3" position="0 2.8 0" anchor="center" wrap-count="20"
@@ -85,7 +85,7 @@
         </a-xylayout>
 
         <!-- horizontal---->
-        <a-xylayout position="0 -3 -16" width="32" height="5" direction="horizontal" spacing="0.5">
+        <a-xylayout position="0 0 -16" width="32" height="5" direction="horizontal" spacing="0.5">
 
             <a-xylayout width="5" height="5" direction="horizontal" spacing="0.1">
                 <a-text xyitem="fixed:true" width="5" height="0.3" position="0 2.8 0" anchor="center" wrap-count="20"
@@ -137,9 +137,68 @@
                 <a-box xyitem="align:stretch" width="1" height="1" depth="1" color="yellow"></a-box>
             </a-xylayout>
 
+            <a-xylayout width="5" height="5" direction="horizontal" spacing="0.1" justify-items="stretch">
+                <a-text xyitem="fixed:true" width="5" height="0.3" position="0 2.8 0" anchor="center" wrap-count="20"
+                    value="stretch,grow:0,1,2"></a-text>
+                <a-plane xyitem="fixed:true" height="5" width="5" color="#888"></a-plane>
+                <a-box xyitem="grow:0" width="1" height="1" depth="1" color="blue"></a-box>
+                <a-box xyitem="grow:1" width="1" height="1" depth="1" color="red"></a-box>
+                <a-box xyitem="grow:2" width="1" height="1" depth="1" color="green"></a-box>
+            </a-xylayout>
+
+        </a-xylayout>
+
+        <!-- justify---->
+        <a-xylayout position="0 -6 -16" width="32" height="5" direction="horizontal" spacing="0.5">
+
+            <a-xylayout width="5" height="5" direction="horizontal" spacing="0.1" justify-items="start">
+                <a-text xyitem="fixed:true" width="5" height="0.3" position="0 2.8 0" anchor="center" wrap-count="20"
+                    value="justify:start"></a-text>
+                <a-plane xyitem="fixed:true" height="5" width="5" color="#888"></a-plane>
+                <a-box width="1" height="1" depth="1" color="blue"></a-box>
+                <a-box width="1" height="1" depth="1" color="red"></a-box>
+                <a-box width="1" height="1" depth="1" color="green"></a-box>
+            </a-xylayout>
+
+            <a-xylayout width="5" height="5" direction="horizontal" spacing="0.1" justify-items="end">
+                <a-text xyitem="fixed:true" width="5" height="0.3" position="0 2.8 0" anchor="center" wrap-count="20"
+                    value="justify:end"></a-text>
+                <a-plane xyitem="fixed:true" height="5" width="5" color="#888"></a-plane>
+                <a-box width="1" height="1" depth="1" color="blue"></a-box>
+                <a-box width="1" height="1" depth="1" color="red"></a-box>
+                <a-box width="1" height="1" depth="1" color="green"></a-box>
+            </a-xylayout>
+
             <a-xylayout width="5" height="5" direction="horizontal" spacing="0.1" justify-items="center">
                 <a-text xyitem="fixed:true" width="5" height="0.3" position="0 2.8 0" anchor="center" wrap-count="20"
-                    value="horizontal,justify-center"></a-text>
+                    value="justify:center"></a-text>
+                <a-plane xyitem="fixed:true" height="5" width="5" color="#888"></a-plane>
+                <a-box width="1" height="1" depth="1" color="blue"></a-box>
+                <a-box width="1" height="1" depth="1" color="red"></a-box>
+                <a-box width="1" height="1" depth="1" color="green"></a-box>
+            </a-xylayout>
+
+            <a-xylayout width="5" height="5" direction="horizontal" spacing="0.1" justify-items="space-between">
+                <a-text xyitem="fixed:true" width="5" height="0.3" position="0 2.8 0" anchor="center" wrap-count="20"
+                    value="justify:space-between"></a-text>
+                <a-plane xyitem="fixed:true" height="5" width="5" color="#888"></a-plane>
+                <a-box width="1" height="1" depth="1" color="blue"></a-box>
+                <a-box width="1" height="1" depth="1" color="red"></a-box>
+                <a-box width="1" height="1" depth="1" color="green"></a-box>
+            </a-xylayout>
+
+            <a-xylayout width="5" height="5" direction="horizontal" spacing="0.1" justify-items="space-around">
+                <a-text xyitem="fixed:true" width="5" height="0.3" position="0 2.8 0" anchor="center" wrap-count="20"
+                    value="justify:space-around"></a-text>
+                <a-plane xyitem="fixed:true" height="5" width="5" color="#888"></a-plane>
+                <a-box width="1" height="1" depth="1" color="blue"></a-box>
+                <a-box width="1" height="1" depth="1" color="red"></a-box>
+                <a-box width="1" height="1" depth="1" color="green"></a-box>
+            </a-xylayout>
+
+            <a-xylayout width="5" height="5" direction="horizontal" spacing="0.1" justify-items="stretch">
+                <a-text xyitem="fixed:true" width="5" height="0.3" position="0 2.8 0" anchor="center" wrap-count="20"
+                    value="justify:stretch"></a-text>
                 <a-plane xyitem="fixed:true" height="5" width="5" color="#888"></a-plane>
                 <a-box width="1" height="1" depth="1" color="blue"></a-box>
                 <a-box width="1" height="1" depth="1" color="red"></a-box>
@@ -147,7 +206,6 @@
             </a-xylayout>
 
         </a-xylayout>
-
     </a-scene>
 </body>
 

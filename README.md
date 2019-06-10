@@ -22,18 +22,18 @@ T.B.D.
 
 ## Components
 
+CSS Flexbox を意識した仕様になっていますが，あまり Flexible ではありません．
+
 ### xycontainer
 
 レイアウトのコンテナ．
-
-属性値の扱いはFlexboxに似ていますが，flexではありません．
 
 Attributes
 
 | name | desc | values |
 | ---- | ---- | ---- |
 | direction    | レイアウト方向 |'vertical', 'horizontal'|
-| justifyItems | レイアウト方向の小要素の挙動 |'', 'center', 'start', 'end', 'space-between', 'stretch'|
+| justifyItems | レイアウト方向の小要素の挙動 |'', 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
 | alignItems   | レイアウトに対し垂直方向の小要素の挙動 |'', 'center', 'start', 'end', 'stretch'|
 | spacing      | レイアウト間隔 | number |
 | padding      | 上下左右の余白 | number |
@@ -47,8 +47,10 @@ Attributes
 
 | name | type | desc |
 | ---- | ---- | ---- |
-| fixed | boolean | trueに設定するとレイアウト時に無視されます |
 | align  | align | alignItems参照 |
+| grow  | number | stretchで拡張される量 |
+| shrink  | number | stretchで縮小される量 |
+| fixed | boolean | trueに設定するとレイアウト時に無視されます |
 
 ### xyrect
 
@@ -111,6 +113,7 @@ THREE.js標準のシェーダを使っている場合のみ正しく動きます
 | min   | number | 最小値 |
 | max   | number | 最大値 |
 | value | number | 初期値 |
+| step  | number | 変化の単位 |
 | thumbSize | number | つまみサイズ |
 
 ### xylist
