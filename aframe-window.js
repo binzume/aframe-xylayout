@@ -60,7 +60,6 @@ AFRAME.registerComponent('xywindow', {
     dependencies: ['xycontainer'],
     schema: {
         title: { type: 'string', default: "" },
-        dialog: { type: 'bool', default: false },
         closable: { type: 'bool', default: true }
     },
     init: function () {
@@ -115,13 +114,13 @@ AFRAME.registerComponent('xywindow', {
 AFRAME.registerComponent('xybutton', {
     dependencies: ['xyrect'],
     schema: {
-        text: { type: 'string', default: null },
+        label: { type: 'string', default: null },
         color2: { type: 'string', default: null }
     },
     init: function () {
         this.el.sceneEl.systems.xylayout.createSimpleButton({
             width: this.el.components.xyrect.width, height: this.el.components.xyrect.height,
-            color2: this.data.color2, text: this.data.text
+            color2: this.data.color2, text: this.data.label
         }, null, this.el);
         this.el.addEventListener('xyresize', (ev) => {
             this.el.setAttribute("geometry", { width: ev.detail.xyrect.width, height: ev.detail.xyrect.height });
@@ -136,6 +135,7 @@ AFRAME.registerComponent('xyrange', {
     schema: {
         min: { type: 'number', default: 0 },
         max: { type: 'number', default: 100 },
+        step: { type: 'number', default: 0 },
         value: { type: 'number', default: 0 },
         thumbSize: { type: 'number', default: 0.4 }
     },
@@ -154,7 +154,11 @@ AFRAME.registerComponent('xyrange', {
         this.el.sceneEl.systems.xylayout.addDragHandler(this.thumb, this.el, (point, detail) => {
             this.dragging = true;
             var r = this.el.components.xyrect.width - this.data.thumbSize;
-            this.setValue(((point.x + r * 0.5) / r * this.data.max) + this.data.min, true);
+            var p = (point.x + r * 0.5) / r * (this.data.max - this.data.min);
+            if (this.data.step > 0) {
+                p = Math.round(p / this.data.step) * this.data.step;
+            }
+            this.setValue(p + this.data.min, true);
             if (detail.last) {
                 this.dragging = false;
                 this.el.dispatchEvent(new CustomEvent('change', { detail: this.value }));
@@ -162,9 +166,10 @@ AFRAME.registerComponent('xyrange', {
         });
     },
     update: function () {
+        if (this.data.max <= this.data.min) return;
         var r = this.el.components.xyrect.width - this.data.thumbSize;
         this.thumb.setAttribute("position", {
-            x: r * this.value / this.data.max - r * 0.5,
+            x: r * (this.data.value - this.data.min) / (this.data.max - this.data.min) - r * 0.5,
             y: 0,
             z: 0.01
         });
@@ -185,10 +190,8 @@ AFRAME.registerPrimitive('a-xywindow', {
     mappings: {
         width: 'xycontainer.width',
         height: 'xycontainer.height',
-        layoutmode: 'xycontainer.direction',
         direction: 'xycontainer.direction',
-        title: 'xywindow.title',
-        dialog: 'xywindow.dialog'
+        title: 'xywindow.title'
     }
 });
 
@@ -200,7 +203,7 @@ AFRAME.registerPrimitive('a-xybutton', {
     mappings: {
         width: 'xyrect.width',
         height: 'xyrect.height',
-        label: 'xybutton.text'
+        label: 'xybutton.label'
     }
 });
 
@@ -213,6 +216,7 @@ AFRAME.registerPrimitive('a-xyrange', {
     mappings: {
         min: 'xyrange.min',
         max: 'xyrange.max',
+        step: 'xyrange.step',
         value: 'xyrange.value',
         width: 'xyrect.width',
         height: 'xyrect.height'
