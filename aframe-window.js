@@ -53,28 +53,66 @@ AFRAME.registerSystem('xylayout', {
         }
         parent && parent.appendChild(button);
         return button;
+    }
+});
+
+AFRAME.registerComponent('xy-draggable', {
+    schema: {
+        dragThreshold: { default: 0.02 },
+        preventClick: { default: true },
+        base: { type: 'selector', default: null }
     },
-    addDragHandler: function (target, el, handler) {
-        target.classList.add("clickable");
-        target.addEventListener('mousedown', (ev) => {
-            if (!ev.detail.cursorEl || !ev.detail.cursorEl.components.raycaster) {
-                return;
+    init: function () {
+        this.el.classList.add("clickable");
+        this._onmousedown = this._onmousedown.bind(this);
+        this.el.addEventListener('mousedown', this._onmousedown);
+    },
+    remove: function () {
+        this.el.removeEventListener('mousedown', this._onmousedown);
+    },
+    _onmousedown: function (ev) {
+        if (!ev.detail.cursorEl || !ev.detail.cursorEl.components.raycaster) {
+            return;
+        }
+        let baseEl = this.data.base || this.el;
+        let draggingRaycaster = ev.detail.cursorEl.components.raycaster.raycaster;
+        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(baseEl.object3D.matrixWorld);
+        let startDirection = draggingRaycaster.ray.direction.clone();
+        let dragging = false;
+        let pointw = new THREE.Vector3();
+        if (draggingRaycaster.ray.intersectPlane(dragPlane, pointw) === null) {
+            return;
+        }
+        let prevPoint = baseEl.object3D.worldToLocal(pointw);
+
+        let dragFun = (event) => {
+            if (!dragging) {
+                let d = startDirection.manhattanDistanceTo(draggingRaycaster.ray.direction);
+                if (d < this.data.dragThreshold) return;
+                event = "xy-dragstart"
+                dragging = true;
             }
-            var draggingRaycaster = ev.detail.cursorEl.components.raycaster.raycaster;
-            var dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(el.object3D.matrixWorld);
-            var check = (first, last) => {
-                var pointw = new THREE.Vector3();
-                if (draggingRaycaster.ray.intersectPlane(dragPlane, pointw) !== null) {
-                    handler(el.object3D.worldToLocal(pointw), { raycaster: draggingRaycaster, last: last, first: first });
+            let pointw = new THREE.Vector3();
+            if (draggingRaycaster.ray.intersectPlane(dragPlane, pointw) !== null) {
+                let p = baseEl.object3D.worldToLocal(pointw);
+                this.el.dispatchEvent(new CustomEvent(event, { detail: { raycaster: draggingRaycaster, point: p, prevPoint: prevPoint } }));
+                prevPoint = p;
+            }
+        };
+        let dragTimer = setInterval(dragFun, 20, "xy-drag");
+        let self = this;
+        window.addEventListener('mouseup', function mouseup() {
+            window.removeEventListener('mouseup', mouseup);
+            clearInterval(dragTimer);
+            if (!dragging) return;
+            if (self.data.preventClick) {
+                let cancelClick = (ev) => {
+                    ev.stopPropagation();
                 }
-            };
-            check(true, false);
-            var dragTimer = setInterval(check, 20, false, false);
-            window.addEventListener('mouseup', function mouseup() {
-                window.removeEventListener('mouseup', mouseup);
-                clearInterval(dragTimer);
-                check(false, true);
-            });
+                window.addEventListener('click', cancelClick, true);
+                setTimeout(() => window.removeEventListener('click', cancelClick, true), 0);
+            }
+            dragFun("xy-dragend");
         });
     }
 });
@@ -86,46 +124,46 @@ AFRAME.registerComponent('xy-drag-rotation', {
         mode: { type: 'string', default: "pan" }
     },
     init: function () {
-        this.target = this.data.target || this.el;
-        var draggable = Array.isArray(this.data.draggable) ? this.data.draggable :
-            this.data.draggable != "" ? this.el.querySelectorAll(this.data.draggable) : [this.el];
-
-        this.dragLen = 0;
-        this.dragThreshold = 0.2;
         this.draggingDirection = null;
+        this._ondrag = this._ondrag.bind(this);
 
-        var dragFun = (point, detail) => {
-            var direction = detail.raycaster.ray.direction.clone();
-            if (detail.first) {
-                this.dragLen = 0;
+        this.draggable = Array.isArray(this.data.draggable) ? this.data.draggable :
+            this.data.draggable != "" ? this.el.querySelectorAll(this.data.draggable) : [this.el];
+        this.draggable.forEach(el => {
+            el.setAttribute("xy-draggable", {});
+            el.addEventListener("xy-dragstart", this._ondrag);
+            el.addEventListener("xy-drag", this._ondrag);
+        });
+    },
+    update: function () {
+        this.target = this.data.target || this.el;
+    },
+    remove: function () {
+        this.draggable.forEach(el => {
+            el.removeAttribute("xy-draggable");
+            el.removeEventListener("xy-dragstart", this._ondrag);
+            el.removeEventListener("xy-drag", this._ondrag);
+        });
+    },
+    _ondrag: function (ev) {
+        var direction = ev.detail.raycaster.ray.direction.clone();
+        if (ev.type != "xy-dragstart") {
+            if (this.data.mode == "move") {
+                var d = direction.clone().sub(this.draggingDirection).applyQuaternion(this.el.sceneEl.camera.getWorldQuaternion().inverse());
+                this.target.object3D.position.add(d.multiplyScalar(16).applyQuaternion(this.el.object3D.getWorldQuaternion()));
             } else {
-                this.dragLen += this.draggingDirection.manhattanDistanceTo(direction);
-                if (this.dragLen < this.dragThreshold) return;
-                if (this.data.mode == "move") {
-                    var d = direction.clone().sub(this.draggingDirection).applyQuaternion(this.el.sceneEl.camera.getWorldQuaternion().inverse());
-                    this.target.object3D.position.add(d.multiplyScalar(16).applyQuaternion(this.el.object3D.getWorldQuaternion()));
-                } else {
-                    var rot = new THREE.Quaternion().setFromUnitVectors(this.draggingDirection, direction);
-                    var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
-                    var o = detail.raycaster.ray.origin;
-                    var tr = new THREE.Matrix4();
-                    matrix.multiply(tr.makeTranslation(-o.x, -o.y, -o.z));
-                    matrix.premultiply(tr.makeTranslation(o.x, o.y, o.z));
-                    this.target.object3D.applyMatrix(matrix);
-                }
+                var rot = new THREE.Quaternion().setFromUnitVectors(this.draggingDirection, direction);
+                var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
+                var o = ev.detail.raycaster.ray.origin;
+                var tr = new THREE.Matrix4();
+                matrix.multiply(tr.makeTranslation(-o.x, -o.y, -o.z));
+                matrix.premultiply(tr.makeTranslation(o.x, o.y, o.z));
+                this.target.object3D.applyMatrix(matrix);
+
+                this.target.object3D.lookAt(this.el.sceneEl.camera.getWorldPosition(new THREE.Vector3()));
             }
-            this.draggingDirection = direction;
-        };
-        var clickFun = (ev) => {
-            if (this.dragLen > this.dragThreshold && ev.path.includes(this.el)) {
-                ev.stopImmediatePropagation();
-            }
-            this.dragLen = 0;
-        };
-        for (var i = 0; i < draggable.length; i++) {
-            this.el.sceneEl.systems.xylayout.addDragHandler(draggable[i], draggable[i], dragFun);
-            draggable[i].parentNode.addEventListener('click', clickFun, true);
         }
+        this.draggingDirection = direction;
     }
 });
 
@@ -161,11 +199,15 @@ AFRAME.registerComponent('xywindow', {
 
         this.titleText = document.createElement('a-text');
         this.controls.appendChild(this.titleText);
-        this.setTitle(this.data.title);
+        this.el.addEventListener('xyresize', (ev) => {
+            this.update({});
+        });
     },
-    update: function () {
-    },
-    tick: function () {
+    update: function (oldData) {
+        if (this.data.title != oldData.title) {
+            var w = this.el.components.xyrect.width - 0.5;
+            this.titleText.setAttribute("text", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w });
+        }
         var a = 0;
         if (this.closeButton) {
             this.closeButton.setAttribute("position", { x: this.el.components.xyrect.width / 2 - 0.25, y: 0.3, z: 0 });
@@ -175,9 +217,6 @@ AFRAME.registerComponent('xywindow', {
         this.dragButton.setAttribute("geometry", "width", this.el.components.xyrect.width - a);
         this.dragButton.setAttribute("position", { x: -a / 2, y: 0.3, z: 0 });
         this.titleText.setAttribute("position", { x: -this.el.components.xyrect.width / 2 + 0.3, y: 0.3, z: 0.02 });
-        if (this.data.width > 0 && this.data.height > 0) {
-            return;
-        }
     },
     setTitle: function (title) {
         this.titleText.setAttribute("value", title);
@@ -220,22 +259,25 @@ AFRAME.registerComponent('xyrange', {
         this.bar.setAttribute("material", { color: "#fff" });
         this.el.appendChild(this.bar);
 
+        this.dragging = false;
+
         this.thumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
             width: this.data.thumbSize, height: this.data.thumbSize
         }, this.el);
-        this.dragging = false;
-        this.el.sceneEl.systems.xylayout.addDragHandler(this.thumb, this.el, (point, detail) => {
+
+        this.thumb.setAttribute("xy-draggable", {base: this.el});
+        this.thumb.addEventListener("xy-drag", ev => {
             this.dragging = true;
             var r = this.el.components.xyrect.width - this.data.thumbSize;
-            var p = (point.x + r * 0.5) / r * (this.data.max - this.data.min);
+            var p = (ev.detail.point.x + r * 0.5) / r * (this.data.max - this.data.min);
             if (this.data.step > 0) {
                 p = Math.round(p / this.data.step) * this.data.step;
             }
             this.setValue(p + this.data.min, true);
-            if (detail.last) {
-                this.dragging = false;
-                this.el.dispatchEvent(new CustomEvent('change', { detail: this.value }));
-            }
+            this.el.dispatchEvent(new CustomEvent('change', { detail: this.value }));
+        });
+        this.thumb.addEventListener("xy-dragend", ev => {
+            this.dragging = false;
         });
     },
     update: function () {
@@ -273,24 +315,10 @@ AFRAME.registerComponent('xyscroll', {
         this.el.appendChild(this.control);
         this._initScrollBar(this.control, 0.3);
 
-        var draggingPoint = null;
-        var dragLen = 0.0;
-        this.el.sceneEl.systems.xylayout.addDragHandler(this.el, this.el, (point, detail) => {
-            if (detail.first) {
-                dragLen = 0.0;
-            } else {
-                var dy = point.y - draggingPoint.y;
-                this.speedY = dy;
-                dragLen += Math.abs(dy);
-            }
-            draggingPoint = point;
+        this.el.setAttribute("xy-draggable", {});
+        this.el.addEventListener("xy-drag", ev => {
+            this.speedY = ev.detail.point.y - ev.detail.prevPoint.y;
         });
-        this.el.classList.add("clickable");
-        this.el.addEventListener('click', (ev) => {
-            if (dragLen > 1) {
-                ev.stopPropagation();
-            }
-        }, true);
     },
     _initScrollBar: function (el, w) {
         this.upButton = this.el.sceneEl.systems.xylayout.createSimpleButton({
@@ -309,9 +337,10 @@ AFRAME.registerComponent('xyscroll', {
         this.scrollThumb = this.el.sceneEl.systems.xylayout.createSimpleButton({
             width: w * 0.7, height: this.thumbLen
         }, el);
-        this.el.sceneEl.systems.xylayout.addDragHandler(this.scrollThumb, this.el, (point) => {
+        this.scrollThumb.setAttribute("xy-draggable", {base: this.el});
+        this.scrollThumb.addEventListener("xy-drag", ev => {
             var thumbH = this.thumbLen;
-            var scrollY = (this.scrollStart - thumbH / 2 - point.y) * Math.max(0.01, this.contentHeight - this.data.height) / (this.scrollLength - thumbH);
+            var scrollY = (this.scrollStart - thumbH / 2 - ev.detail.point.y) * Math.max(0.01, this.contentHeight - this.data.height) / (this.scrollLength - thumbH);
             this.setScroll(this.scrollX, scrollY);
         });
     },
@@ -364,7 +393,7 @@ AFRAME.registerComponent('xyscroll', {
         for (var i = 0; i < children.length; i++) {
             var item = children[i];
             if (item === this.control) continue;
-            if (item.classList.contains("xyscroll-fixed")) {
+            if (item.components.xyitem && item.components.xyitem.data.fixed) {
                 continue;
             }
             var pos = item.getAttribute("position");
