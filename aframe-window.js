@@ -61,6 +61,10 @@ AFRAME.registerComponent('xylabel', {
         ctx.fillStyle = this.data.color;
         ctx.fillText(this.data.value, 0, this.data.resolution);
         this.updateTexture();
+    },
+    remove: function() {
+        this.el.removeAttribute('material');
+        this.el.removeAttribute('geometry');
     }
 });
 
@@ -125,11 +129,10 @@ AFRAME.registerComponent('xy-draggable', {
         let dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(baseEl.object3D.matrixWorld);
         let startDirection = draggingRaycaster.ray.direction.clone();
         let dragging = false;
-        let pointw = new THREE.Vector3();
-        if (draggingRaycaster.ray.intersectPlane(dragPlane, pointw) === null) {
-            return;
+        let point = new THREE.Vector3();
+        if (draggingRaycaster.ray.intersectPlane(dragPlane, point) === null) {
+            baseEl.object3D.worldToLocal(point);
         }
-        let prevPoint = baseEl.object3D.worldToLocal(pointw);
         let prevRay = draggingRaycaster.ray.clone();
 
         let dragFun = (event) => {
@@ -139,13 +142,12 @@ AFRAME.registerComponent('xy-draggable', {
                 event = "xy-dragstart"
                 dragging = true;
             }
-            let pointw = new THREE.Vector3();
-            if (draggingRaycaster.ray.intersectPlane(dragPlane, pointw) !== null) {
-                let p = baseEl.object3D.worldToLocal(pointw);
-                this.el.dispatchEvent(new CustomEvent(event, { detail: { raycaster: draggingRaycaster, point: p, prevPoint: prevPoint, prevRay: prevRay } }));
-                prevPoint = p;
-                prevRay.copy(draggingRaycaster.ray);
+            let prevPoint = point.clone();
+            if (draggingRaycaster.ray.intersectPlane(dragPlane, point) !== null) {
+                baseEl.object3D.worldToLocal(point);
             }
+            this.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay });
+            prevRay.copy(draggingRaycaster.ray);
         };
         let dragTimer = setInterval(dragFun, 20, "xy-drag");
         let self = this;
@@ -200,10 +202,11 @@ AFRAME.registerComponent('xy-drag-rotation', {
         } else {
             var rot = new THREE.Quaternion().setFromUnitVectors(prevDirection, direction);
             var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
-            var o = ev.detail.raycaster.ray.origin;
+            var o1= ev.detail.prevRay.origin;
+            var o2 = ev.detail.raycaster.ray.origin;
             var tr = new THREE.Matrix4();
-            matrix.multiply(tr.makeTranslation(-o.x, -o.y, -o.z));
-            matrix.premultiply(tr.makeTranslation(o.x, o.y, o.z));
+            matrix.multiply(tr.makeTranslation(-o1.x, -o1.y, -o1.z));
+            matrix.premultiply(tr.makeTranslation(o2.x, o2.y, o2.z));
             this.target.object3D.applyMatrix(matrix);
 
             this.target.object3D.lookAt(this.el.sceneEl.camera.getWorldPosition(new THREE.Vector3()));
@@ -218,19 +221,19 @@ AFRAME.registerComponent('xywindow', {
         closable: { type: 'bool', default: true }
     },
     init: function () {
-        this.theme = this.el.sceneEl.systems.xywindow.theme;
+        this.theme = this.system.theme;
         this.controls = document.createElement('a-entity');
         this.controls.setAttribute("position", { x: 0, y: 0, z: 0.05 });
         this.el.appendChild(this.controls);
 
-        var dragButton = this.el.sceneEl.systems.xywindow.createSimpleButton({
+        var dragButton = this.system.createSimpleButton({
             width: 1, height: 0.5, color: this.theme.windowTitleBarColor
         }, this.controls);
         dragButton.setAttribute("xy-drag-rotation", { target: this.el });
         this.dragButton = dragButton;
 
         if (this.data.closable) {
-            var closeButton = this.el.sceneEl.systems.xywindow.createSimpleButton({
+            var closeButton = this.system.createSimpleButton({
                 width: 0.5, height: 0.5,
                 color: this.theme.windowTitleBarColor, color2: this.theme.windowCloseButtonColor, text: " X"
             }, this.controls);
@@ -252,11 +255,11 @@ AFRAME.registerComponent('xywindow', {
         if (this.data.title != oldData.title) {
             var w = this.el.components.xyrect.width - 0.5;
             if (/[\u0100-\uDFFF]/.test(this.data.title)) {
-                this.titleText.setAttribute("xylabel", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor });
                 this.titleText.removeAttribute("text");
+                this.titleText.setAttribute("xylabel", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor });
             } else {
-                this.titleText.setAttribute("text", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor, align: "left" });
                 this.titleText.removeAttribute("xylabel");
+                this.titleText.setAttribute("text", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor, align: "left" });
             }
         }
         var a = 0;
@@ -368,6 +371,10 @@ AFRAME.registerComponent('xyscroll', {
 
         this.el.setAttribute("xy-draggable", {});
         this.el.addEventListener("xy-drag", ev => {
+            this.speedY = 0;
+            this.setScroll(this.scrollX, this.scrollY + ev.detail.point.y - ev.detail.prevPoint.y);
+        });
+        this.el.addEventListener("xy-dragend", ev => {
             this.speedY = ev.detail.point.y - ev.detail.prevPoint.y;
         });
     },
@@ -633,11 +640,3 @@ AFRAME.registerPrimitive('a-xyrange', {
         height: 'xyrect.height'
     }
 });
-
-class XYWindow {
-    static currentWindow(el) {
-        if (!el || !el.components) return null;
-        if (el.components.xywindow) return el.components.xywindow;
-        return XYWindow.currentWindow(el.parentNode);
-    }
-}
