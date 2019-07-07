@@ -165,7 +165,7 @@ AFRAME.registerComponent('xy-draggable', {
     }
 });
 
-AFRAME.registerComponent('xy-drag-rotation', {
+AFRAME.registerComponent('xy-drag-control', {
     schema: {
         target: { type: 'selector', default: null },
         draggable: { type: 'string', default: "" },
@@ -229,7 +229,7 @@ AFRAME.registerComponent('xywindow', {
         var dragButton = this.system.createSimpleButton({
             width: 1, height: 0.5, color: this.theme.windowTitleBarColor
         }, this.controls);
-        dragButton.setAttribute("xy-drag-rotation", { target: this.el });
+        dragButton.setAttribute("xy-drag-control", { target: this.el });
         this.dragButton = dragButton;
 
         if (this.data.closable) {
