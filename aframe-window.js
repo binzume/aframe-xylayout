@@ -34,37 +34,52 @@ AFRAME.registerComponent('xylabel', {
         height: { type: 'number', default: 0 },
         resolution: { type: 'number', default: 32 },
         wrapCount: { type: 'number', default: 16 },
-        value: { default: "" },
-        color: { default: "white" }
-    },
-    init: function () {
-        this.canvas = document.createElement("canvas");
-        this.canvas.id = "_CANVAS" + Math.random();
-        var src = new THREE.CanvasTexture(this.canvas);
-        src.anisotropy = 4;
-        this.updateTexture = function () {
-            src.needsUpdate = true;
-        };
-        this.el.setAttribute('material', { shader: "flat", npot: true, src: src, transparent: true });
+        value: { default: '' },
+        color: { default: 'white' },
+        align: { default: 'left' }
     },
     update: function () {
+        if (!/[\u0100-\uDFFF]/.test(this.data.value)) {
+            this.remove();
+            let textData = Object.assign({}, this.data);
+            delete textData['resolution'];
+            this.el.setAttribute('text', textData);
+            return;
+        }
+
+        if (this.el.hasAttribute('text')) {
+            this.el.removeAttribute('text');
+        }
+
+        if (this.canvas == null) {
+            this.canvas = document.createElement("canvas");
+            this.canvas.id = "_CANVAS" + Math.random();
+            var src = new THREE.CanvasTexture(this.canvas);
+            src.anisotropy = 4;
+            this.updateTexture = function () {
+                src.needsUpdate = true;
+            };
+            this.el.setAttribute('material', { shader: "flat", npot: true, src: src, transparent: true, alphaTest: 0.3 });
+        }
         let widthFactor = 0.65;
         let w = this.data.width || 1;
         let h = this.data.height || w / (this.data.wrapCount * widthFactor);
         this.el.setAttribute("geometry", { primitive: "plane", width: w, height: h });
-
         this.canvas.height = this.data.resolution;
         this.canvas.width = this.data.resolution * (this.data.wrapCount * widthFactor);
         let ctx = this.canvas.getContext("2d");
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.font = "" + (this.data.resolution) + "px bold sans-serif";
         ctx.fillStyle = this.data.color;
-        ctx.fillText(this.data.value, 0, this.data.resolution);
+        ctx.fillText(this.data.value, 0, this.data.resolution * 0.8);
         this.updateTexture();
     },
-    remove: function() {
-        this.el.removeAttribute('material');
-        this.el.removeAttribute('geometry');
+    remove: function () {
+        this.canvas = null;
+        if (this.el.hasAttribute('geometry')) {
+            this.el.removeAttribute('material');
+            this.el.removeAttribute('geometry');
+        }
     }
 });
 
@@ -146,7 +161,7 @@ AFRAME.registerComponent('xy-draggable', {
             if (draggingRaycaster.ray.intersectPlane(dragPlane, point) !== null) {
                 baseEl.object3D.worldToLocal(point);
             }
-            this.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay });
+            this.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay});
             prevRay.copy(draggingRaycaster.ray);
         };
         let dragTimer = setInterval(dragFun, 20, "xy-drag");
@@ -169,7 +184,8 @@ AFRAME.registerComponent('xy-drag-control', {
     schema: {
         target: { type: 'selector', default: null },
         draggable: { type: 'string', default: "" },
-        mode: { type: 'string', default: "pan" }
+        autoRotate: { default: false },
+        mode: { type: 'string', default: "grab" }
     },
     init: function () {
         this._ondrag = this._ondrag.bind(this);
@@ -202,14 +218,25 @@ AFRAME.registerComponent('xy-drag-control', {
         } else {
             var rot = new THREE.Quaternion().setFromUnitVectors(prevDirection, direction);
             var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
-            var o1= ev.detail.prevRay.origin;
+            var o1 = ev.detail.prevRay.origin;
             var o2 = ev.detail.raycaster.ray.origin;
             var tr = new THREE.Matrix4();
             matrix.multiply(tr.makeTranslation(-o1.x, -o1.y, -o1.z));
             matrix.premultiply(tr.makeTranslation(o2.x, o2.y, o2.z));
             this.target.object3D.applyMatrix(matrix);
 
-            this.target.object3D.lookAt(this.el.sceneEl.camera.getWorldPosition(new THREE.Vector3()));
+            if (this.data.autoRotate) {
+                var cameraPosition = this.el.sceneEl.camera.getWorldPosition(new THREE.Vector3());
+                var targetPosition = this.target.object3D.getWorldPosition(new THREE.Vector3());
+                var d = cameraPosition.clone().sub(targetPosition).normalize();
+                var t = 1 - d.y * d.y * d.y * d.y;
+                if (t > 0.25) {
+                    var mat = new THREE.Matrix4();
+                    mat.lookAt(cameraPosition, targetPosition, new THREE.Vector3(0, 1, 0));
+                    var rotation = new THREE.Quaternion().setFromRotationMatrix(mat);
+                    THREE.Quaternion.slerp(this.target.object3D.quaternion, rotation, this.target.object3D.quaternion, t * 0.2);
+                }
+            }
         }
     }
 });
@@ -229,7 +256,7 @@ AFRAME.registerComponent('xywindow', {
         var dragButton = this.system.createSimpleButton({
             width: 1, height: 0.5, color: this.theme.windowTitleBarColor
         }, this.controls);
-        dragButton.setAttribute("xy-drag-control", { target: this.el });
+        dragButton.setAttribute("xy-drag-control", { target: this.el, autoRotate: true });
         this.dragButton = dragButton;
 
         if (this.data.closable) {
@@ -254,13 +281,7 @@ AFRAME.registerComponent('xywindow', {
     update: function (oldData) {
         if (this.data.title != oldData.title) {
             var w = this.el.components.xyrect.width - 0.5;
-            if (/[\u0100-\uDFFF]/.test(this.data.title)) {
-                this.titleText.removeAttribute("text");
-                this.titleText.setAttribute("xylabel", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor });
-            } else {
-                this.titleText.removeAttribute("xylabel");
-                this.titleText.setAttribute("text", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor, align: "left" });
-            }
+            this.titleText.setAttribute("xylabel", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor });
         }
         var a = 0;
         if (this.closeButton) {
