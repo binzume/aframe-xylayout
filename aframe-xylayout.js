@@ -236,7 +236,7 @@ AFRAME.registerComponent('xyclipping', {
                 ev.stopPropagation();
                 if (ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster) {
                     let targets = ev.detail.cursorEl.components.raycaster.intersectedEls;
-                    let c = targets.indexOf(ev.target);
+                    let c = targets.lastIndexOf(ev.target);
                     if (c >= 0 && c + 1 < targets.length) {
                         targets[c + 1].dispatchEvent(new CustomEvent(ev.type, ev));
                     }
