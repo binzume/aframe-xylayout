@@ -140,7 +140,8 @@ AFRAME.registerComponent('xy-draggable', {
             return;
         }
         let baseEl = this.data.base || this.el;
-        let draggingRaycaster = ev.detail.cursorEl.components.raycaster.raycaster;
+        let cursorEl = ev.detail.cursorEl;
+        let draggingRaycaster = cursorEl.components.raycaster.raycaster;
         let dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(baseEl.object3D.matrixWorld);
         let startDirection = draggingRaycaster.ray.direction.clone();
         let dragging = false;
@@ -161,7 +162,7 @@ AFRAME.registerComponent('xy-draggable', {
             if (draggingRaycaster.ray.intersectPlane(dragPlane, point) !== null) {
                 baseEl.object3D.worldToLocal(point);
             }
-            this.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay});
+            this.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay, cursorEl: cursorEl });
             prevRay.copy(draggingRaycaster.ray);
         };
         let dragTimer = setInterval(dragFun, 20, "xy-drag");
@@ -217,6 +218,16 @@ AFRAME.registerComponent('xy-drag-control', {
             this.target.object3D.position.add(d.multiplyScalar(16).applyQuaternion(this.el.object3D.getWorldQuaternion()));
         } else {
             var rot = new THREE.Quaternion().setFromUnitVectors(prevDirection, direction);
+            if (ev.detail.cursorEl.components['laser-controls']) {
+                if (ev.type == "xy-dragstart") {
+                    this.prevQ = ev.detail.cursorEl.object3D.quaternion.clone();
+                    return;
+                }
+                rot = this.prevQ.inverse().premultiply(ev.detail.cursorEl.object3D.quaternion);
+                console.log(rot);
+                this.prevQ = ev.detail.cursorEl.object3D.quaternion.clone();
+            }
+    
             var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
             var o1 = ev.detail.prevRay.origin;
             var o2 = ev.detail.raycaster.ray.origin;
@@ -508,7 +519,7 @@ AFRAME.registerComponent('xylist', {
         this.el.classList.add("clickable");
         this.el.addEventListener('click', (ev) => {
             for (var i = 0; i < ev.path.length; i++) {
-                if (ev.path[i].parentNode == this.el && ev.path[i].dataset.listPosition != null) {
+                if (ev.path[i].parentNode == this.el && ev.path[i].dataset.listPosition != null && ev.path[i].dataset.listPosition != -1) {
                     this.itemClicked && this.itemClicked(ev.path[i].dataset.listPosition, ev);
                     break;
                 }
