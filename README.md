@@ -95,10 +95,23 @@ THREE.js標準のシェーダを使っている場合のみ正しく動きます
 
 ### xywindow
 
-| name | type | desc |
-| ---- | ---- | ---- |
-| title    | string  | ウィンドウタイトル |
-| closable | boolean  | 閉じるボタンの表示 (default:true) |
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| title    | string   |      | ウィンドウタイトル |
+| closable | boolean  | true | 閉じるボタンの表示 |
+
+### xylabel
+
+textコンポーネントのWrappper．
+マルチバイト文字が含まれる場合はCanvasでのレンダリングにフォールバックします．
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| value         | string |      | テキスト |
+| renderingMode | string | auto | canvas: 常にcanvasでレンダリングする, auto: 可能ならtextコンポーネントを使う |
+| resolution    | number | 32   | canvasを使う場合の高さ方向の解像度 |
+
+上記以外のパラメータはtextコンポーネントを参照．
 
 ### xybutton
 
