@@ -252,25 +252,17 @@ AFRAME.registerComponent('xyclipping', {
         this.applyClippings();
     },
     applyClippings: function () {
-        var setCliping = (el) => {
-            if (el === this.exclude) return;
-            if (el.components.material && el.components.material.material) {
-                el.components.material.material.clippingPlanes = this.clippingPlanes;
+        let excludeObj = this.exclude.object3D;
+        let setCliping = (obj) => {
+            if (obj === excludeObj) return;
+            if (obj.material && obj.material.clippingPlanes !== undefined) {
+                obj.material.clippingPlanes = this.clippingPlanes;
             }
-            if (el.components.rounded && el.components.rounded.rounded) {
-                // hack for a-frame-material
-                el.components.rounded.rounded.material.clippingPlanes = this.clippingPlanes;
-            }
-            if (el.components.text) {
-                el.components.text.mesh.material.clippingPlanes = this.clippingPlanes;
-            }
-            for (var i = 0; i < el.children.length; i++) {
-                setCliping(el.children[i]);
+            for (var i = 0; i < obj.children.length; i++) {
+                setCliping(obj.children[i]);
             }
         };
-        for (var i = 0; i < this.el.children.length; i++) {
-            setCliping(this.el.children[i]);
-        }
+        setCliping(this.el.object3D);
     },
     isClipped: function (p) {
         return this.clippingPlanes.some(plane => plane.distanceToPoint(p) < 0);

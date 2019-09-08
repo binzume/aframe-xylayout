@@ -11,10 +11,10 @@ AFRAME.registerGeometry('xy-rounded-rect', {
         radius: { default: 0.05, min: 0 }
     },
     init: function (data) {
-        var shape = new THREE.Shape();
-        var radius = data.radius;
-        var w = data.width || 0.01, h = data.height || 0.01;
-        var x = -w / 2, y = -h / 2;
+        let shape = new THREE.Shape();
+        let radius = data.radius;
+        let w = data.width || 0.01, h = data.height || 0.01;
+        let x = -w / 2, y = -h / 2;
         shape.moveTo(x, y + radius);
         shape.lineTo(x, y + h - radius);
         shape.quadraticCurveTo(x, y + h, x + radius, y + h);
@@ -30,20 +30,23 @@ AFRAME.registerGeometry('xy-rounded-rect', {
 
 AFRAME.registerComponent('xylabel', {
     schema: {
-        width: { type: 'number', default: 1 },
+        width: { type: 'number', default: 0 },
         height: { type: 'number', default: 0 },
         resolution: { type: 'number', default: 32 },
+        renderingMode: { default: 'auto', oneOf: ['auto', 'canvas'] },
         wrapCount: { type: 'number', default: 16 },
+        zOffset: { type: 'number', default: 0 },
         value: { default: '' },
         color: { default: 'white' },
         align: { default: 'left' }
     },
     update: function () {
-        if (!/[\u0100-\uDFFF]/.test(this.data.value)) {
-            this.remove();
+        if (this.data.renderingMode == 'auto' && !/[\u0100-\uDFFF]/.test(this.data.value)) {
             let textData = Object.assign({}, this.data);
             delete textData['resolution'];
+            delete textData['renderingMode'];
             this.el.setAttribute('text', textData);
+            this.remove();
             return;
         }
 
@@ -51,34 +54,48 @@ AFRAME.registerComponent('xylabel', {
             this.el.removeAttribute('text');
         }
 
-        if (this.canvas == null) {
-            this.canvas = document.createElement("canvas");
-            this.canvas.id = "_CANVAS" + Math.random();
-            var src = new THREE.CanvasTexture(this.canvas);
-            src.anisotropy = 4;
-            this.updateTexture = function () {
-                src.needsUpdate = true;
-            };
-            this.el.setAttribute('material', { shader: "flat", npot: true, src: src, transparent: true, alphaTest: 0.3 });
-        }
         let widthFactor = 0.65;
-        let w = this.data.width || 1;
-        let h = this.data.height || w / (this.data.wrapCount * widthFactor);
-        this.el.setAttribute("geometry", { primitive: "plane", width: w, height: h });
-        this.canvas.height = this.data.resolution;
-        this.canvas.width = this.data.resolution * (this.data.wrapCount * widthFactor);
+        let canvasWidth = Math.floor(this.data.resolution * (this.data.wrapCount * widthFactor));
+        let canvasHeight = Math.floor(this.data.resolution);
+
+        if (!this.canvas || this.canvas.width !== canvasWidth || this.canvas.height !== canvasHeight) {
+            if (this.canvas == null) {
+                this.canvas = document.createElement("canvas");
+            }
+            this.canvas.height = canvasHeight;
+            this.canvas.width = canvasWidth;
+            let w = this.data.width || (this.el.components.geometry ? this.el.components.geometry.data.width : 1);
+            let h = this.data.height || w / (this.data.wrapCount * widthFactor);
+            let texture = new THREE.CanvasTexture(this.canvas);
+            texture.anisotropy = 4;
+            // texture.minFilter = THREE.LinearFilter;
+            let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+            this._removeObject3d();
+            this.el.setObject3D("xylabel", new THREE.Mesh(new THREE.PlaneGeometry(w, h), material));
+            this.el.object3DMap.xylabel.position.copy(new THREE.Vector3(0, 0, this.data.zOffset));
+        }
+
         let ctx = this.canvas.getContext("2d");
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        ctx.font = "" + (this.data.resolution) + "px bold sans-serif";
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.font = "" + (this.data.resolution * 0.9) + "px bold sans-serif";
+        ctx.textBaseline = "top";
+        ctx.textAlign = this.data.align;
         ctx.fillStyle = this.data.color;
-        ctx.fillText(this.data.value, 0, this.data.resolution * 0.8);
-        this.updateTexture();
+        let x = this.data.align === "center" ? canvasWidth / 2 : 0;
+        ctx.fillText(this.data.value, x, this.data.resolution * 0.05);
+
+        this.el.object3DMap.xylabel.material.map.needsUpdate = true;
     },
     remove: function () {
         this.canvas = null;
-        if (this.el.hasAttribute('geometry')) {
-            this.el.removeAttribute('material');
-            this.el.removeAttribute('geometry');
+        this._removeObject3d();
+    },
+    _removeObject3d: function () {
+        if (this.el.object3DMap.xylabel) {
+            this.el.object3DMap.xylabel.material.map.dispose();
+            this.el.object3DMap.xylabel.material.dispose();
+            this.el.object3DMap.xylabel.geometry.dispose();
+            this.el.removeObject3D("xylabel");
         }
     }
 });
@@ -86,12 +103,15 @@ AFRAME.registerComponent('xylabel', {
 AFRAME.registerSystem('xywindow', {
     theme: {
         buttonColor: "#222",
-        buttonHoverColor: "#888",
+        buttonHoverColor: "#555",
         buttonLabelColor: "#fff",
+        buttonHoverHaptic: 0.3,
+        buttonHoverHapticMs: 10,
         buttonGeometry: 'xy-rounded-rect',
         windowCloseButtonColor: "#f00",
         windowTitleBarColor: "#111",
         windowTitleColor: "#fff",
+        collidableClass: "collidable",
     },
     createSimpleButton: function (params, parent, el) {
         params.color = params.color || this.theme.buttonColor;
@@ -99,19 +119,27 @@ AFRAME.registerSystem('xywindow', {
         params.labelColor = params.labelColor || this.theme.buttonLabelColor;
         var geometry = params.geometry || this.theme.buttonGeometry;
         var button = el || document.createElement('a-entity');
-        button.classList.add("clickable");
-        button.addEventListener('mouseenter', (e) => {
+        button.classList.add(this.theme.collidableClass);
+        button.addEventListener('mouseenter', ev => {
             button.setAttribute("material", { color: params.color2 });
+            if (this.theme.buttonHoverHaptic && ev.detail.cursorEl.components['tracked-controls']) {
+                let gamepad = ev.detail.cursorEl.components['tracked-controls'].controller;
+                if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
+                    gamepad.hapticActuators[0].pulse(this.theme.buttonHoverHaptic, this.theme.buttonHoverHapticMs);
+                }
+            } else {
+                // this.theme.buttonHoverHaptic && navigator.vibrate && navigator.vibrate(this.theme.buttonHoverHapticMs);
+            }
         });
-        button.addEventListener('mouseleave', (e) => {
+        button.addEventListener('mouseleave', ev => {
             button.setAttribute("material", { color: params.color });
         });
 
         button.setAttribute("geometry", { primitive: geometry, width: params.width, height: params.height });
         button.setAttribute("material", { color: params.color });
-        if (params.text) {
+        if (params.text != null) {
             var h = (params.height > 0 ? (params.width / params.height * 1.5) : 2) + 2;
-            button.setAttribute("text", {
+            button.setAttribute("xylabel", {
                 value: params.text, wrapCount: Math.max(h, params.text.length),
                 zOffset: 0.01, align: "center", color: params.labelColor
             });
@@ -128,12 +156,20 @@ AFRAME.registerComponent('xy-draggable', {
         base: { type: 'selector', default: null }
     },
     init: function () {
-        this.el.classList.add("clickable");
+        this.el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
         this._onmousedown = this._onmousedown.bind(this);
         this.el.addEventListener('mousedown', this._onmousedown);
+        this.dragFun = null;
     },
     remove: function () {
         this.el.removeEventListener('mousedown', this._onmousedown);
+    },
+    tick: function () {
+        if (this.dragFun !== null) {
+            this.dragFun("xy-drag");
+        } else {
+            this.pause();
+        }
     },
     _onmousedown: function (ev) {
         if (!ev.detail.cursorEl || !ev.detail.cursorEl.components.raycaster) {
@@ -165,18 +201,27 @@ AFRAME.registerComponent('xy-draggable', {
             this.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay, cursorEl: cursorEl });
             prevRay.copy(draggingRaycaster.ray);
         };
-        let dragTimer = setInterval(dragFun, 20, "xy-drag");
         let self = this;
-        window.addEventListener('mouseup', function mouseup() {
+        this.dragFun = dragFun;
+        self.play();
+
+        let cancelEvelt = ev1 => ev1.target != ev.target && ev1.stopPropagation();
+        window.addEventListener('mouseenter', cancelEvelt, true);
+        window.addEventListener('mouseleave', cancelEvelt, true);
+
+        window.addEventListener('mouseup', function mouseup(ev) {
+            if (ev.detail.cursorEl != cursorEl) return;
             window.removeEventListener('mouseup', mouseup);
-            clearInterval(dragTimer);
+            window.removeEventListener('mouseenter', cancelEvelt, true);
+            window.removeEventListener('mouseleave', cancelEvelt, true);
+            self.dragFun = null;
             if (!dragging) return;
             if (self.data.preventClick) {
                 let cancelClick = ev => ev.stopPropagation();
                 window.addEventListener('click', cancelClick, true);
                 setTimeout(() => window.removeEventListener('click', cancelClick, true), 0);
             }
-            dragFun("xy-dragend");
+            setTimeout(() => dragFun("xy-dragend"), 15);
         });
     }
 });
@@ -192,16 +237,18 @@ AFRAME.registerComponent('xy-drag-control', {
         this._ondrag = this._ondrag.bind(this);
         this.draggable = [];
     },
-    update: function () {
+    update: function (oldData) {
         this.target = this.data.target || this.el;
-        this.remove();
-        this.draggable = Array.isArray(this.data.draggable) ? this.data.draggable :
-            this.data.draggable != "" ? this.el.querySelectorAll(this.data.draggable) : [this.el];
-        this.draggable.forEach(el => {
-            el.setAttribute("xy-draggable", {});
-            el.addEventListener("xy-dragstart", this._ondrag);
-            el.addEventListener("xy-drag", this._ondrag);
-        });
+        if (this.data.draggable !== oldData.draggable) {
+            this.remove();
+            this.draggable = Array.isArray(this.data.draggable) ? this.data.draggable :
+                this.data.draggable != "" ? this.el.querySelectorAll(this.data.draggable) : [this.el];
+            this.draggable.forEach(el => {
+                el.setAttribute("xy-draggable", {});
+                el.addEventListener("xy-dragstart", this._ondrag);
+                el.addEventListener("xy-drag", this._ondrag);
+            });
+        }
     },
     remove: function () {
         this.draggable.forEach(el => {
@@ -213,40 +260,47 @@ AFRAME.registerComponent('xy-drag-control', {
     _ondrag: function (ev) {
         var direction = ev.detail.raycaster.ray.direction;
         var prevDirection = ev.detail.prevRay.direction;
-        if (this.data.mode == "move") {
-            var d = direction.clone().sub(prevDirection).applyQuaternion(this.el.sceneEl.camera.getWorldQuaternion().inverse());
-            this.target.object3D.position.add(d.multiplyScalar(16).applyQuaternion(this.el.object3D.getWorldQuaternion()));
-        } else {
-            var rot = new THREE.Quaternion().setFromUnitVectors(prevDirection, direction);
-            if (ev.detail.cursorEl.components['laser-controls']) {
-                if (ev.type == "xy-dragstart") {
-                    this.prevQ = ev.detail.cursorEl.object3D.quaternion.clone();
-                    return;
-                }
+        let rot;
+        if (ev.detail.cursorEl.components['tracked-controls']) {
+            if (ev.type == "xy-dragstart") {
+                rot = new THREE.Quaternion();
+            } else {
                 rot = this.prevQ.inverse().premultiply(ev.detail.cursorEl.object3D.quaternion);
-                console.log(rot);
-                this.prevQ = ev.detail.cursorEl.object3D.quaternion.clone();
             }
-    
-            var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
-            var o1 = ev.detail.prevRay.origin;
-            var o2 = ev.detail.raycaster.ray.origin;
-            var tr = new THREE.Matrix4();
-            matrix.multiply(tr.makeTranslation(-o1.x, -o1.y, -o1.z));
-            matrix.premultiply(tr.makeTranslation(o2.x, o2.y, o2.z));
-            this.target.object3D.applyMatrix(matrix);
+            this.prevQ = ev.detail.cursorEl.object3D.quaternion.clone();
+        } else {
+            rot = new THREE.Quaternion().setFromUnitVectors(prevDirection, direction);
+        }
 
-            if (this.data.autoRotate) {
-                var cameraPosition = this.el.sceneEl.camera.getWorldPosition(new THREE.Vector3());
-                var targetPosition = this.target.object3D.getWorldPosition(new THREE.Vector3());
-                var d = cameraPosition.clone().sub(targetPosition).normalize();
-                var t = 1 - d.y * d.y * d.y * d.y;
-                if (t > 0.25) {
-                    var mat = new THREE.Matrix4();
-                    mat.lookAt(cameraPosition, targetPosition, new THREE.Vector3(0, 1, 0));
-                    var rotation = new THREE.Quaternion().setFromRotationMatrix(mat);
-                    THREE.Quaternion.slerp(this.target.object3D.quaternion, rotation, this.target.object3D.quaternion, t * 0.2);
-                }
+        var matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
+        var o1 = ev.detail.prevRay.origin;
+        var o2 = ev.detail.raycaster.ray.origin;
+        var tr = new THREE.Matrix4();
+        matrix.multiply(tr.makeTranslation(-o1.x, -o1.y, -o1.z));
+        matrix.premultiply(tr.makeTranslation(o2.x, o2.y, o2.z));
+        this.target.object3D.applyMatrix(matrix);
+
+        if (this.data.mode == "pull") {
+            let targetPosition = this.target.object3D.getWorldPosition(new THREE.Vector3());
+            let d = direction.clone().sub(prevDirection);
+            let f = targetPosition.distanceTo(ev.detail.raycaster.ray.origin) * 2;
+            this.target.object3D.position.add(direction.clone().multiplyScalar(-d.y * f));
+        }
+
+        if (this.data.autoRotate) {
+            var cameraPosition = this.el.sceneEl.camera.getWorldPosition(new THREE.Vector3());
+            var targetPosition = this.target.object3D.getWorldPosition(new THREE.Vector3());
+            var d = cameraPosition.clone().sub(targetPosition).normalize();
+            var t = 0.8 - d.y * d.y;
+            if (t > 0) {
+                let mat = new THREE.Matrix4().lookAt(cameraPosition, targetPosition, new THREE.Vector3(0, 1, 0));
+                let rotation = new THREE.Quaternion().setFromRotationMatrix(mat);
+                let intersection = ev.detail.cursorEl.components.raycaster.getIntersection(ev.target);
+                let intersectPoint = intersection ? intersection.point : targetPosition;
+                let c = this.target.object3D.parent.worldToLocal(intersectPoint);
+                let oq = this.target.object3D.quaternion.clone();
+                THREE.Quaternion.slerp(this.target.object3D.quaternion, rotation, this.target.object3D.quaternion, t * 0.1);
+                this.target.object3D.position.sub(c).applyQuaternion(oq.inverse().premultiply(this.target.object3D.quaternion)).add(c);
             }
         }
     }
@@ -290,19 +344,19 @@ AFRAME.registerComponent('xywindow', {
         });
     },
     update: function (oldData) {
-        if (this.data.title != oldData.title) {
-            var w = this.el.components.xyrect.width - 0.5;
-            this.titleText.setAttribute("xylabel", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor });
-        }
         var a = 0;
         if (this.closeButton) {
             this.closeButton.setAttribute("position", { x: this.el.components.xyrect.width / 2 - 0.25, y: 0.3, z: 0 });
             a += 0.52;
         }
+        if (this.data.title != oldData.title) {
+            var w = this.el.components.xyrect.width - a - 0.2;
+            this.titleText.setAttribute("xylabel", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor });
+        }
         this.controls.setAttribute("position", "y", this.el.components.xyrect.height * 0.5);
         this.dragButton.setAttribute("geometry", "width", this.el.components.xyrect.width - a);
         this.dragButton.setAttribute("position", { x: -a / 2, y: 0.3, z: 0 });
-        this.titleText.setAttribute("position", { x: -0.2, y: 0.3, z: 0.02 });
+        this.titleText.setAttribute("position", { x: -a / 2 + 0.1, y: 0.3, z: 0.02 });
     },
     setTitle: function (title) {
         this.titleText.setAttribute("value", title);
@@ -313,18 +367,24 @@ AFRAME.registerComponent('xybutton', {
     dependencies: ['xyrect'],
     schema: {
         label: { type: 'string', default: "" },
+        labelColor: { type: 'string', default: "" },
+        color: { type: 'string', default: "" },
         color2: { type: 'string', default: "" }
     },
     init: function () {
         this.el.sceneEl.systems.xywindow.createSimpleButton({
             width: this.el.components.xyrect.width, height: this.el.components.xyrect.height,
-            color2: this.data.color2, text: this.data.label
+            color: this.data.color, color2: this.data.color2, labelColor: this.data.labelColor,
+            text: this.data.label
         }, null, this.el);
         this.el.addEventListener('xyresize', (ev) => {
             this.el.setAttribute("geometry", { width: ev.detail.xyrect.width, height: ev.detail.xyrect.height });
         });
     },
-    update: function () {
+    update: function (oldData) {
+        if (oldData.label !== undefined) {
+            this.el.setAttribute("xylabel", { value: this.data.label, color: this.data.labelColor });
+        }
     }
 });
 
@@ -408,6 +468,7 @@ AFRAME.registerComponent('xyscroll', {
         });
         this.el.addEventListener("xy-dragend", ev => {
             this.speedY = ev.detail.point.y - ev.detail.prevPoint.y;
+            this.play();
         });
     },
     _initScrollBar: function (el, w) {
@@ -416,6 +477,7 @@ AFRAME.registerComponent('xyscroll', {
         }, el);
         this.upButton.addEventListener('click', (ev) => {
             this.speedY = -this.scrollDelta * 0.3;
+            this.play();
         });
 
         this.downButton = this.el.sceneEl.systems.xywindow.createSimpleButton({
@@ -423,6 +485,7 @@ AFRAME.registerComponent('xyscroll', {
         }, el);
         this.downButton.addEventListener('click', (ev) => {
             this.speedY = this.scrollDelta * 0.3;
+            this.play();
         });
         this.scrollThumb = this.el.sceneEl.systems.xywindow.createSimpleButton({
             width: w * 0.7, height: this.thumbLen
@@ -452,6 +515,8 @@ AFRAME.registerComponent('xyscroll', {
         if (Math.abs(this.speedY) > 0.001) {
             this.setScroll(this.scrollX, this.scrollY + this.speedY);
             this.speedY *= 0.8;
+        } else {
+            this.pause();
         }
     },
     contentChanged: function () {
@@ -516,7 +581,7 @@ AFRAME.registerComponent('xylist', {
         this.itemClicked = null;
         this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.itemHeight, pivotX: 0, pivotY: 0 });
         this.setRect(0, 0, 0, 0);
-        this.el.classList.add("clickable");
+        this.el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
         this.el.addEventListener('click', (ev) => {
             for (var i = 0; i < ev.path.length; i++) {
                 if (ev.path[i].parentNode == this.el && ev.path[i].dataset.listPosition != null && ev.path[i].dataset.listPosition != -1) {
@@ -565,7 +630,7 @@ AFRAME.registerComponent('xylist', {
             while (n > this.elements.length) {
                 var el = this.elementFactory(this.el, this.userData);
                 el.dataset.listPosition = -1;
-                el.classList.add("clickable");
+                el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
                 this.el.appendChild(el);
                 this.elements.push(el);
             }
