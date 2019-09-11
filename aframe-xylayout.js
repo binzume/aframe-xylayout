@@ -7,21 +7,21 @@ if (typeof AFRAME === 'undefined') {
 AFRAME.registerComponent('xycontainer', {
     dependencies: ['xyrect'],
     schema: {
-        width: { type: 'number', default: 1.0 },
-        height: { type: 'number', default: 1.0 },
         spacing: { type: 'number', default: 0.05 },
         padding: { type: 'number', default: 0 },
         reverse: { type: 'boolean', default: false },
-        direction: { type: 'string', default: "vertical", oneOf: ['', 'row', 'column', 'vertical', 'horizontal'] },
+        direction: { type: 'string', default: "vertical", oneOf: ['none', 'row', 'column', 'vertical', 'horizontal'] },
         alignItems: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'baseline', 'stretch'] },
         justifyItems: { type: 'string', default: "start", oneOf: ['center', 'start', 'end', 'space-between', 'space-around', 'stretch'] },
     },
-    update: function () {
-        this.doLayout(this.data.width, this.data.height);
-        this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.height });
+    init: function () {
+        this.el.addEventListener('xyresize', ev => {
+            this._doLayout(ev.detail.xyrect.width, ev.detail.xyrect.height);
+        });
+        this.requestLayoutUpdate();
     },
-    doLayout: function (w, h) {
-        if (this.data.direction === "") {
+    _doLayout: function (w, h) {
+        if (this.data.direction === "none") {
             return;
         }
         var children = this.el.children;
@@ -138,7 +138,8 @@ AFRAME.registerComponent('xycontainer', {
         }
     },
     requestLayoutUpdate: function () {
-        this.doLayout(this.data.width, this.data.height);
+        let xyrect = this.el.components.xyrect;
+        this.data && this._doLayout(xyrect.width, xyrect.height);
     }
 });
 
@@ -231,7 +232,7 @@ AFRAME.registerComponent('xyclipping', {
         }
     },
     _filterEvent: function (ev) {
-        if (!ev.path.includes(this.data.exclude)) {
+        if (!(ev.path || ev.composedPath()).includes(this.data.exclude)) {
             if (ev.detail.intersection && this.isClipped(ev.detail.intersection.point)) {
                 ev.stopPropagation();
                 if (ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster) {
@@ -271,12 +272,12 @@ AFRAME.registerComponent('xyclipping', {
 
 AFRAME.registerPrimitive('a-xylayout', {
     defaultComponents: {
-        xycontainer: {},
-        xyrect: {}
+        xyrect: {},
+        xycontainer: {}
     },
     mappings: {
-        width: 'xycontainer.width',
-        height: 'xycontainer.height',
+        width: 'xyrect.width',
+        height: 'xyrect.height',
         direction: 'xycontainer.direction',
         spacing: 'xycontainer.spacing',
         padding: 'xycontainer.padding',
