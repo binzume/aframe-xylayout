@@ -443,6 +443,58 @@ AFRAME.registerComponent('xyrange', {
     }
 });
 
+AFRAME.registerComponent('xyselect', {
+    dependencies: ['xyrect'],
+    schema: {
+        values: { default: [] },
+        label: { default: "" },
+        toggle: { default: false },
+        select: { type: "number", default: 0 }
+    },
+    init: function () {
+        this.buttonEl = document.createElement('a-xybutton');
+        this.buttonEl.setAttribute('xyrect', this.el.getAttribute("xyrect"));
+        this.buttonEl.addEventListener('click', ev => {
+            if (this.data.toggle) {
+                let idx = (this.data.select + 1) % this.data.values.length;
+                this.el.setAttribute('xyselect', 'select', idx);
+                this.el.dispatchEvent(new CustomEvent('xyselect', { detail: { value: this.data.values[idx], index: idx } }));
+            } else {
+                this.listEl ? this.hide() : this.show();
+            }
+        });
+        this.el.appendChild(this.buttonEl);
+    },
+    update: function () {
+        this.buttonEl.setAttribute('xybutton', { label: this.data.label || this.data.values[this.data.select] });
+    },
+    show: function () {
+        if (this.listEl) return;
+        let listY = (this.el.components.xyrect.height + this.data.values.length * 0.5) / 2 + 0.1;
+        this.listEl = document.createElement('a-entity');
+        this.listEl.setAttribute('xycontainer', { spacing: 0 });
+        this.listEl.setAttribute('position', { x: 0, y: listY, z: 0.05 });
+        this.el.appendChild(this.listEl);
+        this.data.values.forEach((v, i) => {
+            let itemEl = document.createElement('a-xybutton');
+            itemEl.setAttribute('xybutton', { label: v });
+            itemEl.addEventListener('click', ev => {
+                this.buttonEl.setAttribute('xybutton', { label: this.data.label || v });
+                this.el.dispatchEvent(new CustomEvent('xyselect', { detail: { value: v, index: i } }));
+                this.hide();
+            });
+            this.listEl.appendChild(itemEl);
+        });
+        setTimeout(() => this.listEl && this.listEl.setAttribute('xyrect', { width: 2, height: this.data.values.length * 0.5 }), 0);
+    },
+    hide: function () {
+        if (!this.listEl) return;
+        this.el.removeChild(this.listEl);
+        this.listEl.destroy();
+        this.listEl = null;
+    },
+});
+
 
 AFRAME.registerComponent('xyscroll', {
     schema: {
@@ -583,9 +635,10 @@ AFRAME.registerComponent('xylist', {
         this.setRect(0, 0, 0, 0);
         this.el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
         this.el.addEventListener('click', (ev) => {
-            for (var i = 0; i < ev.path.length; i++) {
-                if (ev.path[i].parentNode == this.el && ev.path[i].dataset.listPosition != null && ev.path[i].dataset.listPosition != -1) {
-                    this.itemClicked && this.itemClicked(ev.path[i].dataset.listPosition, ev);
+            let path = ev.path || ev.composedPath();
+            for (var i = 0; i < path.length; i++) {
+                if (path[i].parentNode == this.el && path[i].dataset.listPosition != null && path[i].dataset.listPosition != -1) {
+                    this.itemClicked && this.itemClicked(path[i].dataset.listPosition, ev);
                     break;
                 }
             }
@@ -691,8 +744,8 @@ AFRAME.registerPrimitive('a-xywindow', {
         xywindow: {}
     },
     mappings: {
-        width: 'xycontainer.width',
-        height: 'xycontainer.height',
+        width: 'xyrect.width',
+        height: 'xyrect.height',
         direction: 'xycontainer.direction',
         title: 'xywindow.title'
     }
@@ -712,7 +765,7 @@ AFRAME.registerPrimitive('a-xyscroll', {
 
 AFRAME.registerPrimitive('a-xybutton', {
     defaultComponents: {
-        xyrect: {},
+        xyrect: { width: 2, height: 0.5 },
         xybutton: {}
     },
     mappings: {
@@ -721,7 +774,6 @@ AFRAME.registerPrimitive('a-xybutton', {
         label: 'xybutton.label'
     }
 });
-
 
 AFRAME.registerPrimitive('a-xyrange', {
     defaultComponents: {
@@ -735,5 +787,20 @@ AFRAME.registerPrimitive('a-xyrange', {
         value: 'xyrange.value',
         width: 'xyrect.width',
         height: 'xyrect.height'
+    }
+});
+
+AFRAME.registerPrimitive('a-xyselect', {
+    defaultComponents: {
+        xyrect: { width: 2, height: 0.5 },
+        xyselect: {}
+    },
+    mappings: {
+        width: 'xyrect.width',
+        height: 'xyrect.height',
+        values: 'xyselect.values',
+        label: 'xyselect.label',
+        toggle: 'xyselect.toggle',
+        select: 'xyselect.select',
     }
 });
