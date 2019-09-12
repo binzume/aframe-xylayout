@@ -420,7 +420,7 @@ AFRAME.registerComponent('xyrange', {
                 p = Math.round(p / this.data.step) * this.data.step;
             }
             this.setValue(p + this.data.min, true);
-            this.el.dispatchEvent(new CustomEvent('change', { detail: this.value }));
+            this.el.dispatchEvent(new CustomEvent('change', { detail: { value: this.value } }));
         });
         this.thumb.addEventListener("xy-dragend", ev => {
             this.dragging = false;
@@ -458,7 +458,7 @@ AFRAME.registerComponent('xyselect', {
             if (this.data.toggle) {
                 let idx = (this.data.select + 1) % this.data.values.length;
                 this.el.setAttribute('xyselect', 'select', idx);
-                this.el.dispatchEvent(new CustomEvent('xyselect', { detail: { value: this.data.values[idx], index: idx } }));
+                this.el.dispatchEvent(new CustomEvent('change', { detail: { value: this.data.values[idx], index: idx } }));
             } else {
                 this.listEl ? this.hide() : this.show();
             }
@@ -480,7 +480,7 @@ AFRAME.registerComponent('xyselect', {
             itemEl.setAttribute('xybutton', { label: v });
             itemEl.addEventListener('click', ev => {
                 this.buttonEl.setAttribute('xybutton', { label: this.data.label || v });
-                this.el.dispatchEvent(new CustomEvent('xyselect', { detail: { value: v, index: i } }));
+                this.el.dispatchEvent(new CustomEvent('change', { detail: { value: v, index: i } }));
                 this.hide();
             });
             this.listEl.appendChild(itemEl);
