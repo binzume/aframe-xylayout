@@ -34,17 +34,28 @@ AFRAME.registerComponent('xylabel', {
         height: { type: 'number', default: 0 },
         resolution: { type: 'number', default: 32 },
         renderingMode: { default: 'auto', oneOf: ['auto', 'canvas'] },
-        wrapCount: { type: 'number', default: 16 },
+        wrapCount: { type: 'number', default: 0 },
         zOffset: { type: 'number', default: 0 },
         value: { default: '' },
         color: { default: 'white' },
         align: { default: 'left' }
     },
     update: function () {
+        let widthFactor = 0.65;
+        let wrapCount = this.data.wrapCount;
+
+        if (wrapCount == 0) {
+            let h = this.data.height || (this.el.components.geometry ? this.el.components.geometry.data.height : 1);
+            let w = this.data.width || (this.el.components.geometry ? this.el.components.geometry.data.width : 1);
+            if (h > 0) {
+                wrapCount = Math.max(w / h / widthFactor, this.data.value.length) + 1;
+            }
+        }
         if (this.data.renderingMode == 'auto' && !/[\u0100-\uDFFF]/.test(this.data.value)) {
             let textData = Object.assign({}, this.data);
             delete textData['resolution'];
             delete textData['renderingMode'];
+            textData.wrapCount = wrapCount;
             this.el.setAttribute('text', textData);
             this.remove();
             return;
@@ -54,8 +65,7 @@ AFRAME.registerComponent('xylabel', {
             this.el.removeAttribute('text');
         }
 
-        let widthFactor = 0.65;
-        let canvasWidth = Math.floor(this.data.resolution * (this.data.wrapCount * widthFactor));
+        let canvasWidth = Math.floor(this.data.resolution * (wrapCount * widthFactor));
         let canvasHeight = Math.floor(this.data.resolution);
 
         if (!this.canvas || this.canvas.width !== canvasWidth || this.canvas.height !== canvasHeight) {
@@ -65,7 +75,7 @@ AFRAME.registerComponent('xylabel', {
             this.canvas.height = canvasHeight;
             this.canvas.width = canvasWidth;
             let w = this.data.width || (this.el.components.geometry ? this.el.components.geometry.data.width : 1);
-            let h = this.data.height || w / (this.data.wrapCount * widthFactor);
+            let h = this.data.height || w / (wrapCount * widthFactor);
             let texture = new THREE.CanvasTexture(this.canvas);
             texture.anisotropy = 4;
             // texture.minFilter = THREE.LinearFilter;
@@ -138,10 +148,8 @@ AFRAME.registerSystem('xywindow', {
         button.setAttribute("geometry", { primitive: geometry, width: params.width, height: params.height });
         button.setAttribute("material", { color: params.color });
         if (params.text != null) {
-            var h = (params.height > 0 ? (params.width / params.height * 1.5) : 2) + 2;
             button.setAttribute("xylabel", {
-                value: params.text, wrapCount: Math.max(h, params.text.length + 1),
-                zOffset: 0.01, align: "center", color: params.labelColor
+                value: params.text, zOffset: 0.01, align: "center", color: params.labelColor
             });
         }
         parent && parent.appendChild(button);
@@ -384,6 +392,7 @@ AFRAME.registerComponent('xybutton', {
         }, null, this.el);
         this.el.addEventListener('xyresize', (ev) => {
             this.el.setAttribute("geometry", { width: ev.detail.xyrect.width, height: ev.detail.xyrect.height });
+            this.el.setAttribute("xylabel", { width: ev.detail.xyrect.width, height: ev.detail.xyrect.height });
         });
     },
     update: function (oldData) {
@@ -449,7 +458,7 @@ AFRAME.registerComponent('xyrange', {
 });
 
 AFRAME.registerComponent('xyselect', {
-    dependencies: ['xyrect'],
+    dependencies: ['xyrect', 'xybutton'],
     schema: {
         values: { default: [] },
         label: { default: "" },
@@ -457,9 +466,7 @@ AFRAME.registerComponent('xyselect', {
         select: { type: "number", default: 0 }
     },
     init: function () {
-        this.el.setAttribute('xybutton', {});
-        this.buttonEl = this.el;
-        this.buttonEl.addEventListener('click', ev => {
+        this.el.addEventListener('click', ev => {
             if (this.data.toggle) {
                 let idx = (this.data.select + 1) % this.data.values.length;
                 this.el.setAttribute('xyselect', 'select', idx);
@@ -484,7 +491,7 @@ AFRAME.registerComponent('xyselect', {
             itemEl.setAttribute('xybutton', { label: v });
             itemEl.addEventListener('click', ev => {
                 ev.stopPropagation();
-                this.buttonEl.setAttribute('xybutton', { label: this.data.label || v });
+                this.el.setAttribute('xybutton', { label: this.data.label || v });
                 this.el.dispatchEvent(new CustomEvent('change', { detail: { value: v, index: i } }));
                 this.hide();
             });
