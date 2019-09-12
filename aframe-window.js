@@ -103,7 +103,7 @@ AFRAME.registerComponent('xylabel', {
 AFRAME.registerSystem('xywindow', {
     theme: {
         buttonColor: "#222",
-        buttonHoverColor: "#555",
+        buttonHoverColor: "#333",
         buttonLabelColor: "#fff",
         buttonHoverHaptic: 0.3,
         buttonHoverHapticMs: 10,
@@ -115,13 +115,13 @@ AFRAME.registerSystem('xywindow', {
     },
     createSimpleButton: function (params, parent, el) {
         params.color = params.color || this.theme.buttonColor;
-        params.color2 = params.color2 || this.theme.buttonHoverColor;
+        params.hoverColor = params.hoverColor || this.theme.buttonHoverColor;
         params.labelColor = params.labelColor || this.theme.buttonLabelColor;
         var geometry = params.geometry || this.theme.buttonGeometry;
         var button = el || document.createElement('a-entity');
         button.classList.add(this.theme.collidableClass);
         button.addEventListener('mouseenter', ev => {
-            button.setAttribute("material", { color: params.color2 });
+            button.setAttribute("material", { color: params.hoverColor });
             if (this.theme.buttonHoverHaptic && ev.detail.cursorEl.components['tracked-controls']) {
                 let gamepad = ev.detail.cursorEl.components['tracked-controls'].controller;
                 if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
@@ -140,7 +140,7 @@ AFRAME.registerSystem('xywindow', {
         if (params.text != null) {
             var h = (params.height > 0 ? (params.width / params.height * 1.5) : 2) + 2;
             button.setAttribute("xylabel", {
-                value: params.text, wrapCount: Math.max(h, params.text.length),
+                value: params.text, wrapCount: Math.max(h, params.text.length + 1),
                 zOffset: 0.01, align: "center", color: params.labelColor
             });
         }
@@ -327,7 +327,9 @@ AFRAME.registerComponent('xywindow', {
         if (this.data.closable) {
             var closeButton = this.system.createSimpleButton({
                 width: 0.5, height: 0.5,
-                color: this.theme.windowTitleBarColor, color2: this.theme.windowCloseButtonColor, text: " X"
+                color: this.theme.windowTitleBarColor,
+                hoverColor: this.theme.windowCloseButtonColor,
+                text: " X"
             }, this.controls);
             closeButton.addEventListener('click', (ev) => {
                 if (this.data.closable) {
@@ -351,7 +353,10 @@ AFRAME.registerComponent('xywindow', {
         }
         if (this.data.title != oldData.title) {
             var w = this.el.components.xyrect.width - a - 0.2;
-            this.titleText.setAttribute("xylabel", { value: this.data.title, wrapCount: Math.max(10, w / 0.2), width: w, color: this.theme.windowTitleColor });
+            this.titleText.setAttribute("xylabel", {
+                value: this.data.title, wrapCount: Math.max(10, w / 0.2),
+                width: w, color: this.theme.windowTitleColor
+            });
         }
         this.controls.setAttribute("position", "y", this.el.components.xyrect.height * 0.5);
         this.dragButton.setAttribute("geometry", "width", this.el.components.xyrect.width - a);
@@ -369,12 +374,12 @@ AFRAME.registerComponent('xybutton', {
         label: { type: 'string', default: "" },
         labelColor: { type: 'string', default: "" },
         color: { type: 'string', default: "" },
-        color2: { type: 'string', default: "" }
+        hoverColor: { type: 'string', default: "" }
     },
     init: function () {
         this.el.sceneEl.systems.xywindow.createSimpleButton({
             width: this.el.components.xyrect.width, height: this.el.components.xyrect.height,
-            color: this.data.color, color2: this.data.color2, labelColor: this.data.labelColor,
+            color: this.data.color, hoverColor: this.data.hoverColor, labelColor: this.data.labelColor,
             text: this.data.label
         }, null, this.el);
         this.el.addEventListener('xyresize', (ev) => {
@@ -452,8 +457,8 @@ AFRAME.registerComponent('xyselect', {
         select: { type: "number", default: 0 }
     },
     init: function () {
-        this.buttonEl = document.createElement('a-xybutton');
-        this.buttonEl.setAttribute('xyrect', this.el.getAttribute("xyrect"));
+        this.el.setAttribute('xybutton', {});
+        this.buttonEl = this.el;
         this.buttonEl.addEventListener('click', ev => {
             if (this.data.toggle) {
                 let idx = (this.data.select + 1) % this.data.values.length;
@@ -463,10 +468,9 @@ AFRAME.registerComponent('xyselect', {
                 this.listEl ? this.hide() : this.show();
             }
         });
-        this.el.appendChild(this.buttonEl);
     },
     update: function () {
-        this.buttonEl.setAttribute('xybutton', { label: this.data.label || this.data.values[this.data.select] });
+        this.el.setAttribute('xybutton', { label: this.data.label || this.data.values[this.data.select] });
     },
     show: function () {
         if (this.listEl) return;
@@ -479,6 +483,7 @@ AFRAME.registerComponent('xyselect', {
             let itemEl = document.createElement('a-xybutton');
             itemEl.setAttribute('xybutton', { label: v });
             itemEl.addEventListener('click', ev => {
+                ev.stopPropagation();
                 this.buttonEl.setAttribute('xybutton', { label: this.data.label || v });
                 this.el.dispatchEvent(new CustomEvent('change', { detail: { value: v, index: i } }));
                 this.hide();
@@ -545,7 +550,8 @@ AFRAME.registerComponent('xyscroll', {
         this.scrollThumb.setAttribute("xy-draggable", { base: this.el });
         this.scrollThumb.addEventListener("xy-drag", ev => {
             var thumbH = this.thumbLen;
-            var scrollY = (this.scrollStart - thumbH / 2 - ev.detail.point.y) * Math.max(0.01, this.contentHeight - this.data.height) / (this.scrollLength - thumbH);
+            var scrollY = (this.scrollStart - thumbH / 2 - ev.detail.point.y)
+                * Math.max(0.01, this.contentHeight - this.data.height) / (this.scrollLength - thumbH);
             this.setScroll(this.scrollX, scrollY);
         });
     },
@@ -740,7 +746,7 @@ AFRAME.registerComponent('xycanvas', {
 
 AFRAME.registerPrimitive('a-xywindow', {
     defaultComponents: {
-        xycontainer: { alignItems: "stretch" },
+        xycontainer: { alignItems: 'stretch' },
         xywindow: {}
     },
     mappings: {
@@ -760,6 +766,20 @@ AFRAME.registerPrimitive('a-xyscroll', {
         width: 'xyscroll.width',
         height: 'xyscroll.height',
         scrollbar: 'xyscroll.scrollbar'
+    }
+});
+
+AFRAME.registerPrimitive('a-xylabel', {
+    defaultComponents: {
+        xylabel: {}
+    },
+    mappings: {
+        width: 'xylabel.width',
+        height: 'xylabel.height',
+        value: 'xylabel.value',
+        color: 'xylabel.color',
+        align: 'xylabel.align',
+        'wrap-count': 'xylabel.wrapCount',
     }
 });
 
