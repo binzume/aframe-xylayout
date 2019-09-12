@@ -13,7 +13,7 @@
 <body style="background-color: black; color:white;">
     <a-scene fog="type: linear; color: #000; near:20;far:200;" cursor="rayOrigin: mouse; fuse:false"
         raycaster="objects:.collidable,.clickable;far:5500" renderer="antialias: true;">
-        <a-sky menu-on-click="template:mainMenuTemplate;offsetY:2"></a-sky>
+        <a-sky></a-sky>
 
         <a-entity id="cameraRig" wasd-controls>
             <a-camera position="0 1.5 0" look-controls="enabled:false"></a-camera>
@@ -37,9 +37,10 @@
                 <a-box width="1" height="1" depth="1" color="yellow" class="clickable"
                     animation__mouseenter="startEvents: mouseenter; property: rotation; from:0 0 0; to: 0 360 0; dur: 500">
                 </a-box>
-                <a-xylayout width="4" height="0.5" direction="horizontal" spacing="0.1">
+                <a-xylayout width="6" height="0.5" direction="horizontal" spacing="0.1">
                     <a-xybutton width="2" height="0.5" label="Button"></a-xybutton>
                     <a-xybutton width="2" height="0.5" label="漢字"></a-xybutton>
+                    <a-xyselect width="2" height="0.5" values="abc,123,Foo,Bar" default="1"></a-xyselect>
                 </a-xylayout>
                 <a-xyrange width="4" height="0.5"></a-xyrange>
             </a-xylayout>

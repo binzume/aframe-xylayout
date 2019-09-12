@@ -17,8 +17,10 @@ T.B.D.
 - a-xyscroll
 
 - a-xywindow
+- a-xylabel
 - a-xybutton
 - a-xyrange
+- a-xyselect
 
 ## Components
 
@@ -121,6 +123,8 @@ textコンポーネントのWrappper．
 
 ### xyrange
 
+操作するとchangeイベントが発生します．
+
 | name | type | desc |
 | ---- | ---- | ---- |
 | min   | number | 最小値 |
@@ -128,6 +132,16 @@ textコンポーネントのWrappper．
 | value | number | 初期値 |
 | step  | number | 変化の単位 |
 | thumbSize | number | つまみサイズ |
+
+### xyselect
+
+操作するとchangeイベントが発生します．
+
+| name | type | desc |
+| ---- | ---- | ---- |
+| values | array | 選択肢 |
+| select | int | 選択されているインデックス |
+| toggle | bool | トグルモード |
 
 ### xylist
 
