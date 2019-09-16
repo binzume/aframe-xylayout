@@ -57,6 +57,10 @@ AFRAME.registerComponent('xylabel', {
             delete textData['renderingMode'];
             textData.wrapCount = wrapCount;
             this.el.setAttribute('text', textData);
+            let textObj = this.el.getObject3D('text');
+            if (textObj) {
+                textObj.raycast = function () { }; // to disable raycast
+            }
             this.remove();
             return;
         }
@@ -372,7 +376,7 @@ AFRAME.registerComponent('xywindow', {
         this.titleText.setAttribute("position", { x: -a / 2 + 0.1, y: 0.3, z: 0.02 });
     },
     setTitle: function (title) {
-        this.titleText.setAttribute("value", title);
+        this.titleText.setAttribute("xylabel", "value", title);
     }
 });
 
