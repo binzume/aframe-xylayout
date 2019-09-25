@@ -127,6 +127,7 @@ AFRAME.registerSystem('xywindow', {
         windowTitleColor: "#fff",
         collidableClass: "collidable",
     },
+    windows: [],
     createSimpleButton: function (params, parent, el) {
         params.color = params.color || this.theme.buttonColor;
         params.hoverColor = params.hoverColor || this.theme.buttonHoverColor;
@@ -158,6 +159,15 @@ AFRAME.registerSystem('xywindow', {
         }
         parent && parent.appendChild(button);
         return button;
+    },
+    registerWindow: function (w) {
+        this.windows.push(w);
+    },
+    unregisterWindow: function (w) {
+        let p = this.windows.indexOf(w);
+        if (p >= 0) {
+            this.windows.splice(p, 1);
+        }
     }
 });
 
@@ -356,6 +366,10 @@ AFRAME.registerComponent('xywindow', {
         this.el.addEventListener('xyresize', (ev) => {
             this.update({});
         });
+        this.system.registerWindow(this);
+    },
+    remove: function () {
+        this.system.unregisterWindow(this);
     },
     update: function (oldData) {
         var a = 0;
