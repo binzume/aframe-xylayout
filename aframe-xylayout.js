@@ -10,6 +10,7 @@ AFRAME.registerComponent('xycontainer', {
         spacing: { type: 'number', default: 0.05 },
         padding: { type: 'number', default: 0 },
         reverse: { type: 'boolean', default: false },
+        wrap: { default: "nowrap", oneOf: ['wrap', 'nowrap'] },
         direction: { type: 'string', default: "vertical", oneOf: ['none', 'row', 'column', 'vertical', 'horizontal'] },
         alignItems: { type: 'string', default: "", oneOf: ['', 'center', 'start', 'end', 'baseline', 'stretch'] },
         justifyItems: { type: 'string', default: "start", oneOf: ['center', 'start', 'end', 'space-between', 'space-around', 'stretch'] },
@@ -25,22 +26,22 @@ AFRAME.registerComponent('xycontainer', {
             return;
         }
         var children = this.el.children;
-        var vertical = this.data.direction === "vertical" || this.data.direction === "column";
+        var isVertical = this.data.direction === "vertical" || this.data.direction === "column";
         var containerRect = this.el.components.xyrect;
-        var containerSizeCross = (vertical ? w : h) - this.data.padding * 2;
-        var containerSize = (vertical ? h : w) - this.data.padding * 2;
-        var containerPivotCross = vertical ? containerRect.data.pivotX : containerRect.data.pivotY;
-        var spacing = this.data.spacing;
-        var stretchFactor = 0;
-        var p = vertical ? ((containerRect.data.pivotY - 1) * h) : (- containerRect.data.pivotX * w);
-        p += this.data.padding;
+        var containerSize = [
+            (isVertical ? h : w) - this.data.padding * 2,
+            (isVertical ? w : h) - this.data.padding * 2
+        ];
+        var containerPivotCross = isVertical ? containerRect.data.pivotX : containerRect.data.pivotY;
+        var p = isVertical ? ((containerRect.data.pivotY - 1) * h) : (- containerRect.data.pivotX * w);
         var getItemData = (el) => {
             var rect = el.components.xyrect || {
                 width: el.getAttribute("width") * 1,
                 height: el.getAttribute("height") * 1
             };
             var childScale = el.getAttribute("scale") || { x: 1, y: 1 };
-            return vertical ? ({
+            return isVertical ? ({
+                el: el,
                 sizeMain: rect.height,
                 sizeCross: rect.width,
                 pivotMain: rect.data ? rect.data.pivotY : 0.5,
@@ -48,6 +49,7 @@ AFRAME.registerComponent('xycontainer', {
                 scaleMain: childScale.y,
                 scaleCross: childScale.x
             }) : ({
+                el: el,
                 sizeMain: rect.width,
                 sizeCross: rect.height,
                 pivotMain: rect.data ? rect.data.pivotX : 0.5,
@@ -56,65 +58,83 @@ AFRAME.registerComponent('xycontainer', {
                 scaleCross: childScale.y
             });
         };
-        if (this.data.justifyItems !== "start") {
-            // update: stretchFactor, spacing, p
-            var itemCount = 0;
-            var sizeSum = 0;
-            var growSum = 0;
-            var shrinkSum = 0;
-            for (var i = 0; i < children.length; i++) {
-                var item = children[i];
-                var layoutItem = item.components.xyitem;
-                if (layoutItem && layoutItem.data.fixed) {
-                    continue;
-                }
-                itemCount++;
-                var itemData = getItemData(item);
-                sizeSum += itemData.sizeMain * itemData.scaleMain;
-                growSum += layoutItem ? layoutItem.data.grow : 1;
-                shrinkSum += layoutItem ? layoutItem.data.shrink : 1;
-            }
-            if (itemCount == 0) {
-                return;
-            }
-            if (this.data.justifyItems === "center") {
-                p += (containerSize - sizeSum - spacing * itemCount) / 2;
-            } else if (this.data.justifyItems === "end") {
-                p += (containerSize - sizeSum - spacing * itemCount);
-            } else if (this.data.justifyItems === "stretch") {
-                stretchFactor = containerSize - sizeSum - spacing * (itemCount - 1);
-                if (stretchFactor > 0) {
-                    stretchFactor = growSum > 0 ? stretchFactor / growSum : 0;
-                } else {
-                    stretchFactor = shrinkSum > 0 ? stretchFactor / shrinkSum : 0;
-                }
-            } else if (this.data.justifyItems === "space-between") {
-                spacing = (containerSize - sizeSum) / (itemCount - 1);
-            } else if (this.data.justifyItems === "space-around") {
-                spacing = (containerSize - sizeSum) / itemCount;
-                p += spacing * 0.5;
-            }
-        }
 
+        // update: stretchFactor, spacing, p
+        let targets = [];
+        let sizeSum = 0;
+        let growSum = 0;
+        let shrinkSum = 0;
+        let maxCrossSize = 0;
+        let crossOffset = 0;
         for (var i = 0; i < children.length; i++) {
             var item = children[i];
             var layoutItem = item.components.xyitem;
-            if (layoutItem && layoutItem.data.fixed || item.classList.contains("xy-ignorelayout")) {
-                continue; // xy-ignorelayout: DEPRECATED
+            if (layoutItem && layoutItem.data.fixed) {
+                continue;
             }
+            var itemData = getItemData(item);
+            let sz = sizeSum + itemData.sizeMain * itemData.scaleMain + this.data.spacing * (targets.length - 1);
+            if (this.data.wrap == "wrap" && sz > containerSize[0]) {
+                this._layoutLine(targets, sizeSum, growSum, shrinkSum, p, isVertical, containerSize, containerPivotCross, crossOffset);
+                crossOffset += maxCrossSize + this.data.spacing;
+                targets = [];
+                sizeSum = 0;
+                growSum = 0;
+                shrinkSum = 0;
+                maxCrossSize = 0;
+            }
+            targets.push(itemData);
+            sizeSum += itemData.sizeMain * itemData.scaleMain;
+            growSum += layoutItem ? layoutItem.data.grow : 1;
+            shrinkSum += layoutItem ? layoutItem.data.shrink : 1;
+            maxCrossSize = itemData.sizeCross > maxCrossSize ? itemData.sizeCross : maxCrossSize;
+        }
+        if (targets.length > 0) {
+            this._layoutLine(targets, sizeSum, growSum, shrinkSum, p, isVertical, containerSize, containerPivotCross, crossOffset);
+        }
+    },
+    _layoutLine: function (targets, sizeSum, growSum, shrinkSum, p, isVertical, containerSize, containerPivotCross, crossOffset) {
+        let mainAttr = isVertical ? "height" : "width";
+        let crossAttr = isVertical ? "width" : "height";
+        var spacing = this.data.spacing;
+        var stretchFactor = 0;
+        p += this.data.padding;
+
+        if (this.data.justifyItems === "center") {
+            p += (containerSize[0] - sizeSum - spacing * targets.length) / 2;
+        } else if (this.data.justifyItems === "end") {
+            p += (containerSize[0] - sizeSum - spacing * targets.length);
+        } else if (this.data.justifyItems === "stretch") {
+            stretchFactor = containerSize[0] - sizeSum - spacing * (targets.length - 1);
+            if (stretchFactor > 0) {
+                stretchFactor = growSum > 0 ? stretchFactor / growSum : 0;
+            } else {
+                stretchFactor = shrinkSum > 0 ? stretchFactor / shrinkSum : 0;
+            }
+        } else if (this.data.justifyItems === "space-between") {
+            spacing = (containerSize[0] - sizeSum) / (targets.length - 1);
+        } else if (this.data.justifyItems === "space-around") {
+            spacing = (containerSize[0] - sizeSum) / targets.length;
+            p += spacing * 0.5;
+        }
+
+        let containerSizeCross = containerSize[1];
+        for (var i = 0; i < targets.length; i++) {
+            var itemData = targets[i];
+            var item = itemData.el;
+            var layoutItem = item.components.xyitem;
             var align = (layoutItem && layoutItem.data.align) || this.data.alignItems;
             var stretch = (layoutItem ? (stretchFactor > 0 ? layoutItem.data.grow : layoutItem.data.shrink) : 1) * stretchFactor;
-            var itemData = getItemData(item);
             if (itemData.scaleMain > 0 && stretch != 0) {
-                item.setAttribute(vertical ? "height" : "width", itemData.sizeMain + stretch / itemData.scaleMain);
+                item.setAttribute(mainAttr, itemData.sizeMain + stretch / itemData.scaleMain);
             }
             if (itemData.scaleCross > 0 && align === "stretch") {
-                item.setAttribute(vertical ? "width" : "height", containerSizeCross / itemData.scaleCross);
+                item.setAttribute(crossAttr, containerSizeCross / itemData.scaleCross);
             }
             var pos = item.getAttribute("position") || { x: 0, y: 0, z: 0 };
             var sz = itemData.sizeMain * itemData.scaleMain + stretch;
-            var posMain = (this.data.reverse ^ vertical) ? - (p + (1 - itemData.pivotMain) * sz) : p + itemData.pivotMain * sz;
-            var posCross = null;
+            var posMain = (this.data.reverse ^ isVertical) ? - (p + (1 - itemData.pivotMain) * sz) : p + itemData.pivotMain * sz;
+            var posCross = isVertical ? pos.x : pos.y;
             if (align === "start") {
                 posCross = - (containerPivotCross * containerSizeCross - itemData.pivotCross * itemData.sizeCross);
             } else if (align === "end") {
@@ -126,12 +146,12 @@ AFRAME.registerComponent('xycontainer', {
             } else if (align === "baseline") {
                 posCross = 0;
             }
-            if (vertical) {
+            if (isVertical) {
                 pos.y = posMain;
-                pos.x = posCross !== null ? posCross : pos.x;
+                pos.x = posCross + crossOffset;
             } else {
                 pos.x = posMain;
-                pos.y = posCross !== null ? posCross : pos.y;
+                pos.y = posCross + crossOffset;
             }
             item.setAttribute("position", pos);
             p += sz + spacing;
@@ -282,6 +302,7 @@ AFRAME.registerPrimitive('a-xylayout', {
         spacing: 'xycontainer.spacing',
         padding: 'xycontainer.padding',
         reverse: 'xycontainer.reverse',
+        wrap: 'xycontainer.wrap',
         "align-items": 'xycontainer.alignItems',
         "justify-items": 'xycontainer.justifyItems'
     }
