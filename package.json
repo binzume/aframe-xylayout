@@ -2,7 +2,6 @@
   "name": "aframe-xylayout",
   "version": "1.0.0",
   "description": "Flexbox like layout + UI components for A-Frame",
-  "main": "index.js",
   "directories": {
     "example": "examples"
   },
