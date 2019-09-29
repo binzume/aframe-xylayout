@@ -114,63 +114,6 @@ AFRAME.registerComponent('xylabel', {
     }
 });
 
-AFRAME.registerSystem('xywindow', {
-    theme: {
-        buttonColor: "#222",
-        buttonHoverColor: "#333",
-        buttonLabelColor: "#fff",
-        buttonHoverHaptic: 0.3,
-        buttonHoverHapticMs: 10,
-        buttonGeometry: 'xy-rounded-rect',
-        windowCloseButtonColor: "#f00",
-        windowTitleBarColor: "#111",
-        windowTitleColor: "#fff",
-        collidableClass: "collidable",
-    },
-    windows: [],
-    createSimpleButton: function (params, parent, el) {
-        params.color = params.color || this.theme.buttonColor;
-        params.hoverColor = params.hoverColor || this.theme.buttonHoverColor;
-        params.labelColor = params.labelColor || this.theme.buttonLabelColor;
-        var geometry = params.geometry || this.theme.buttonGeometry;
-        var button = el || document.createElement('a-entity');
-        button.classList.add(this.theme.collidableClass);
-        button.addEventListener('mouseenter', ev => {
-            button.setAttribute("material", { color: params.hoverColor });
-            if (this.theme.buttonHoverHaptic && ev.detail.cursorEl.components['tracked-controls']) {
-                let gamepad = ev.detail.cursorEl.components['tracked-controls'].controller;
-                if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
-                    gamepad.hapticActuators[0].pulse(this.theme.buttonHoverHaptic, this.theme.buttonHoverHapticMs);
-                }
-            } else {
-                // this.theme.buttonHoverHaptic && navigator.vibrate && navigator.vibrate(this.theme.buttonHoverHapticMs);
-            }
-        });
-        button.addEventListener('mouseleave', ev => {
-            button.setAttribute("material", { color: params.color });
-        });
-
-        button.setAttribute("geometry", { primitive: geometry, width: params.width, height: params.height });
-        button.setAttribute("material", { color: params.color });
-        if (params.text != null) {
-            button.setAttribute("xylabel", {
-                value: params.text, zOffset: 0.01, align: "center", color: params.labelColor
-            });
-        }
-        parent && parent.appendChild(button);
-        return button;
-    },
-    registerWindow: function (w) {
-        this.windows.push(w);
-    },
-    unregisterWindow: function (w) {
-        let p = this.windows.indexOf(w);
-        if (p >= 0) {
-            this.windows.splice(p, 1);
-        }
-    }
-});
-
 AFRAME.registerComponent('xy-draggable', {
     schema: {
         dragThreshold: { default: 0.02 },
@@ -391,6 +334,63 @@ AFRAME.registerComponent('xywindow', {
     },
     setTitle: function (title) {
         this.titleText.setAttribute("xylabel", "value", title);
+    }
+});
+
+AFRAME.registerSystem('xywindow', {
+    theme: {
+        buttonColor: "#222",
+        buttonHoverColor: "#333",
+        buttonLabelColor: "#fff",
+        buttonHoverHaptic: 0.3,
+        buttonHoverHapticMs: 10,
+        buttonGeometry: 'xy-rounded-rect',
+        windowCloseButtonColor: "#f00",
+        windowTitleBarColor: "#111",
+        windowTitleColor: "#fff",
+        collidableClass: "collidable",
+    },
+    windows: [],
+    createSimpleButton: function (params, parent, el) {
+        params.color = params.color || this.theme.buttonColor;
+        params.hoverColor = params.hoverColor || this.theme.buttonHoverColor;
+        params.labelColor = params.labelColor || this.theme.buttonLabelColor;
+        var geometry = params.geometry || this.theme.buttonGeometry;
+        var button = el || document.createElement('a-entity');
+        button.classList.add(this.theme.collidableClass);
+        button.addEventListener('mouseenter', ev => {
+            button.setAttribute("material", { color: params.hoverColor });
+            if (this.theme.buttonHoverHaptic && ev.detail.cursorEl.components['tracked-controls']) {
+                let gamepad = ev.detail.cursorEl.components['tracked-controls'].controller;
+                if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
+                    gamepad.hapticActuators[0].pulse(this.theme.buttonHoverHaptic, this.theme.buttonHoverHapticMs);
+                }
+            } else {
+                // this.theme.buttonHoverHaptic && navigator.vibrate && navigator.vibrate(this.theme.buttonHoverHapticMs);
+            }
+        });
+        button.addEventListener('mouseleave', ev => {
+            button.setAttribute("material", { color: params.color });
+        });
+
+        button.setAttribute("geometry", { primitive: geometry, width: params.width, height: params.height });
+        button.setAttribute("material", { color: params.color });
+        if (params.text != null) {
+            button.setAttribute("xylabel", {
+                value: params.text, zOffset: 0.01, align: "center", color: params.labelColor
+            });
+        }
+        parent && parent.appendChild(button);
+        return button;
+    },
+    registerWindow: function (w) {
+        this.windows.push(w);
+    },
+    unregisterWindow: function (w) {
+        let p = this.windows.indexOf(w);
+        if (p >= 0) {
+            this.windows.splice(p, 1);
+        }
     }
 });
 
@@ -784,7 +784,7 @@ AFRAME.registerPrimitive('a-xywindow', {
 
 AFRAME.registerPrimitive('a-xyscroll', {
     defaultComponents: {
-        xyrect: { pivotX: 0, pivotY: 0 },
+        xyrect: { pivotX: 0, pivotY: 1 },
         xyscroll: {}
     },
     mappings: {

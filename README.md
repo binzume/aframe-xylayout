@@ -1,6 +1,6 @@
 # A-Frame xyLayout
 
-Simple 2D layout components for [A-Frame](https://aframe.io/).
+FlexBox like layout + UI components for [A-Frame](https://aframe.io/).
 
 ## Examples
 
@@ -15,7 +15,6 @@ T.B.D.
 
 - a-xylayout
 - a-xyscroll
-
 - a-xywindow
 - a-xylabel
 - a-xybutton
@@ -24,21 +23,20 @@ T.B.D.
 
 ## Components
 
-CSS Flexbox を意識した仕様になっていますが，あまり Flexible ではありません．
-
 ### xycontainer
 
-レイアウトのコンテナ．
+3Dオブジェクトを平面上に配置するコンテナ．CSS Flexbox を意識した仕様になっていますが挙動は異なります．
 
 Attributes
 
-| name | desc | values |
-| ---- | ---- | ---- |
-| direction    | レイアウト方向 |'vertical', 'horizontal'|
-| justifyItems | レイアウト方向の小要素の挙動 |'', 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
-| alignItems   | レイアウトに対し垂直方向の小要素の挙動 |'', 'center', 'start', 'end', 'stretch'|
-| spacing      | レイアウト間隔 | number |
-| padding      | 上下左右の余白 | number |
+| name | default | desc | values |
+| ---- | ------- | ---- | ------ |
+| direction    | vertical | レイアウト方向 |'vertical', 'horizontal'|
+| justifyItems | start  | レイアウト方向の小要素の挙動 | 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
+| alignItems   | none   | レイアウトに対し垂直方向の小要素の挙動 |'none', 'center', 'start', 'end', 'stretch'|
+| spacing      | 0.05   | レイアウト間隔 | number |
+| padding      | 0      | 上下左右の余白 | number |
+| wrap         | nowrap | 折返し | wrap, nowrap |
 
 ### xyitem
 
@@ -47,12 +45,12 @@ xycontainer直下以外の要素以外に追加した場合は何も起きませ
 
 Attributes
 
-| name | type | desc |
-| ---- | ---- | ---- |
-| align  | align | alignItems参照 |
-| grow  | number | stretchで拡張される量 |
-| shrink  | number | stretchで縮小される量 |
-| fixed | boolean | trueに設定するとレイアウト時に無視されます |
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| align  | align   | none  | alignItems参照 |
+| grow   | number  | 1     | stretchで拡張される量 |
+| shrink | number  | 1     | stretchで縮小される量 |
+| fixed  | boolean | false | trueに設定するとレイアウト時に無視されます |
 
 ### xyrect
 
