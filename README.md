@@ -28,7 +28,8 @@ npm run minify
 
 T.B.D. (See [examples](./examples))
 
-- a-xylayout
+- a-xycontainer
+- a-xylayout (deprecated)
 - a-xyscroll
 - a-xywindow
 - a-xylabel

@@ -112,13 +112,13 @@ AFRAME.registerComponent('xycontainer', {
         }
         lines.forEach(l => {
             containerSize[1] = l.crossSize + crossStretch;
-            this._layoutLine(l.targets, l.sizeSum, l.growSum, l.shrinkSum, isVertical, containerSize, p, crossOffset, xymat);
+            this._layoutLine(l.targets, l.sizeSum, l.growSum, l.shrinkSum, containerSize, p, crossOffset, xymat);
             crossOffset += containerSize[1] + this.data.spacing;
         });
     },
-    _layoutLine(targets, sizeSum, growSum, shrinkSum, isVertical, containerSize, p, crossOffset, xymat) {
-        let mainAttr = isVertical ? "height" : "width";
-        let crossAttr = isVertical ? "width" : "height";
+    _layoutLine(targets, sizeSum, growSum, shrinkSum, containerSize, p, crossOffset, xymat) {
+        let mainAttr = xymat[1] != 0 ? "height" : "width";
+        let crossAttr = xymat[1] != 0 ? "width" : "height";
 
         let spacing = this.data.spacing;
         let stretchFactor = 0;
@@ -306,20 +306,24 @@ AFRAME.registerComponent('xyclipping', {
     }
 });
 
-AFRAME.registerPrimitive('a-xylayout', {
-    defaultComponents: {
-        xyrect: {},
-        xycontainer: {}
-    },
-    mappings: {
-        width: 'xyrect.width',
-        height: 'xyrect.height',
-        direction: 'xycontainer.direction',
-        spacing: 'xycontainer.spacing',
-        padding: 'xycontainer.padding',
-        reverse: 'xycontainer.reverse',
-        wrap: 'xycontainer.wrap',
-        "align-items": 'xycontainer.alignItems',
-        "justify-items": 'xycontainer.justifyItems'
-    }
-});
+(function () {
+    let schema = {
+        defaultComponents: {
+            xyrect: {},
+            xycontainer: {}
+        },
+        mappings: {
+            width: 'xyrect.width',
+            height: 'xyrect.height',
+            direction: 'xycontainer.direction',
+            spacing: 'xycontainer.spacing',
+            padding: 'xycontainer.padding',
+            reverse: 'xycontainer.reverse',
+            wrap: 'xycontainer.wrap',
+            "align-items": 'xycontainer.alignItems',
+            "justify-items": 'xycontainer.justifyItems'
+        }
+    };
+    AFRAME.registerPrimitive('a-xycontainer', schema);
+    AFRAME.registerPrimitive('a-xylayout', schema); // deprecated
+})();
