@@ -11,6 +11,8 @@ Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 
 ## Usage
 
+Use xylayout-all.min.js (30kB)
+
 ```html
   <script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
 ```
@@ -18,12 +20,13 @@ Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 Building min.js
 
 ```bash
+npm install
 npm run minify
 ```
 
 ## Primitives
 
-T.B.D.
+T.B.D. (See [examples](./examples))
 
 - a-xylayout
 - a-xyscroll
@@ -70,12 +73,12 @@ Attributes
 xycontainerは要素のwidth,height属性を見ますが，width,heightからサイズがわからないもの(a-sphereなど)や，
 原点が中心ではないオブジェクトに対してサイズを明示するためのコンポーネント．
 
-| name | type | desc |
-| ---- | ---- | ---- |
-| width  | number | 要素の幅を明示．無指定時(-1)は要素のwidth属性を使います |
-| height | number | 要素の高さを明示．無指定時(-1)は要素のheight属性を使います |
-| pivotX | number | 要素の原点の位置  (default:0.5) |
-| pivotY | number | 要素の原点の位置  (default:0.5) |
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| width  | number | -1  | 要素の幅を明示．無指定時(-1)は要素のwidth属性を使います |
+| height | number | -1  | 要素の高さを明示．無指定時(-1)は要素のheight属性を使います |
+| pivotX | number | 0.5 | 要素の原点の位置 |
+| pivotY | number | 0.5 | 要素の原点の位置 |
 
 pivotは，左下が(0,0)です．a-frame のほとんどの要素は中心 (0.5, 0.5) が原点です．
 
@@ -85,13 +88,13 @@ pivotは，左下が(0,0)です．a-frame のほとんどの要素は中心 (0.5
 
 小要素のサイズが親要素をはみ出す場合にレンダリング時にクリッピングされます．
 
-| name | type | desc |
-| ---- | ---- | ---- |
-| clipTop    | boolean  | 上部をクリッピングします (default:true) |
-| clipBottom | boolean  | 下部をクリッピングします (default:true) |
-| clipLeft   | boolean  | 左側をクリッピングします |
-| clipRight  | boolean  | 右側をクリッピングします |
-| exclude    | selector | クリッピングから除外する要素 |
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| clipTop    | boolean  | true  | 上部をクリッピングします |
+| clipBottom | boolean  | true  | 下部をクリッピングします |
+| clipLeft   | boolean  | false | 左側をクリッピングします |
+| clipRight  | boolean  | false | 右側をクリッピングします |
+| exclude    | selector |       | クリッピングから除外する要素 |
 
 THREE.js標準のシェーダを使っている場合のみ正しく動きます．例えばa-textはシェーダが専用のものなので正しくクリッピングされません．
 
@@ -102,9 +105,9 @@ THREE.js標準のシェーダを使っている場合のみ正しく動きます
 
 このコンポーネントだけは，要素の中心ではなく左下を原点として扱います．
 
-| name | type | desc |
-| ---- | ---- | ---- |
-| scrollbar | boolean  | スクロールバーを表示 (default:true) |
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| scrollbar | boolean | true | スクロールバーを表示 |
 
 ### xywindow
 
@@ -128,31 +131,32 @@ textコンポーネントのWrappper．
 
 ### xybutton
 
-| name | type | desc |
-| ---- | ---- | ---- |
-| label | string  | ボタンのラベル |
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| label | string | | ボタンのラベル |
+| color | color | | ボタンの色 |
 
 ### xyrange
 
 操作するとchangeイベントが発生します．
 
-| name | type | desc |
-| ---- | ---- | ---- |
-| min   | number | 最小値 |
-| max   | number | 最大値 |
-| value | number | 初期値 |
-| step  | number | 変化の単位 |
-| thumbSize | number | つまみサイズ |
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| min   | number | 0   | 最小値 |
+| max   | number | 100 | 最大値 |
+| value | number | 0   | 初期値 |
+| step  | number | 0   | 変化の単位 |
+| thumbSize | number | 0.4 | つまみサイズ |
 
 ### xyselect
 
 操作するとchangeイベントが発生します．
 
-| name | type | desc |
-| ---- | ---- | ---- |
-| values | array | 選択肢 |
-| select | int | 選択されているインデックス |
-| toggle | bool | トグルモード |
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| values | array | []    | 選択肢 |
+| select | int   | 0     | 選択されているインデックス |
+| toggle | bool  | false | トグルモード |
 
 ### xylist
 
