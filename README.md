@@ -1,6 +1,6 @@
 # A-Frame xyLayout
 
-FlexBox like layout + UI components for [A-Frame](https://aframe.io/).
+Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 
 ## Examples
 
@@ -8,6 +8,18 @@ FlexBox like layout + UI components for [A-Frame](https://aframe.io/).
 - [Window UI](https://binzume.github.io/aframe-xylayout/examples/window.html)
 
 ![Layout example](./examples/layout.png)
+
+## Usage
+
+```html
+  <script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
+```
+
+Building min.js
+
+```bash
+npm run minify
+```
 
 ## Primitives
 
@@ -25,7 +37,8 @@ T.B.D.
 
 ### xycontainer
 
-3Dオブジェクトを平面上に配置するコンテナ．CSS Flexbox を意識した仕様になっていますが挙動は異なります．
+3Dオブジェクトを平面上に配置するコンテナ．
+[CSS Flexbox](https://developer.mozilla.org/ja/docs/Web/CSS/CSS_Flexible_Box_Layout) を意識した仕様になっていますが挙動は異なります．
 
 Attributes
 
@@ -144,3 +157,8 @@ textコンポーネントのWrappper．
 ### xylist
 
 リスト．いわゆるRecyclerViewです．
+
+
+# License
+
+MIT License

@@ -1,0 +1,26 @@
+{
+  "name": "aframe-xylayout",
+  "version": "1.0.0",
+  "description": "Flexbox like layout + UI components for A-Frame",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "minify": "node_modules/.bin/uglifyjs --compress --mangle --source-map -o dist/xylayout-all.min.js -- aframe-xylayout.js aframe-window.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/binzume/aframe-xylayout.git"
+  },
+  "author": "binzume",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/binzume/aframe-xylayout/issues"
+  },
+  "homepage": "https://github.com/binzume/aframe-xylayout#readme",
+  "devDependencies": {
+    "uglify-es": "^3.3.9"
+  }
+}
