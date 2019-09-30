@@ -7,13 +7,14 @@ if (typeof AFRAME === 'undefined') {
 AFRAME.registerComponent('xycontainer', {
     dependencies: ['xyrect'],
     schema: {
-        spacing: { type: 'number', default: 0.05 },
-        padding: { type: 'number', default: 0 },
-        reverse: { type: 'boolean', default: false },
+        spacing: { default: 0.05 },
+        padding: { default: 0 },
+        reverse: { default: false },
         wrap: { default: "nowrap", oneOf: ['wrap', 'nowrap'] },
         direction: { default: "vertical", oneOf: ['none', 'row', 'column', 'vertical', 'horizontal'] },
         alignItems: { default: "none", oneOf: ['none', 'center', 'start', 'end', 'baseline', 'stretch'] },
         justifyItems: { default: "start", oneOf: ['center', 'start', 'end', 'space-between', 'space-around', 'stretch'] },
+        alignContent: { default: "", oneOf: ['', 'none', 'start', 'end', 'center', 'stretch'] }
     },
     init() {
         this.el.addEventListener('xyresize', ev => {
@@ -22,17 +23,18 @@ AFRAME.registerComponent('xycontainer', {
         this.requestLayoutUpdate();
     },
     _doLayout(w, h) {
-        if (this.data.direction === "none") {
+        let data = this.data;
+        if (data.direction === "none") {
             return;
         }
         let children = this.el.children;
-        let isVertical = this.data.direction === "vertical" || this.data.direction === "column";
-        let mainDir = (this.data.reverse ^ isVertical) ? -1 : 1;
+        let isVertical = data.direction === "vertical" || data.direction === "column";
+        let mainDir = (data.reverse ^ isVertical) ? -1 : 1;
         let xymat = isVertical ? [0, 1, mainDir, 0] : [mainDir, 0, 0, -1]; // [main,corss] to [x,y]
         let containerRect = this.el.components.xyrect;
         let containerSize = [
-            (isVertical ? h : w) - this.data.padding * 2,
-            (isVertical ? w : h) - this.data.padding * 2
+            (isVertical ? h : w) - data.padding * 2,
+            (isVertical ? w : h) - data.padding * 2
         ];
 
         // lines
@@ -74,8 +76,8 @@ AFRAME.registerComponent('xycontainer', {
             if (itemData.sizeMain === undefined || isNaN(itemData.sizeMain)) {
                 continue;
             }
-            let sz = sizeSum + itemData.sizeMain * itemData.scaleMain + this.data.spacing * (targets.length - 1);
-            if (this.data.wrap == "wrap" && sizeSum > 0 && sz > containerSize[0]) {
+            let sz = sizeSum + itemData.sizeMain * itemData.scaleMain + data.spacing * (targets.length - 1);
+            if (data.wrap == "wrap" && sizeSum > 0 && sz > containerSize[0]) {
                 lines.push({ targets: targets, sizeSum: sizeSum, growSum: growSum, shrinkSum: shrinkSum, crossSize: crossSize });
                 crossSizeSum += crossSize;
                 targets = [];
@@ -98,22 +100,23 @@ AFRAME.registerComponent('xycontainer', {
         if (lines.length == 0) {
             return;
         }
-        crossSizeSum += this.data.spacing * (lines.length - 1);
+        crossSizeSum += data.spacing * (lines.length - 1);
         let containerPivotCross = isVertical ? containerRect.data.pivotX : containerRect.data.pivotY;
         let crossOffset = -containerPivotCross * containerSize[1];
         let crossStretch = 0;
-        let p = (isVertical ? ((containerRect.data.pivotY - 1) * h) : (-containerRect.data.pivotX * w)) + this.data.padding;
-        if (this.data.alignItems == "end") {
+        let p = (isVertical ? ((containerRect.data.pivotY - 1) * h) : (-containerRect.data.pivotX * w)) + data.padding;
+        let alignContent = data.alignContent || data.alignItems;
+        if (alignContent == "end") {
             crossOffset += containerSize[1] - crossSizeSum;
-        } else if (this.data.alignItems == "center") {
+        } else if (alignContent == "center") {
             crossOffset += (containerSize[1] - crossSizeSum) / 2;
-        } else if (this.data.alignItems == "stretch" || this.data.alignItems == "none") {
+        } else if (alignContent == "stretch" || alignContent == "none") {
             crossStretch = (containerSize[1] - crossSizeSum) / lines.length;
         }
         lines.forEach(l => {
             containerSize[1] = l.crossSize + crossStretch;
             this._layoutLine(l.targets, l.sizeSum, l.growSum, l.shrinkSum, containerSize, p, crossOffset, xymat);
-            crossOffset += containerSize[1] + this.data.spacing;
+            crossOffset += containerSize[1] + data.spacing;
         });
     },
     _layoutLine(targets, sizeSum, growSum, shrinkSum, containerSize, p, crossOffset, xymat) {
@@ -122,20 +125,21 @@ AFRAME.registerComponent('xycontainer', {
 
         let spacing = this.data.spacing;
         let stretchFactor = 0;
-        if (this.data.justifyItems === "center") {
+        let justify = this.data.justifyItems;
+        if (justify === "center") {
             p += (containerSize[0] - sizeSum - spacing * targets.length) / 2;
-        } else if (this.data.justifyItems === "end") {
+        } else if (justify === "end") {
             p += (containerSize[0] - sizeSum - spacing * targets.length);
-        } else if (this.data.justifyItems === "stretch") {
+        } else if (justify === "stretch") {
             stretchFactor = containerSize[0] - sizeSum - spacing * (targets.length - 1);
             if (stretchFactor > 0) {
                 stretchFactor = growSum > 0 ? stretchFactor / growSum : 0;
             } else {
                 stretchFactor = shrinkSum > 0 ? stretchFactor / shrinkSum : 0;
             }
-        } else if (this.data.justifyItems === "space-between") {
+        } else if (justify === "space-between") {
             spacing = (containerSize[0] - sizeSum) / (targets.length - 1);
-        } else if (this.data.justifyItems === "space-around") {
+        } else if (justify === "space-around") {
             spacing = (containerSize[0] - sizeSum) / targets.length;
             p += spacing * 0.5;
         }
@@ -181,10 +185,10 @@ AFRAME.registerComponent('xycontainer', {
 
 AFRAME.registerComponent('xyitem', {
     schema: {
-        align: { type: 'string', default: "none", oneOf: ['none', 'center', 'start', 'end', 'baseline', 'stretch'] },
-        grow: { type: 'number', default: 1 },
-        shrink: { type: 'number', default: 1 },
-        fixed: { type: 'boolean', default: false }
+        align: { default: "none", oneOf: ['none', 'center', 'start', 'end', 'baseline', 'stretch'] },
+        grow: { default: 1 },
+        shrink: { default: 1 },
+        fixed: { default: false }
     },
     update(oldData) {
         if (oldData.align !== undefined && this.el.parent.components.xycontainer) {
@@ -196,30 +200,36 @@ AFRAME.registerComponent('xyitem', {
 AFRAME.registerComponent('xyrect', {
     dependencies: ['position'],
     schema: {
-        width: { type: 'number', default: -1 }, // -1 : auto
-        height: { type: 'number', default: -1 },
-        pivotX: { type: 'number', default: 0.5 },
-        pivotY: { type: 'number', default: 0.5 }
+        width: { default: -1 }, // -1 : auto
+        height: { default: -1 },
+        pivotX: { default: 0.5 },
+        pivotY: { default: 0.5 }
     },
     init() {
         this.height = 0;
         this.width = 0;
     },
     update(oldData) {
+        let data = this.data;
         if (this.el.components.rounded || this.el.tagName == "A-INPUT") {
             // hack for a-frame-material
-            this.data.pivotX = 0;
-            this.data.pivotY = 1;
+            data.pivotX = 0;
+            data.pivotY = 1;
         }
-        if (this.data.width >= 0) {
-            this.width = this.data.width;
+        let geom = this.el.components.geometry;
+        if (data.width >= 0) {
+            this.width = data.width;
         } else if (this.el.hasAttribute("width")) {
             this.width = this.el.getAttribute("width") * 1;
+        } else if (geom) {
+            this.width = geom.data.width || 0;
         }
-        if (this.data.height >= 0) {
-            this.height = this.data.height;
+        if (data.height >= 0) {
+            this.height = data.height;
         } else if (this.el.hasAttribute("height")) {
             this.height = this.el.getAttribute("height") * 1;
+        } else if (geom) {
+            this.height = geom.data.height || 0;
         }
         if (oldData.width !== undefined) {
             this.el.dispatchEvent(new CustomEvent('xyresize', { detail: { xyrect: this } }));
@@ -231,16 +241,15 @@ AFRAME.registerComponent('xyclipping', {
     dependencies: ['xyrect'],
     schema: {
         exclude: { type: 'selector', default: null },
-        clipTop: { type: 'boolean', default: true },
-        clipBottom: { type: 'boolean', default: true },
-        clipLeft: { type: 'boolean', default: false },
-        clipRight: { type: 'boolean', default: false }
+        clipTop: { default: true },
+        clipBottom: { default: true },
+        clipLeft: { default: false },
+        clipRight: { default: false }
     },
     init() {
         this.el.sceneEl.renderer.localClippingEnabled = true;
         this.clippingPlanesLocal = [];
         this.clippingPlanes = [];
-        this.exclude = this.data.exclude;
         this.currentMatrix = null;
         this.el.classList.add("clickable");
         this._filterEvent = this._filterEvent.bind(this);
@@ -289,7 +298,8 @@ AFRAME.registerComponent('xyclipping', {
         this.applyClippings();
     },
     applyClippings() {
-        let excludeObj = this.exclude.object3D;
+        ``
+        let excludeObj = this.data.exclude && this.data.exclude.object3D;
         let setCliping = (obj) => {
             if (obj === excludeObj) return;
             if (obj.material && obj.material.clippingPlanes !== undefined) {
