@@ -546,6 +546,8 @@ AFRAME.registerComponent('xyscroll', {
         this.el.appendChild(this.control);
         this._initScrollBar(this.control, 0.3);
 
+        this.el.setAttribute("xyclipping", { exclude: this.control });
+
         this.el.setAttribute("xy-draggable", {});
         this.el.addEventListener("xy-drag", ev => {
             this.speedY = 0;
@@ -594,7 +596,6 @@ AFRAME.registerComponent('xyscroll', {
     update() {
         let xyrect = this.el.components.xyrect;
         this.scrollDelta = Math.max(xyrect.height / 2, 0.5);
-        this.el.setAttribute("xyclipping", { exclude: this.control });
 
         let enableScrollbar = this.data.scrollbar;
         this.upButton.setAttribute('visible', enableScrollbar);
@@ -645,13 +646,12 @@ AFRAME.registerComponent('xyscroll', {
                 continue;
             }
             let pos = item.getAttribute("position");
-            pos.x = -this.scrollX + item.components.xyrect.data.pivotX * item.components.xyrect.width;
-            pos.y = this.scrollY - (1.0 - item.components.xyrect.data.pivotY) * item.components.xyrect.height + xyrect.height;
+            let itemRect = item.components.xyrect;
+            pos.x = -this.scrollX + itemRect.data.pivotX * itemRect.width;
+            pos.y = this.scrollY - (1.0 - itemRect.data.pivotY) * itemRect.height + xyrect.height;
             item.setAttribute("position", pos);
-            if (item.components.xylist) {
-                let t = item.components.xyrect.height - this.scrollY;
-                item.components.xylist.setViewPort(t, t - xyrect.height, this.scrollX, this.scrollX + xyrect.width);
-            }
+            let t = itemRect.height - this.scrollY;
+            item.emit('xyviewport', [t, t - xyrect.height, this.scrollX, this.scrollX + xyrect.width]);
         }
         if (this.el.components.xyclipping) {
             this.el.components.xyclipping.applyClippings();
@@ -673,7 +673,8 @@ AFRAME.registerComponent('xylist', {
         this.userData = null;
         this.itemCount = 0;
         this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.itemHeight, pivotX: 0, pivotY: 0 });
-        this.setViewPort(0, 0, 0, 0);
+        this.setViewPort([0,0]);
+        this.el.addEventListener('xyviewport', ev => this.setViewPort(ev.detail));
         this.el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
         this.el.addEventListener('click', (ev) => {
             let path = ev.path || ev.composedPath();
@@ -705,9 +706,9 @@ AFRAME.registerComponent('xylist', {
         }
         this.refresh();
     },
-    setViewPort(t, b, l, r) {
-        this.top = t;
-        this.bottom = b;
+    setViewPort(vp) {
+        this.top = vp[0];
+        this.bottom = vp[1];
         this.refresh();
     },
     refresh() {
@@ -743,9 +744,10 @@ AFRAME.registerComponent('xylist', {
         if (el.dataset.listPosition == position) return true;
         el.dataset.listPosition = position;
         let x = 0.0, y = (this.itemCount - position - 1) * this.data.itemHeight;
-        if (el.components.xyrect) {
-            x += el.components.xyrect.data.pivotX * el.components.xyrect.width;
-            y += el.components.xyrect.data.pivotY * el.components.xyrect.height;
+        let xyrect = el.components.xyrect;
+        if (xyrect) {
+            x += xyrect.data.pivotX * xyrect.width;
+            y += xyrect.data.pivotY * xyrect.height;
         }
         el.setAttribute("position", { x: x, y: y, z: 0 });
         this.elementUpdator && this.elementUpdator(position, el, this.userData);
