@@ -11,15 +11,13 @@ AFRAME.registerComponent('xycontainer', {
         padding: { default: 0 },
         reverse: { default: false },
         wrap: { default: "nowrap", oneOf: ['wrap', 'nowrap'] },
-        direction: { default: "vertical", oneOf: ['none', 'row', 'column', 'vertical', 'horizontal'] },
+        direction: { default: "column", oneOf: ['none', 'row', 'column', 'vertical', 'horizontal'] },
         alignItems: { default: "none", oneOf: ['none', 'center', 'start', 'end', 'baseline', 'stretch'] },
         justifyItems: { default: "start", oneOf: ['center', 'start', 'end', 'space-between', 'space-around', 'stretch'] },
         alignContent: { default: "", oneOf: ['', 'none', 'start', 'end', 'center', 'stretch'] }
     },
     init() {
-        this.el.addEventListener('xyresize', ev => {
-            this._doLayout(ev.detail.xyrect.width, ev.detail.xyrect.height);
-        });
+        this.el.addEventListener('xyresize', ev => this.requestLayoutUpdate());
         this.requestLayoutUpdate();
     },
     _doLayout(w, h) {
@@ -31,11 +29,9 @@ AFRAME.registerComponent('xycontainer', {
         let isVertical = data.direction === "vertical" || data.direction === "column";
         let mainDir = (data.reverse ^ isVertical) ? -1 : 1;
         let xymat = isVertical ? [0, 1, mainDir, 0] : [mainDir, 0, 0, -1]; // [main,corss] to [x,y]
+        let xyToMainCross = isVertical ? (x, y) => [y, x] : (x, y) => [x, y];
         let containerRect = this.el.components.xyrect;
-        let containerSize = [
-            (isVertical ? h : w) - data.padding * 2,
-            (isVertical ? w : h) - data.padding * 2
-        ];
+        let containerSize = xyToMainCross(w - data.padding * 2, h - data.padding * 2);
 
         // lines
         let targets = [];
@@ -45,7 +41,7 @@ AFRAME.registerComponent('xycontainer', {
         let crossSize = 0;
         let crossSizeSum = 0;
         let lines = [];
-        for (var i = 0; i < children.length; i++) {
+        for (let i = 0; i < children.length; i++) {
             let el = children[i];
             let layoutItem = el.components.xyitem;
             if (layoutItem && layoutItem.data.fixed) {
@@ -56,27 +52,16 @@ AFRAME.registerComponent('xycontainer', {
                 height: el.getAttribute("height") * 1
             };
             let childScale = el.getAttribute("scale") || { x: 1, y: 1 };
-            let itemData = isVertical ? ({
+            let itemData = {
                 el: el,
-                sizeMain: rect.height,
-                sizeCross: rect.width,
-                pivotMain: rect.data ? rect.data.pivotY : 0.5,
-                pivotCross: rect.data ? rect.data.pivotX : 0.5,
-                scaleMain: childScale.y,
-                scaleCross: childScale.x
-            }) : ({
-                el: el,
-                sizeMain: rect.width,
-                sizeCross: rect.height,
-                pivotMain: rect.data ? rect.data.pivotX : 0.5,
-                pivotCross: rect.data ? rect.data.pivotY : 0.5,
-                scaleMain: childScale.x,
-                scaleCross: childScale.y
-            });
-            if (itemData.sizeMain === undefined || isNaN(itemData.sizeMain)) {
+                size: xyToMainCross(rect.width, rect.height),
+                pivot: xyToMainCross(rect.data ? rect.data.pivotX : 0.5, rect.data ? rect.data.pivotY : 0.5),
+                scale: xyToMainCross(childScale.x, childScale.y)
+            };
+            if (itemData.size[0] === undefined || isNaN(itemData.size[0])) {
                 continue;
             }
-            let sz = sizeSum + itemData.sizeMain * itemData.scaleMain + data.spacing * (targets.length - 1);
+            let sz = sizeSum + itemData.size[0] * itemData.scale[0] + data.spacing * (targets.length - 1);
             if (data.wrap == "wrap" && sizeSum > 0 && sz > containerSize[0]) {
                 lines.push({ targets: targets, sizeSum: sizeSum, growSum: growSum, shrinkSum: shrinkSum, crossSize: crossSize });
                 crossSizeSum += crossSize;
@@ -87,10 +72,10 @@ AFRAME.registerComponent('xycontainer', {
                 crossSize = 0;
             }
             targets.push(itemData);
-            sizeSum += itemData.sizeMain * itemData.scaleMain;
+            sizeSum += itemData.size[0] * itemData.scale[0];
             growSum += layoutItem ? layoutItem.data.grow : 1;
             shrinkSum += layoutItem ? layoutItem.data.shrink : 1;
-            crossSize = itemData.sizeCross > crossSize ? itemData.sizeCross : crossSize;
+            crossSize = itemData.size[1] > crossSize ? itemData.size[1] : crossSize;
         }
         if (targets.length > 0) {
             lines.push({ targets: targets, sizeSum: sizeSum, growSum: growSum, shrinkSum: shrinkSum, crossSize: crossSize });
@@ -101,10 +86,10 @@ AFRAME.registerComponent('xycontainer', {
             return;
         }
         crossSizeSum += data.spacing * (lines.length - 1);
-        let containerPivotCross = isVertical ? containerRect.data.pivotX : containerRect.data.pivotY;
-        let crossOffset = -containerPivotCross * containerSize[1];
+        let containerPivot = xyToMainCross(containerRect.data.pivotX, containerRect.data.pivotY);
+        let crossOffset = -containerPivot[1] * containerSize[1];
         let crossStretch = 0;
-        let p = (isVertical ? ((containerRect.data.pivotY - 1) * h) : (-containerRect.data.pivotX * w)) + data.padding;
+        let p = (isVertical ? ((containerPivot[0] - 1) * h) : (-containerPivot[0] * w)) + data.padding;
         let alignContent = data.alignContent || data.alignItems;
         if (alignContent == "end") {
             crossOffset += containerSize[1] - crossSizeSum;
@@ -115,13 +100,12 @@ AFRAME.registerComponent('xycontainer', {
         }
         lines.forEach(l => {
             containerSize[1] = l.crossSize + crossStretch;
-            this._layoutLine(l.targets, l.sizeSum, l.growSum, l.shrinkSum, containerSize, p, crossOffset, xymat);
+            this._layoutLine(l.targets, l.sizeSum, l.growSum, l.shrinkSum, containerSize, p, crossOffset, xymat, xyToMainCross);
             crossOffset += containerSize[1] + data.spacing;
         });
     },
-    _layoutLine(targets, sizeSum, growSum, shrinkSum, containerSize, p, crossOffset, xymat) {
-        let mainAttr = xymat[1] != 0 ? "height" : "width";
-        let crossAttr = xymat[1] != 0 ? "width" : "height";
+    _layoutLine(targets, sizeSum, growSum, shrinkSum, containerSize, p, crossOffset, xymat, xyToMainCross) {
+        let attrNames = xyToMainCross("width", "height");
 
         let spacing = this.data.spacing;
         let stretchFactor = 0;
@@ -144,30 +128,30 @@ AFRAME.registerComponent('xycontainer', {
             p += spacing * 0.5;
         }
 
-        for (var i = 0; i < targets.length; i++) {
+        for (let i = 0; i < targets.length; i++) {
             let itemData = targets[i];
             let item = itemData.el;
             let layoutItem = item.components.xyitem;
             let align = (layoutItem && layoutItem.data.align) || this.data.alignItems;
             let stretch = (layoutItem ? (stretchFactor > 0 ? layoutItem.data.grow : layoutItem.data.shrink) : 1) * stretchFactor;
-            let szMain = itemData.sizeMain * itemData.scaleMain + stretch;
-            let szCross = itemData.sizeCross;
-            if (itemData.scaleMain > 0 && stretch != 0) {
-                item.setAttribute(mainAttr, itemData.sizeMain + stretch / itemData.scaleMain);
+            let szMain = itemData.size[0] * itemData.scale[0] + stretch;
+            let szCross = itemData.size[1];
+            if (itemData.scale[0] > 0 && stretch != 0) {
+                item.setAttribute(attrNames[0], itemData.size[0] + stretch / itemData.scale[0]);
             }
-            if (itemData.scaleCross > 0 && align === "stretch") {
+            if (itemData.scale[1] > 0 && align === "stretch") {
                 szCross = containerSize[1];
-                item.setAttribute(crossAttr, szCross / itemData.scaleCross);
+                item.setAttribute(attrNames[1], szCross / itemData.scale[1]);
             }
             let pos = item.getAttribute("position") || { x: 0, y: 0, z: 0 };
-            let posMain = (p + itemData.pivotMain * szMain);
+            let posMain = (p + itemData.pivot[0] * szMain);
             let posCross = crossOffset + containerSize[1] * 0.5; // center
             if (align === "start" || align === "stretch") {
-                posCross = crossOffset + itemData.pivotCross * szCross;
+                posCross = crossOffset + itemData.pivot[1] * szCross;
             } else if (align === "end") {
-                posCross = crossOffset + containerSize[1] - (1 - itemData.pivotCross) * szCross;
+                posCross = crossOffset + containerSize[1] - (1 - itemData.pivot[1]) * szCross;
             } else if (align === "center") {
-                posCross += (itemData.pivotCross - 0.5) * szCross;
+                posCross += (itemData.pivot[1] - 0.5) * szCross;
             } else if (align === "none") {
                 posCross += xymat[1] * pos.x + xymat[3] * pos.y;
             }
@@ -232,7 +216,7 @@ AFRAME.registerComponent('xyrect', {
             this.height = geom.data.height || 0;
         }
         if (oldData.width !== undefined) {
-            this.el.dispatchEvent(new CustomEvent('xyresize', { detail: { xyrect: this } }));
+            this.el.emit('xyresize', { xyrect: this }, false);
         }
     }
 });
@@ -257,13 +241,14 @@ AFRAME.registerComponent('xyclipping', {
         this.filterTargets.forEach(t => this.el.addEventListener(t, this._filterEvent, true));
     },
     update() {
-        this.clippingPlanes = [];
-        this.clippingPlanesLocal = [];
         let rect = this.el.components.xyrect;
-        if (this.data.clipBottom) this.clippingPlanesLocal.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
-        if (this.data.clipTop) this.clippingPlanesLocal.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), rect.height));
-        if (this.data.clipLeft) this.clippingPlanesLocal.push(new THREE.Plane(new THREE.Vector3(1, 0, 0), 0));
-        if (this.data.clipRight) this.clippingPlanesLocal.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), rect.width));
+        let planes = [];
+        if (this.data.clipBottom) planes.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
+        if (this.data.clipTop) planes.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), rect.height));
+        if (this.data.clipLeft) planes.push(new THREE.Plane(new THREE.Vector3(1, 0, 0), 0));
+        if (this.data.clipRight) planes.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), rect.width));
+        this.clippingPlanesLocal = planes;
+        this.clippingPlanes = [];
         this.updateMatrix();
     },
     remove() {
@@ -292,7 +277,7 @@ AFRAME.registerComponent('xyclipping', {
     },
     updateMatrix() {
         this.currentMatrix = this.el.object3D.matrixWorld.clone();
-        for (var i = 0; i < this.clippingPlanesLocal.length; i++) {
+        for (let i = 0; i < this.clippingPlanesLocal.length; i++) {
             this.clippingPlanes[i] = this.clippingPlanesLocal[i].clone().applyMatrix4(this.currentMatrix);
         }
         this.applyClippings();
@@ -305,7 +290,7 @@ AFRAME.registerComponent('xyclipping', {
             if (obj.material && obj.material.clippingPlanes !== undefined) {
                 obj.material.clippingPlanes = this.clippingPlanes;
             }
-            for (var i = 0; i < obj.children.length; i++) {
+            for (let i = 0; i < obj.children.length; i++) {
                 setCliping(obj.children[i]);
             }
         };

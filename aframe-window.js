@@ -161,26 +161,26 @@ AFRAME.registerComponent('xytoggle', {
             width: 1, height: 1
         };
         this.el.sceneEl.systems.xywindow.createSimpleButton(this.buttonParams, null, this.el);
-
         this.thumb = document.createElement('a-circle');
-        this.thumb.setAttribute("position", "z", 0.1);
         this.el.appendChild(this.thumb);
         this.el.addEventListener('click', ev => {
             this.el.setAttribute('xytoggle', 'value', !this.data.value);
+            this.el.emit('change', { value: !this.data.value }, false);
         });
     },
     update() {
         let theme = this.el.sceneEl.systems.xywindow.theme;
-        let v = this.data.value;
-        this.buttonParams.color = v ? "#0066ff" : theme.buttonColor;
-        this.buttonParams.hoverColor = v ? "#4499ff" : theme.buttonHoverColor;
-        this.el.setAttribute('material', 'color', this.buttonParams.color);
         let xyrect = this.el.components.xyrect;
+        let params = this.buttonParams;
+        let v = this.data.value;
+        params.color = v ? "#0066ff" : theme.buttonColor;
+        params.hoverColor = v ? "#4499ff" : theme.buttonHoverColor;
+        this.el.setAttribute('material', 'color', params.color);
         let r = xyrect.height / 2;
         this.thumb.setAttribute("geometry", "radius", r * 0.8);
-        this.thumb.setAttribute("position", "x", (xyrect.width / 2 - r) * (v ? 1 : -1));
+        this.thumb.setAttribute("position", { x: (xyrect.width / 2 - r) * (v ? 1 : -1), y: 0, z: 0.05 });
         this.el.setAttribute("geometry", {
-            primitive: "xy-rounded-rect", width: xyrect.width, height: xyrect.height, radius: r
+            primitive: "xy-rounded-rect", width: xyrect.width, height: r * 2, radius: r
         });
     }
 });
@@ -198,7 +198,7 @@ AFRAME.registerComponent('xyselect', {
             if (this.data.toggle) {
                 let idx = (this.data.select + 1) % this.data.values.length;
                 this.el.setAttribute('xyselect', 'select', idx);
-                this.el.dispatchEvent(new CustomEvent('change', { detail: { value: this.data.values[idx], index: idx } }));
+                this.el.emit('change', { value: this.data.values[idx], index: idx }, false);
             } else {
                 this.listEl ? this.hide() : this.show();
             }
@@ -220,7 +220,7 @@ AFRAME.registerComponent('xyselect', {
             itemEl.addEventListener('click', ev => {
                 ev.stopPropagation();
                 this.el.setAttribute('xybutton', { label: this.data.label || v });
-                this.el.dispatchEvent(new CustomEvent('change', { detail: { value: v, index: i } }));
+                this.el.emit('change', { value: v, index: i }, false);
                 this.hide();
             });
             this.listEl.appendChild(itemEl);
@@ -544,7 +544,7 @@ AFRAME.registerComponent('xyrange', {
                 p = Math.round(p / data.step) * data.step;
             }
             this.setValue(p + data.min, true);
-            this.el.dispatchEvent(new CustomEvent('change', { detail: { value: this.value } }));
+            this.el.emit('change', { value: this.value }, false);
         });
         this.thumb.addEventListener("xy-dragend", ev => this.dragging = false);
     },
@@ -686,7 +686,7 @@ AFRAME.registerComponent('xyscroll', {
             pos.y = this.scrollY - (1.0 - itemRect.data.pivotY) * itemRect.height + xyrect.height;
             item.setAttribute("position", pos);
             let t = itemRect.height - this.scrollY;
-            item.emit('xyviewport', [t, t - xyrect.height, this.scrollX, this.scrollX + xyrect.width]);
+            item.emit('xyviewport', [t, t - xyrect.height, this.scrollX, this.scrollX + xyrect.width], false);
         }
         if (this.el.components.xyclipping) {
             this.el.components.xyclipping.applyClippings();
@@ -697,7 +697,7 @@ AFRAME.registerComponent('xyscroll', {
 AFRAME.registerComponent('xylist', {
     dependencies: ['xyrect'],
     schema: {
-        width: { default: -1 },
+        itemWidth: { default: -1 },
         itemHeight: { default: -1 },
         vertical: { default: true }
     },
@@ -707,7 +707,7 @@ AFRAME.registerComponent('xylist', {
         this.elements = [];
         this.userData = null;
         this.itemCount = 0;
-        this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.itemHeight, pivotX: 0, pivotY: 0 });
+        this.el.setAttribute("xyrect", { pivotX: 0, pivotY: 0 });
         this.setViewPort([0, 0]);
         this.el.addEventListener('xyviewport', ev => this.setViewPort(ev.detail));
         this.el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
@@ -716,7 +716,7 @@ AFRAME.registerComponent('xylist', {
             for (let i = 0; i < path.length; i++) {
                 let index = path[i].dataset.listPosition;
                 if (index != null && index != -1) {
-                    this.el.emit('clickitem', { index: index, ev: ev });
+                    this.el.emit('clickitem', { index: index, ev: ev }, false);
                     break;
                 }
             }
@@ -725,16 +725,17 @@ AFRAME.registerComponent('xylist', {
     setCallback(factory, constructor) {
         this.elementFactory = factory;
         this.elementUpdator = constructor;
-        if (this.data.itemHeight < 0) {
+        if (this.data.itemHeight <= 0) {
             let el = this.elementFactory(this.el, this.userData);
             this.data.itemHeight = el.getAttribute("height") * 1.0;
+            this.data.itemWidth = el.getAttribute("width") * 1.0;
         }
     },
-    setContents(data, size) {
+    setContents(data, count) {
         this.userData = data;
-        this.itemCount = size != null ? size : data.length;
-        let hh = this.data.itemHeight * this.itemCount;
-        this.el.setAttribute("xyrect", { width: this.data.width, height: hh });
+        this.itemCount = count !== undefined ? count : data.length;
+        let height = this.data.itemHeight * this.itemCount;
+        this.el.setAttribute("xyrect", { width: this.data.itemWidth, height: height });
         for (let t = 0; t < this.elements.length; t++) {
             this.elements[t].setAttribute('visible', false);
             this.elements[t].dataset.listPosition = -1;
@@ -752,21 +753,18 @@ AFRAME.registerComponent('xylist', {
         let st = Math.max(Math.floor((hh - this.top) / this.data.itemHeight), 0);
         let en = Math.min(Math.ceil((hh - this.bottom) / this.data.itemHeight), this.itemCount);
         let n = en - st + 1;
-        if (n > this.elements.length) {
-            // TODO: compaction
-            while (n > this.elements.length) {
-                let el = this.elementFactory(this.el, this.userData);
-                el.dataset.listPosition = -1;
-                el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
-                this.el.appendChild(el);
-                this.elements.push(el);
-            }
+        // TODO: compaction
+        while (n > this.elements.length) {
+            let el = this.elementFactory(this.el, this.userData);
+            el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
+            this.el.appendChild(el);
+            this.elements.push(el);
         }
         let retry = false;
         for (let position = st; position < en; position++) {
             retry |= !this._updateElement(position);
         }
-        if (retry) setTimeout(this.refresh.bind(this), 100);
+        if (retry) setTimeout(() => this.refresh(), 100);
 
         for (let t = 0; t < this.elements.length; t++) {
             let p = this.elements[t].dataset.listPosition;
