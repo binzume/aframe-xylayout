@@ -5,7 +5,7 @@ Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 ## Examples
 
 - [Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
-- [Window UI](https://binzume.github.io/aframe-xylayout/examples/window.html)
+- [UI Components](https://binzume.github.io/aframe-xylayout/examples/window.html)
 
 ![Layout example](./examples/layout.png)
 
@@ -17,7 +17,7 @@ Use xylayout-all.min.js (30kB)
   <script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
 ```
 
-Building min.js
+Building xylayout-all.min.js
 
 ```bash
 npm install
@@ -29,13 +29,15 @@ npm run minify
 T.B.D. (See [examples](./examples))
 
 - a-xycontainer
-- a-xylayout (deprecated)
-- a-xyscroll
 - a-xywindow
 - a-xylabel
 - a-xybutton
 - a-xyrange
+- a-xytoggle
 - a-xyselect
+- a-xyscroll
+
+それぞれ同名のコンポーネント + `xyrect`コンポーネントが使われます．
 
 ## Components
 
@@ -48,12 +50,14 @@ Attributes
 
 | name | default | desc | values |
 | ---- | ------- | ---- | ------ |
-| direction    | vertical | レイアウト方向 |'vertical', 'horizontal'|
-| justifyItems | start  | レイアウト方向の小要素の挙動 | 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
-| alignItems   | none   | レイアウトに対し垂直方向の小要素の挙動 |'none', 'center', 'start', 'end', 'stretch'|
+| direction    | column | レイアウト方向 | 'row', 'column', 'horizontal', 'vertical' |
+| justifyItems | start  | レイアウト方向の小要素の配置 | 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
+| alignItems   | none   | レイアウトに対し垂直方向の小要素の配置 |'none', 'center', 'start', 'end', 'stretch'|
+| alignContent | none   | wrapで折り返した時の各行の配置 |'none', 'center', 'start', 'end', 'stretch'|
 | spacing      | 0.05   | レイアウト間隔 | number |
 | padding      | 0      | 上下左右の余白 | number |
 | wrap         | nowrap | 折返し | wrap, nowrap |
+| reverse      | false  | 逆向きにレイアウト |  |
 
 ### xyitem
 
@@ -137,9 +141,17 @@ textコンポーネントのWrappper．
 | label | string | | ボタンのラベル |
 | color | color | | ボタンの色 |
 
-### xyrange
+クリック時には`click`イベントが発生します．
 
-操作するとchangeイベントが発生します．
+### xytoggle
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| value | boolean | false | トグルスイッチの状態 |
+
+値が変更されると`change`イベントが発生します．
+
+### xyrange
 
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
@@ -149,20 +161,23 @@ textコンポーネントのWrappper．
 | step  | number | 0   | 変化の単位 |
 | thumbSize | number | 0.4 | つまみサイズ |
 
-### xyselect
+値が変更されると`change`イベントが発生します．
 
-操作するとchangeイベントが発生します．
+### xyselect
 
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
 | values | array | []    | 選択肢 |
 | select | int   | 0     | 選択されているインデックス |
-| toggle | bool  | false | トグルモード |
+| toggle | boolean | false | トグルモード |
+
+操作するとchangeイベントが発生します．
 
 ### xylist
 
 リスト．いわゆるRecyclerViewです．
 
+クリック時には`clickitem`イベントが発生します．
 
 # License
 
