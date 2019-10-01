@@ -30,6 +30,7 @@ AFRAME.registerComponent('xylabel', {
         resolution: { default: 32 },
         renderingMode: { default: 'auto', oneOf: ['auto', 'canvas'] },
         wrapCount: { default: 0 },
+        xOffset: { default: 0 },
         zOffset: { default: 0.01 },
         value: { default: '' },
         color: { default: 'white' },
@@ -88,9 +89,10 @@ AFRAME.registerComponent('xylabel', {
             texture.anisotropy = 4;
             // texture.minFilter = THREE.LinearFilter;
             let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+            let mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), material);
+            mesh.position.copy(new THREE.Vector3(data.xOffset, 0, data.zOffset));
             this._removeObject3d();
-            this.el.setObject3D("xylabel", new THREE.Mesh(new THREE.PlaneGeometry(w, h), material));
-            this.el.object3DMap.xylabel.position.copy(new THREE.Vector3(0, 0, data.zOffset));
+            this.el.setObject3D("xylabel", mesh);
         }
 
         let ctx = this.canvas.getContext("2d");
@@ -146,6 +148,40 @@ AFRAME.registerComponent('xybutton', {
         if (this.data.label !== oldData.label) {
             this.el.setAttribute("xylabel", { value: this.data.label, color: this.data.labelColor, align: 'center' });
         }
+    }
+});
+
+AFRAME.registerComponent('xytoggle', {
+    dependencies: ['xyrect'],
+    schema: {
+        value: { default: false }
+    },
+    init() {
+        this.buttonParams = {
+            width: 1, height: 1
+        };
+        this.el.sceneEl.systems.xywindow.createSimpleButton(this.buttonParams, null, this.el);
+
+        this.thumb = document.createElement('a-circle');
+        this.thumb.setAttribute("position", "z", 0.1);
+        this.el.appendChild(this.thumb);
+        this.el.addEventListener('click', ev => {
+            this.el.setAttribute('xytoggle', 'value', !this.data.value);
+        });
+    },
+    update() {
+        let theme = this.el.sceneEl.systems.xywindow.theme;
+        let v = this.data.value;
+        this.buttonParams.color = v ? "#0066ff" : theme.buttonColor;
+        this.buttonParams.hoverColor = v ? "#4499ff" : theme.buttonHoverColor;
+        this.el.setAttribute('material', 'color', this.buttonParams.color);
+        let xyrect = this.el.components.xyrect;
+        let r = xyrect.height / 2;
+        this.thumb.setAttribute("geometry", "radius", r * 0.8);
+        this.thumb.setAttribute("position", "x", (xyrect.width / 2 - r) * (v ? 1 : -1));
+        this.el.setAttribute("geometry", {
+            primitive: "xy-rounded-rect", width: xyrect.width, height: xyrect.height, radius: r
+        });
     }
 });
 
@@ -391,7 +427,7 @@ AFRAME.registerComponent('xywindow', {
         }
 
         this.titleText = document.createElement('a-entity');
-        this.controls.appendChild(this.titleText);
+        this.dragButton.appendChild(this.titleText);
         this.el.addEventListener('xyresize', (ev) => {
             this.update({});
         });
@@ -412,13 +448,12 @@ AFRAME.registerComponent('xywindow', {
             this.titleText.setAttribute("xyrect", { width: titleW, height: 0.45 });
             this.titleText.setAttribute("xylabel", {
                 value: this.data.title, wrapCount: Math.max(10, titleW / 0.2),
-                color: this.theme.windowTitleColor
+                color: this.theme.windowTitleColor, xOffset: 0.1
             });
         }
         this.controls.setAttribute("position", "y", xyrect.height * 0.5);
         this.dragButton.setAttribute("geometry", "width", xyrect.width - a);
         this.dragButton.setAttribute("position", { x: -a / 2, y: 0.3, z: 0 });
-        this.titleText.setAttribute("position", { x: -a / 2 + 0.1, y: 0.3, z: 0.02 });
     },
     setTitle(title) {
         this.el.setAttribute("xywindow", "title", title);
@@ -673,7 +708,7 @@ AFRAME.registerComponent('xylist', {
         this.userData = null;
         this.itemCount = 0;
         this.el.setAttribute("xyrect", { width: this.data.width, height: this.data.itemHeight, pivotX: 0, pivotY: 0 });
-        this.setViewPort([0,0]);
+        this.setViewPort([0, 0]);
         this.el.addEventListener('xyviewport', ev => this.setViewPort(ev.detail));
         this.el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
         this.el.addEventListener('click', (ev) => {
@@ -802,6 +837,18 @@ AFRAME.registerPrimitive('a-xybutton', {
         width: 'xyrect.width',
         height: 'xyrect.height',
         label: 'xybutton.label'
+    }
+});
+
+AFRAME.registerPrimitive('a-xytoggle', {
+    xyrect: { width: 2, height: 0.5 },
+    defaultComponents: {
+        xyrect: {}
+    },
+    mappings: {
+        width: 'xyrect.width',
+        height: 'xyrect.height',
+        value: 'xytoggle.value'
     }
 });
 
