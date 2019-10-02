@@ -47,7 +47,7 @@ AFRAME.registerComponent('xycontainer', {
             if (layoutItem && layoutItem.data.fixed) {
                 continue;
             }
-            let rect = el.components.xyrect || {
+            let rect = el.components.xyrect || el.getAttribute("geometry") || {
                 width: el.getAttribute("width") * 1,
                 height: el.getAttribute("height") * 1
             };

@@ -15,6 +15,14 @@ Use xylayout-all.min.js (30kB)
 
 ```html
   <script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
+  ...
+  <a-xycontainer width="5" height="5" direction="horizontal" spacing="0.1" align-items="stretch">
+      <a-plane xyitem="fixed:true" height="5" width="5" color="#888"></a-plane>
+      <a-box color="blue"></a-box>
+      <a-box color="red"></a-box>
+      <a-box color="green"></a-box>
+      <a-box color="yellow"></a-box>
+  </a-xycontainer>
 ```
 
 Building xylayout-all.min.js
