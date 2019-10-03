@@ -133,7 +133,8 @@ AFRAME.registerComponent('xybutton', {
         label: { default: "" },
         labelColor: { default: "" },
         color: { default: "" },
-        hoverColor: { default: "" }
+        hoverColor: { default: "" },
+        geometry: { default: "" }
     },
     init() {
         this.el.sceneEl.systems.xywindow.createSimpleButton({
@@ -167,6 +168,7 @@ AFRAME.registerComponent('xytoggle', {
             this.el.setAttribute('xytoggle', 'value', !this.data.value);
             this.el.emit('change', { value: !this.data.value }, false);
         });
+        this.el.addEventListener('xyresize', (ev) => this.update());
     },
     update() {
         let theme = this.el.sceneEl.systems.xywindow.theme;
@@ -770,7 +772,7 @@ AFRAME.registerComponent('xylist', {
             let el = this.elements[position % this.elements.length];
             if (!el.hasLoaded) {
                 retry = true;
-            } else if (el.dataset.listPosition !== position) {
+            } else if (el.dataset.listPosition != position) {
                 el.dataset.listPosition = position;
                 let x = 0, y = (this.itemCount - position - 1) * itemHeight;
                 let xyrect = el.components.xyrect;
@@ -837,14 +839,15 @@ AFRAME.registerPrimitive('a-xybutton', {
     mappings: {
         width: 'xyrect.width',
         height: 'xyrect.height',
-        label: 'xybutton.label'
+        label: 'xybutton.label',
+        geometry: 'xybutton.geometry'
     }
 });
 
 AFRAME.registerPrimitive('a-xytoggle', {
-    xyrect: { width: 2, height: 0.5 },
     defaultComponents: {
-        xyrect: {}
+        xyrect: { width: 0.8, height: 0.4 },
+        xytoggle: {}
     },
     mappings: {
         width: 'xyrect.width',
