@@ -133,12 +133,12 @@ AFRAME.registerComponent('xybutton', {
         label: { default: "" },
         labelColor: { default: "" },
         color: { default: "" },
-        hoverColor: { default: "" },
-        geometry: { default: "" }
+        hoverColor: { default: "" }
     },
     init() {
+        let xyrect = this.el.components.xyrect;
         this.el.sceneEl.systems.xywindow.createSimpleButton({
-            width: this.el.components.xyrect.width, height: this.el.components.xyrect.height,
+            width: xyrect.width, height: xyrect.height,
             color: this.data.color, hoverColor: this.data.hoverColor
         }, null, this.el);
         this.el.addEventListener('xyresize', (ev) => {
@@ -176,7 +176,7 @@ AFRAME.registerComponent('xytoggle', {
         let params = this.buttonParams;
         let v = this.data.value;
         params.color = v ? "#0066ff" : theme.buttonColor;
-        params.hoverColor = v ? "#4499ff" : theme.buttonHoverColor;
+        params.hoverColor = v ? "#4499ff" : "";
         this.el.setAttribute('material', 'color', params.color);
         let r = xyrect.height / 2;
         this.thumb.setAttribute("geometry", "radius", r * 0.8);
@@ -198,9 +198,7 @@ AFRAME.registerComponent('xyselect', {
     init() {
         this.el.addEventListener('click', ev => {
             if (this.data.toggle) {
-                let idx = (this.data.select + 1) % this.data.values.length;
-                this.el.setAttribute('xyselect', 'select', idx);
-                this.el.emit('change', { value: this.data.values[idx], index: idx }, false);
+                this.select((this.data.select + 1) % this.data.values.length);
             } else {
                 this.listEl ? this.hide() : this.show();
             }
@@ -221,13 +219,16 @@ AFRAME.registerComponent('xyselect', {
             itemEl.setAttribute('xybutton', { label: v });
             itemEl.addEventListener('click', ev => {
                 ev.stopPropagation();
-                this.el.setAttribute('xybutton', { label: this.data.label || v });
-                this.el.emit('change', { value: v, index: i }, false);
+                this.select(i);
                 this.hide();
             });
             this.listEl.appendChild(itemEl);
         });
         setTimeout(() => this.listEl && this.listEl.setAttribute('xyrect', { width: 2, height: this.data.values.length * 0.5 }), 0);
+    },
+    select(idx) {
+        this.el.setAttribute('xyselect', 'select', idx);
+        this.el.emit('change', { value: this.data.values[idx], index: idx }, false);
     },
     hide() {
         if (!this.listEl) return;
@@ -477,28 +478,29 @@ AFRAME.registerSystem('xywindow', {
     },
     windows: [],
     createSimpleButton(params, parent, el) {
-        params.color = params.color || this.theme.buttonColor;
-        params.hoverColor = params.hoverColor || this.theme.buttonHoverColor;
-        let geometry = params.geometry || this.theme.buttonGeometry;
         let button = el || document.createElement('a-entity');
+        if (!button.hasAttribute("geometry")) {
+            button.setAttribute("geometry", {
+                primitive: this.theme.buttonGeometry, width: params.width, height: params.height
+            });
+        }
         button.classList.add(this.theme.collidableClass);
         button.addEventListener('mouseenter', ev => {
-            button.setAttribute("material", { color: params.hoverColor });
-            if (this.theme.buttonHoverHaptic && ev.detail.cursorEl.components['tracked-controls']) {
+            let theme = this.theme;
+            button.setAttribute("material", { color: params.hoverColor || this.theme.buttonHoverColor });
+            if (theme.buttonHoverHaptic && ev.detail.cursorEl.components['tracked-controls']) {
                 let gamepad = ev.detail.cursorEl.components['tracked-controls'].controller;
                 if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
-                    gamepad.hapticActuators[0].pulse(this.theme.buttonHoverHaptic, this.theme.buttonHoverHapticMs);
+                    gamepad.hapticActuators[0].pulse(theme.buttonHoverHaptic, theme.buttonHoverHapticMs);
                 }
             } else {
-                // this.theme.buttonHoverHaptic && navigator.vibrate && navigator.vibrate(this.theme.buttonHoverHapticMs);
+                // theme.buttonHoverHaptic && navigator.vibrate && navigator.vibrate(theme.buttonHoverHapticMs);
             }
         });
         button.addEventListener('mouseleave', ev => {
-            button.setAttribute("material", { color: params.color });
+            button.setAttribute("material", { color: params.color || this.theme.buttonColor });
         });
-
-        button.setAttribute("geometry", { primitive: geometry, width: params.width, height: params.height });
-        button.setAttribute("material", { color: params.color });
+        button.setAttribute("material", { color: params.color || this.theme.buttonColor });
         parent && parent.appendChild(button);
         return button;
     },
@@ -840,7 +842,6 @@ AFRAME.registerPrimitive('a-xybutton', {
         width: 'xyrect.width',
         height: 'xyrect.height',
         label: 'xybutton.label',
-        geometry: 'xybutton.geometry'
     }
 });
 
