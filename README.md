@@ -1,4 +1,4 @@
-# A-Frame xyLayout
+# A-Frame xyLayout [WIP]
 
 Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 
@@ -11,7 +11,7 @@ Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 
 ## Usage
 
-Use xylayout-all.min.js (30kB)
+Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (30kB)
 
 ```html
   <script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
@@ -54,7 +54,7 @@ T.B.D. (See [examples](./examples))
 3Dオブジェクトを平面上に配置するコンテナ．
 [CSS Flexbox](https://developer.mozilla.org/ja/docs/Web/CSS/CSS_Flexible_Box_Layout) を意識した仕様になっていますが挙動は異なります．
 
-Attributes
+Attributes:
 
 | name | default | desc | values |
 | ---- | ------- | ---- | ------ |
@@ -72,7 +72,7 @@ Attributes
 親のxycontainerで指定された値を要素ごとに上書くためのコンポーネント．
 xycontainer直下以外の要素以外に追加した場合は何も起きません．
 
-Attributes
+Attributes:
 
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
@@ -86,6 +86,8 @@ Attributes
 xycontainerは要素のwidth,height属性を見ますが，width,heightからサイズがわからないもの(a-sphereなど)や，
 原点が中心ではないオブジェクトに対してサイズを明示するためのコンポーネント．
 
+Attributes:
+
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
 | width  | number | -1  | 要素の幅を明示．無指定時(-1)は要素のwidth属性を使います |
@@ -95,11 +97,124 @@ xycontainerは要素のwidth,height属性を見ますが，width,heightからサ
 
 pivotは，左下が(0,0)です．a-frame のほとんどの要素は中心 (0.5, 0.5) が原点です．
 
+Events:
+
+| name | event.detail | desc |
+| ---- | ------------ | ---- |
+| xyresize | {xyrect} | Resize element event |
+
+### xywindow
+
+Attributes:
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| title    | string   |      | ウィンドウタイトル |
+| closable | boolean  | true | 閉じるボタンの表示 |
+
+### xylabel
+
+textコンポーネントのWrappper．
+マルチバイト文字が含まれる場合はCanvasでのレンダリングにフォールバックします．
+
+Attributes:
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| value         | string |      | テキスト |
+| renderingMode | string | auto | canvas: 常にcanvasでレンダリングする, auto: 可能ならtextコンポーネントを使う |
+| resolution    | number | 32   | canvasを使う場合の高さ方向の解像度 |
+
+上記以外のパラメータはtextコンポーネントを参照．
+
+### xybutton
+
+Attributes:
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| label | string | | ボタンのラベル |
+| color | color | | ボタンの色 |
+
+Events:
+
+| name | event.detail | desc |
+| ---- | ------------ | ---- |
+| click |   | Click event |
+
+### xytoggle
+
+Attributes:
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| value | boolean | false | トグルスイッチの状態 |
+
+Events:
+
+| name | event.detail | desc |
+| ---- | ------------ | ---- |
+| change | {value} | changed event |
+
+### xyrange
+
+Attributes:
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| min   | number | 0   | 最小値 |
+| max   | number | 100 | 最大値 |
+| value | number | 0   | 初期値 |
+| step  | number | 0   | 変化の単位 |
+| thumbSize | number | 0.4 | つまみサイズ |
+
+Events:
+
+| name | event.detail | desc |
+| ---- | ------------ | ---- |
+| change | {value} | changed event |
+
+### xyselect
+
+Attributes:
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| values | array | []    | 選択肢 |
+| select | int   | 0     | 選択されているインデックス |
+| toggle | boolean | false | トグルモード |
+
+Events:
+
+| name | event.detail | desc |
+| ---- | ------------ | ---- |
+| select | {value, index} | changed event |
+
+### xylist
+
+リスト．いわゆる RecyclerView です．xyscrollの子要素で使う前提の実装です．
+`xylist.setCallback()`, `xylist.setContents()` を呼分必要があります (TODO: examples)
+
+Attributes:
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| itemWidth  | number | -1 | アイテムの幅 |
+| itemHeight | number | -1 | アイテムの高さ |
+
+Events:
+
+| name | event.detail | desc |
+| ---- | ------------ | ---- |
+| clickitem | {index} | click item event |
+
 ### xyclipping
 
 表示をクリッピングするためのコンポーネント．xyscrollで使用．
 
 小要素のサイズが親要素をはみ出す場合にレンダリング時にクリッピングされます．
+
+Attributes:
 
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
@@ -118,74 +233,17 @@ THREE.js標準のシェーダを使っている場合のみ正しく動きます
 
 このコンポーネントだけは，要素の中心ではなく左下を原点として扱います．
 
+Attributes:
+
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
 | scrollbar | boolean | true | スクロールバーを表示 |
 
-### xywindow
+Events:
 
-| name | type | default | desc |
-| ---- | ---- | ------- | ---- |
-| title    | string   |      | ウィンドウタイトル |
-| closable | boolean  | true | 閉じるボタンの表示 |
-
-### xylabel
-
-textコンポーネントのWrappper．
-マルチバイト文字が含まれる場合はCanvasでのレンダリングにフォールバックします．
-
-| name | type | default | desc |
-| ---- | ---- | ------- | ---- |
-| value         | string |      | テキスト |
-| renderingMode | string | auto | canvas: 常にcanvasでレンダリングする, auto: 可能ならtextコンポーネントを使う |
-| resolution    | number | 32   | canvasを使う場合の高さ方向の解像度 |
-
-上記以外のパラメータはtextコンポーネントを参照．
-
-### xybutton
-
-| name | type | default | desc |
-| ---- | ---- | ------- | ---- |
-| label | string | | ボタンのラベル |
-| color | color | | ボタンの色 |
-
-クリック時には`click`イベントが発生します．
-
-### xytoggle
-
-| name | type | default | desc |
-| ---- | ---- | ------- | ---- |
-| value | boolean | false | トグルスイッチの状態 |
-
-値が変更されると`change`イベントが発生します．
-
-### xyrange
-
-| name | type | default | desc |
-| ---- | ---- | ------- | ---- |
-| min   | number | 0   | 最小値 |
-| max   | number | 100 | 最大値 |
-| value | number | 0   | 初期値 |
-| step  | number | 0   | 変化の単位 |
-| thumbSize | number | 0.4 | つまみサイズ |
-
-値が変更されると`change`イベントが発生します．
-
-### xyselect
-
-| name | type | default | desc |
-| ---- | ---- | ------- | ---- |
-| values | array | []    | 選択肢 |
-| select | int   | 0     | 選択されているインデックス |
-| toggle | boolean | false | トグルモード |
-
-操作するとchangeイベントが発生します．
-
-### xylist
-
-リスト．いわゆるRecyclerViewです．
-
-クリック時には`clickitem`イベントが発生します．
+| name | event.detail | desc |
+| ---- | ------------ | ---- |
+| xyviewport | [t, b, l, r]| viewport change event |
 
 # License
 
