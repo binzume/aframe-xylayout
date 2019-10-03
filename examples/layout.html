@@ -11,13 +11,13 @@
 
 <body style="background-color: black; color:white;">
     <a-scene fog="type: linear; color: #000; near:20;far:200;" cursor="rayOrigin: mouse; fuse:false"
-        raycaster="objects:.collidable,.clickable;far:5500" renderer="antialias: true;">
+        raycaster="objects:.collidable;far:5500" renderer="antialias: true;">
         <a-sky></a-sky>
 
         <a-entity id="cameraRig" wasd-controls>
             <a-camera position="0 1.5 0" look-controls="enabled:false"></a-camera>
-            <a-entity laser-controls="hand: right" raycaster="far:Infinity;objects:.collidable,.clickable"></a-entity>
-            <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable,.clickable"></a-entity>
+            <a-entity laser-controls="hand: right" raycaster="far:Infinity;objects:.collidable"></a-entity>
+            <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
         </a-entity>
 
         <!-- vertical---->
