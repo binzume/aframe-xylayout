@@ -4,10 +4,14 @@ Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 
 ## Examples
 
-- [Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
-- [UI Components](https://binzume.github.io/aframe-xylayout/examples/window.html)
+[Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
 
 ![Layout example](./examples/layout.png)
+
+[UI Components](https://binzume.github.io/aframe-xylayout/examples/window.html)
+
+![UI example](./examples/ui.png)
+
 
 ## Usage
 
