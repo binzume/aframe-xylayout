@@ -136,6 +136,9 @@ AFRAME.registerComponent('xycontainer', {
             let stretch = (layoutItem ? (stretchFactor > 0 ? layoutItem.data.grow : layoutItem.data.shrink) : 1) * stretchFactor;
             let szMain = itemData.size[0] * itemData.scale[0] + stretch;
             let szCross = itemData.size[1];
+            let pos = item.getAttribute("position") || { x: 0, y: 0, z: 0 };
+            let posMain = (p + itemData.pivot[0] * szMain);
+            let posCross = crossOffset + containerSize[1] * 0.5; // center
             if (itemData.scale[0] > 0 && stretch != 0) {
                 item.setAttribute(attrNames[0], itemData.size[0] + stretch / itemData.scale[0]);
             }
@@ -143,9 +146,6 @@ AFRAME.registerComponent('xycontainer', {
                 szCross = containerSize[1];
                 item.setAttribute(attrNames[1], szCross / itemData.scale[1]);
             }
-            let pos = item.getAttribute("position") || { x: 0, y: 0, z: 0 };
-            let posMain = (p + itemData.pivot[0] * szMain);
-            let posCross = crossOffset + containerSize[1] * 0.5; // center
             if (align === "start" || align === "stretch") {
                 posCross = crossOffset + itemData.pivot[1] * szCross;
             } else if (align === "end") {
@@ -182,39 +182,33 @@ AFRAME.registerComponent('xyitem', {
 });
 
 AFRAME.registerComponent('xyrect', {
-    dependencies: ['position'],
     schema: {
         width: { default: -1 }, // -1 : auto
         height: { default: -1 },
         pivotX: { default: 0.5 },
         pivotY: { default: 0.5 }
     },
-    init() {
-        this.height = 0;
-        this.width = 0;
-    },
     update(oldData) {
         let data = this.data;
+        let geometry = this.el.getAttribute("geometry") || {};
+        let w = data.width, h = data.height;
+        if (w < 0) {
+            w = this.el.hasAttribute("width") ? this.el.getAttribute("width") * 1 : geometry.width || 0;
+            // w = geometry ? geometry.width : this.el.getAttribute("width") * 1 || 0;
+        }
+        if (h < 0) {
+            h = this.el.hasAttribute("height") ? this.el.getAttribute("height") * 1 : geometry.height || 0;
+            // h = geometry ? geometry.height : this.el.getAttribute("height") * 1 || 0;
+        }
+        this.width = w;
+        this.height = h;
+
         if (this.el.components.rounded || this.el.tagName == "A-INPUT") {
             // hack for a-frame-material
             data.pivotX = 0;
             data.pivotY = 1;
         }
-        let geom = this.el.components.geometry;
-        if (data.width >= 0) {
-            this.width = data.width;
-        } else if (this.el.hasAttribute("width")) {
-            this.width = this.el.getAttribute("width") * 1;
-        } else if (geom) {
-            this.width = geom.data.width || 0;
-        }
-        if (data.height >= 0) {
-            this.height = data.height;
-        } else if (this.el.hasAttribute("height")) {
-            this.height = this.el.getAttribute("height") * 1;
-        } else if (geom) {
-            this.height = geom.data.height || 0;
-        }
+
         if (oldData.width !== undefined) {
             this.el.emit('xyresize', { xyrect: this }, false);
         }
@@ -235,7 +229,6 @@ AFRAME.registerComponent('xyclipping', {
         this.clippingPlanesLocal = [];
         this.clippingPlanes = [];
         this.currentMatrix = null;
-        this.el.classList.add("clickable");
         this._filterEvent = this._filterEvent.bind(this);
         this.filterTargets = ['click', 'mousedown', 'mouseenter', 'mouseleave', 'mousemove'];
         this.filterTargets.forEach(t => this.el.addEventListener(t, this._filterEvent, true));
@@ -283,7 +276,6 @@ AFRAME.registerComponent('xyclipping', {
         this.applyClippings();
     },
     applyClippings() {
-        ``
         let excludeObj = this.data.exclude && this.data.exclude.object3D;
         let setCliping = (obj) => {
             if (obj === excludeObj) return;
