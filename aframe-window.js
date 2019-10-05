@@ -130,8 +130,6 @@ AFRAME.registerComponent('xylabel', {
 AFRAME.registerComponent('xybutton', {
     dependencies: ['xyrect'],
     schema: {
-        label: { default: "" },
-        labelColor: { default: "" },
         color: { default: "" },
         hoverColor: { default: "" }
     },
@@ -144,11 +142,6 @@ AFRAME.registerComponent('xybutton', {
         this.el.addEventListener('xyresize', (ev) => {
             this.el.setAttribute("geometry", { width: ev.detail.xyrect.width, height: ev.detail.xyrect.height });
         });
-    },
-    update(oldData) {
-        if (this.data.label !== oldData.label) {
-            this.el.setAttribute("xylabel", { value: this.data.label, color: this.data.labelColor, align: 'center' });
-        }
     }
 });
 
@@ -203,9 +196,23 @@ AFRAME.registerComponent('xyselect', {
                 this.listEl ? this.hide() : this.show();
             }
         });
+        if (this.data.toggle) {
+            this.el.setAttribute("xylabel", "align", "center");
+        } else {
+            let triangle = this.triangle = document.createElement("a-triangle");
+            triangle.setAttribute('geometry', {
+                vertexA: { x: 0.1, y: 0.03, z: 0 }, vertexB: { x: -0.1, y: 0.03, z: 0 }, vertexC: { x: 0, y: -0.12, z: 0 }
+            });
+            this.el.appendChild(triangle);
+            this.el.addEventListener('xyresize', ev => this.update());
+        }
     },
     update() {
-        this.el.setAttribute('xybutton', { label: this.data.label || this.data.values[this.data.select] });
+        let data = this.data;
+        this.el.setAttribute('xylabel', { value: data.label || data.values[data.select] });
+        if (this.triangle) {
+            this.triangle.setAttribute('position', { x: this.el.components.xyrect.width / 2 - 0.3, y: 0, z: 0.05 });
+        }
     },
     show() {
         if (this.listEl) return;
@@ -216,7 +223,7 @@ AFRAME.registerComponent('xyselect', {
         this.el.appendChild(this.listEl);
         this.data.values.forEach((v, i) => {
             let itemEl = document.createElement('a-xybutton');
-            itemEl.setAttribute('xybutton', { label: v });
+            itemEl.setAttribute('label', v);
             itemEl.addEventListener('click', ev => {
                 ev.stopPropagation();
                 this.select(i);
@@ -836,12 +843,14 @@ AFRAME.registerPrimitive('a-xylabel', {
 AFRAME.registerPrimitive('a-xybutton', {
     defaultComponents: {
         xyrect: { width: 2, height: 0.5 },
+        xylabel: { align: 'center' },
         xybutton: {}
     },
     mappings: {
         width: 'xyrect.width',
         height: 'xyrect.height',
-        label: 'xybutton.label',
+        label: 'xylabel.value',
+        align: 'xylabel.align',
     }
 });
 
