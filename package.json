@@ -7,7 +7,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "minify": "node_modules/.bin/uglifyjs --compress --mangle --source-map -o dist/xylayout-all.min.js -- aframe-xylayout.js aframe-window.js"
+    "dist": "node_modules/.bin/uglifyjs --compress --mangle --source-map -o dist/xylayout-all.min.js -- aframe-xylayout.js aframe-window.js"
   },
   "repository": {
     "type": "git",

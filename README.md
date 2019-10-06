@@ -33,7 +33,7 @@ Building xylayout-all.min.js
 
 ```bash
 npm install
-npm run minify
+npm run dist
 ```
 
 ## Primitives
