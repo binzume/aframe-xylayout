@@ -9,17 +9,16 @@ AFRAME.registerGeometry('xy-rounded-rect', {
     init(data) {
         let shape = new THREE.Shape();
         let radius = data.radius;
-        let w = data.width || 0.01, h = data.height || 0.01;
-        let x = -w / 2, y = -h / 2;
-        shape.moveTo(x, y + radius);
-        shape.lineTo(x, y + h - radius);
-        shape.quadraticCurveTo(x, y + h, x + radius, y + h);
-        shape.lineTo(x + w - radius, y + h);
-        shape.quadraticCurveTo(x + w, y + h, x + w, y + h - radius);
-        shape.lineTo(x + w, y + radius);
-        shape.quadraticCurveTo(x + w, y, x + w - radius, y);
-        shape.lineTo(x + radius, y);
-        shape.quadraticCurveTo(x, y, x, y + radius);
+        let w = (data.width || 0.01) / 2, h = (data.height || 0.01) / 2;
+        shape.moveTo(-w, -h + radius);
+        shape.lineTo(-w, h - radius);
+        shape.quadraticCurveTo(-w, h, -w + radius, h);
+        shape.lineTo(w - radius, h);
+        shape.quadraticCurveTo(w, h, w, h - radius);
+        shape.lineTo(w, -h + radius);
+        shape.quadraticCurveTo(w, -h, w - radius, -h);
+        shape.lineTo(-w + radius, -h);
+        shape.quadraticCurveTo(-w, -h, -w, -h + radius);
         this.geometry = new THREE.ShapeGeometry(shape);
     }
 });
@@ -27,14 +26,14 @@ AFRAME.registerGeometry('xy-rounded-rect', {
 AFRAME.registerComponent('xylabel', {
     dependencies: ['xyrect'],
     schema: {
-        resolution: { default: 32 },
-        renderingMode: { default: 'auto', oneOf: ['auto', 'canvas'] },
+        value: { default: '' },
+        color: { default: 'white' },
+        align: { default: 'left' },
         wrapCount: { default: 0 },
         xOffset: { default: 0 },
         zOffset: { default: 0.01 },
-        value: { default: '' },
-        color: { default: 'white' },
-        align: { default: 'left' }
+        resolution: { default: 32 },
+        renderingMode: { default: 'auto', oneOf: ['auto', 'canvas'] }
     },
     init() {
         this.el.addEventListener('xyresize', ev => this.update());
@@ -76,16 +75,16 @@ AFRAME.registerComponent('xylabel', {
 
         let canvasWidth = Math.floor(data.resolution * (wrapCount * widthFactor));
         let canvasHeight = Math.floor(data.resolution);
+        let canvas = this.canvas;
 
-        if (!this.canvas || this.canvas.width !== canvasWidth || this.canvas.height !== canvasHeight) {
-            if (this.canvas == null) {
-                this.canvas = document.createElement("canvas");
-            }
-            this.canvas.height = canvasHeight;
-            this.canvas.width = canvasWidth;
+        if (!canvas || canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+            canvas = canvas || document.createElement("canvas");
+            this.canvas = canvas;
+            canvas.height = canvasHeight;
+            canvas.width = canvasWidth;
             let w = xyrect.width || 1;
             let h = xyrect.data.height > 0 ? xyrect.height : w / (wrapCount * widthFactor);
-            let texture = new THREE.CanvasTexture(this.canvas);
+            let texture = new THREE.CanvasTexture(canvas);
             texture.anisotropy = 4;
             // texture.minFilter = THREE.LinearFilter;
             let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
@@ -95,7 +94,7 @@ AFRAME.registerComponent('xylabel', {
             this.el.setObject3D("xylabel", mesh);
         }
 
-        let ctx = this.canvas.getContext("2d");
+        let ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         ctx.font = "" + (data.resolution * 0.9) + "px bold sans-serif";
         ctx.textBaseline = "top";
@@ -199,19 +198,19 @@ AFRAME.registerComponent('xyselect', {
         if (this.data.toggle) {
             this.el.setAttribute("xylabel", "align", "center");
         } else {
-            let triangle = this.triangle = document.createElement("a-triangle");
-            triangle.setAttribute('geometry', {
+            let marker = this.marker = document.createElement("a-triangle");
+            marker.setAttribute('geometry', {
                 vertexA: { x: 0.1, y: 0.03, z: 0 }, vertexB: { x: -0.1, y: 0.03, z: 0 }, vertexC: { x: 0, y: -0.12, z: 0 }
             });
-            this.el.appendChild(triangle);
+            this.el.appendChild(marker);
             this.el.addEventListener('xyresize', ev => this.update());
         }
     },
     update() {
         let data = this.data;
         this.el.setAttribute('xylabel', { value: data.label || data.values[data.select] });
-        if (this.triangle) {
-            this.triangle.setAttribute('position', { x: this.el.components.xyrect.width / 2 - 0.3, y: 0, z: 0.05 });
+        if (this.marker) {
+            this.marker.setAttribute('position', { x: this.el.components.xyrect.width / 2 - 0.2, y: 0, z: 0.05 });
         }
     },
     show() {
@@ -276,29 +275,28 @@ AFRAME.registerComponent('xy-draggable', {
         let draggingRaycaster = cursorEl.components.raycaster.raycaster;
         let dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(baseEl.object3D.matrixWorld);
         let startDirection = draggingRaycaster.ray.direction.clone();
-        let dragging = false;
         let point = new THREE.Vector3();
         if (draggingRaycaster.ray.intersectPlane(dragPlane, point) === null) {
             baseEl.object3D.worldToLocal(point);
         }
         let prevRay = draggingRaycaster.ray.clone();
+        let self = this;
 
         let dragFun = (event) => {
-            if (!dragging) {
+            if (!self.dragging) {
                 let d = startDirection.manhattanDistanceTo(draggingRaycaster.ray.direction);
-                if (d < this.data.dragThreshold) return;
+                if (d < self.data.dragThreshold) return;
                 event = "xy-dragstart"
-                dragging = true;
+                self.dragging = true;
             }
             let prevPoint = point.clone();
             if (draggingRaycaster.ray.intersectPlane(dragPlane, point) !== null) {
                 baseEl.object3D.worldToLocal(point);
             }
-            this.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay, cursorEl: cursorEl });
+            self.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay, cursorEl: cursorEl });
             prevRay.copy(draggingRaycaster.ray);
         };
-        let self = this;
-        this.dragFun = dragFun;
+        self.dragFun = dragFun;
         self.play();
 
         let cancelEvelt = ev1 => ev1.target != ev.target && ev1.stopPropagation();
@@ -311,7 +309,8 @@ AFRAME.registerComponent('xy-draggable', {
             window.removeEventListener('mouseenter', cancelEvelt, true);
             window.removeEventListener('mouseleave', cancelEvelt, true);
             self.dragFun = null;
-            if (!dragging) return;
+            if (!self.dragging) return;
+            self.dragging = false;
             if (self.data.preventClick) {
                 let cancelClick = ev => ev.stopPropagation();
                 window.addEventListener('click', cancelClick, true);
@@ -529,18 +528,22 @@ AFRAME.registerComponent('xyrange', {
         max: { default: 100 },
         step: { default: 0 },
         value: { default: 0 },
+        color0: { default: "white" },
+        color1: { default: "#06f" },
         thumbSize: { default: 0.4 }
     },
     init() {
         let data = this.data;
-        this.value = data.value;
 
-        this.bar = document.createElement('a-entity');
-        this.bar.setAttribute("geometry", { primitive: "plane", width: this.el.components.xyrect.width - data.thumbSize, height: 0.05 });
-        this.bar.setAttribute("material", { color: "#fff" });
-        this.el.appendChild(this.bar);
+        let plane = new THREE.PlaneGeometry(1, 0.08);
+        let bar = this.bar = new THREE.Mesh(
+            plane, new THREE.MeshBasicMaterial({ color: data.color0 }));
 
-        this.dragging = false;
+        let prog = this.prog = new THREE.Mesh(
+            plane, new THREE.MeshBasicMaterial({ color: data.color1 }));
+        this.prog.position.z = 0.02;
+        this.el.setObject3D("xyrange-bar", bar);
+        this.el.setObject3D("xyrange-prog", prog);
 
         this.thumb = this.el.sceneEl.systems.xywindow.createSimpleButton({
             width: data.thumbSize, height: data.thumbSize
@@ -548,31 +551,37 @@ AFRAME.registerComponent('xyrange', {
 
         this.thumb.setAttribute("xy-draggable", { base: this.el });
         this.thumb.addEventListener("xy-drag", ev => {
-            this.dragging = true;
             let r = this.el.components.xyrect.width - data.thumbSize;
-            let p = (ev.detail.point.x + r * 0.5) / r * (data.max - data.min);
+            let p = (ev.detail.point.x + r / 2) / r * (data.max - data.min);
             if (data.step > 0) {
                 p = Math.round(p / data.step) * data.step;
             }
             this.setValue(p + data.min, true);
-            this.el.emit('change', { value: this.value }, false);
         });
-        this.thumb.addEventListener("xy-dragend", ev => this.dragging = false);
     },
     update() {
         let data = this.data;
+        this.value = data.value;
         if (data.max <= data.min) return;
         let r = this.el.components.xyrect.width - data.thumbSize;
+        let w = r * (data.value - data.min) / (data.max - data.min);
+        this.thumb.setAttribute("geometry", "radius", data.thumbSize / 2);
         this.thumb.setAttribute("position", {
-            x: r * (data.value - data.min) / (data.max - data.min) - r * 0.5,
+            x: w - r / 2,
             y: 0,
-            z: 0.01
+            z: 0.04
         });
+        this.bar.scale.x = r;
+        this.prog.scale.x = w || 0.01;
+        this.prog.position.x = (w - r) / 2;
     },
     setValue(value, force) {
-        if (!this.dragging || force) {
-            this.value = Math.max(Math.min(value, this.data.max), this.data.min);
-            this.el.setAttribute("xyrange", "value", this.value);
+        if (!this.thumb.components["xy-draggable"].dragging || force) {
+            let v = Math.max(Math.min(value, this.data.max), this.data.min);
+            if (v != this.value) {
+                this.el.emit('change', { value: v }, false);
+            }
+            this.el.setAttribute("xyrange", "value", v);
         }
     }
 });
@@ -613,8 +622,9 @@ AFRAME.registerComponent('xyscroll', {
         let scrollBar = document.createElement('a-entity');
         el.appendChild(scrollBar);
         this.scrollBar = scrollBar;
+        let xywindow = this.el.sceneEl.systems.xywindow;
 
-        this.upButton = this.el.sceneEl.systems.xywindow.createSimpleButton({
+        this.upButton = xywindow.createSimpleButton({
             width: w, height: 0.3
         }, scrollBar);
         this.upButton.addEventListener('click', (ev) => {
@@ -622,14 +632,14 @@ AFRAME.registerComponent('xyscroll', {
             this.play();
         });
 
-        this.downButton = this.el.sceneEl.systems.xywindow.createSimpleButton({
+        this.downButton = xywindow.createSimpleButton({
             width: w, height: 0.3
         }, scrollBar);
         this.downButton.addEventListener('click', (ev) => {
             this.speedY = this.scrollDelta * 0.3;
             this.play();
         });
-        this.scrollThumb = this.el.sceneEl.systems.xywindow.createSimpleButton({
+        this.scrollThumb = xywindow.createSimpleButton({
             width: w * 0.7, height: this.thumbLen
         }, scrollBar);
         this.scrollThumb.setAttribute("xy-draggable", { base: scrollBar });
@@ -912,11 +922,11 @@ AFRAME.registerPrimitive('a-xyrange', {
         xyrange: {}
     },
     mappings: {
+        width: 'xyrect.width',
+        height: 'xyrect.height',
         min: 'xyrange.min',
         max: 'xyrange.max',
         step: 'xyrange.step',
-        value: 'xyrange.value',
-        width: 'xyrect.width',
-        height: 'xyrect.height'
+        value: 'xyrange.value'
     }
 });
