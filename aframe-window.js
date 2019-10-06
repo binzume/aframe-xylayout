@@ -281,13 +281,14 @@ AFRAME.registerComponent('xy-draggable', {
         }
         let prevRay = draggingRaycaster.ray.clone();
         let self = this;
+        let dragging = false;
 
         let dragFun = (event) => {
-            if (!self.dragging) {
+            if (!dragging) {
                 let d = startDirection.manhattanDistanceTo(draggingRaycaster.ray.direction);
                 if (d < self.data.dragThreshold) return;
                 event = "xy-dragstart"
-                self.dragging = true;
+                self.dragging = dragging = true;
             }
             let prevPoint = point.clone();
             if (draggingRaycaster.ray.intersectPlane(dragPlane, point) !== null) {
@@ -309,7 +310,7 @@ AFRAME.registerComponent('xy-draggable', {
             window.removeEventListener('mouseenter', cancelEvelt, true);
             window.removeEventListener('mouseleave', cancelEvelt, true);
             self.dragFun = null;
-            if (!self.dragging) return;
+            if (!dragging) return;
             self.dragging = false;
             if (self.data.preventClick) {
                 let cancelClick = ev => ev.stopPropagation();
@@ -575,10 +576,10 @@ AFRAME.registerComponent('xyrange', {
         this.prog.scale.x = w || 0.01;
         this.prog.position.x = (w - r) / 2;
     },
-    setValue(value, force) {
-        if (!this.thumb.components["xy-draggable"].dragging || force) {
+    setValue(value, emitEvent) {
+        if (!this.thumb.components["xy-draggable"].dragging || emitEvent) {
             let v = Math.max(Math.min(value, this.data.max), this.data.min);
-            if (v != this.value) {
+            if (v != this.value && emitEvent) {
                 this.el.emit('change', { value: v }, false);
             }
             this.el.setAttribute("xyrange", "value", v);
