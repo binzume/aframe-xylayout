@@ -27,17 +27,16 @@
             <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
         </a-entity>
 
-        <a-xywindow position="0 0 -12" width="6" height="6" title="UI Components">
-            <a-plane xyitem="fixed:true" width="6" height="6" position="0 0 -0.05" color="#444"></a-plane>
+        <a-xywindow position="0 0 -12" width="6" height="5" title="UI Components">
+            <a-plane xyitem="fixed:true" width="6" height="5" position="0 0 -0.05" color="#444"></a-plane>
 
             <a-xycontainer direction="column" spacing="0.1" padding="0.2">
-                <a-xylabel value="ABC123" width="2" height="0.4"></a-xylabel>
+                <a-xylabel value="ABC123漢字" width="2" height="0.5"></a-xylabel>
                 <a-xybutton label="Button"></a-xybutton>
-                <a-xybutton label="漢字"></a-xybutton>
-                <a-xyselect values="abc,123,Foo,Bar" default="1"></a-xyselect>
-                <a-xytoggle width="1" value="true"></a-xytoggle>
+                <a-xyselect values="abc,123,Foo,Bar" select="1"></a-xyselect>
+                <a-xytoggle value="true"></a-xytoggle>
                 <a-xyrange width="4" height="0.5" value="20"></a-xyrange>
-                <a-xycontainer direction="row" spacing="0.1" justify-items="center">
+                <a-xycontainer direction="row" spacing="0.2">
                     <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
                     <a-box color="red" class="collidable" mixin="box_animation"></a-box>
                     <a-box color="green" class="collidable" mixin="box_animation"></a-box>
@@ -49,8 +48,7 @@
 
         <a-xywindow position="11 0 -12" width="10" height="5" title="Scroll" rotation="0 -10 0">
             <a-xyscroll width="10" height="5">
-                <a-xycontainer width="10" height="10" direction="vertical" justify-items="space-between"
-                    align-items="center">
+                <a-xycontainer direction="column" width="10" align-items="center">
                     <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
                     <a-box color="red" class="collidable" mixin="box_animation"></a-box>
                     <a-box color="magenta" class="collidable" mixin="box_animation"></a-box>
@@ -64,34 +62,30 @@
 
         <a-xywindow position="-9 0 -12" width="6" height="5" title="Boxes" xywindow="closable:false"
             xy-drag-rotation="draggable:a-box">
-            <a-xycontainer width="6" height="5" spacing="0.2">
+            <a-xycontainer width="6" height="5" direction="row" justify-items="space-between" wrap="wrap">
+                <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="red" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="green" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="cyan" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="yellow" class="collidable" mixin="box_animation"></a-box>
 
-                <a-xycontainer width="6" height="5" direction="horizontal" justify-items="space-between" wrap="wrap">
-                    <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="red" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="green" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="cyan" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="yellow" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="red" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="cyan" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="yellow" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="green" class="collidable" mixin="box_animation"></a-box>
 
-                    <a-box color="red" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="cyan" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="yellow" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="green" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="cyan" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="yellow" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="red" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
 
-                    <a-box color="cyan" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="yellow" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="red" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
-
-                    <a-box color="yellow" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="green" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="red" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="cyan" class="collidable" mixin="box_animation"></a-box>
-                    <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
-                </a-xycontainer>
-
+                <a-box color="yellow" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="green" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="red" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="cyan" class="collidable" mixin="box_animation"></a-box>
+                <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
             </a-xycontainer>
         </a-xywindow>
 

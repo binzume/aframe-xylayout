@@ -18,15 +18,20 @@ Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (30kB)
 
 ```html
-  <script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
-  ...
-  <a-xycontainer width="5" height="5" direction="horizontal" spacing="0.1" align-items="stretch">
-      <a-plane xyitem="fixed:true" height="5" width="5" color="#888"></a-plane>
-      <a-box color="blue"></a-box>
-      <a-box color="red"></a-box>
-      <a-box color="green"></a-box>
-      <a-box color="yellow"></a-box>
-  </a-xycontainer>
+<script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
+...
+<a-xycontainer direction="column" spacing="0.1" padding="0.2">
+    <a-xylabel value="ABC123漢字" width="2" height="0.5"></a-xylabel>
+    <a-xybutton label="Button"></a-xybutton>
+    <a-xyselect values="abc,123,Foo,Bar" select="1"></a-xyselect>
+    <a-xytoggle value="true"></a-xytoggle>
+    <a-xyrange width="4" height="0.5" value="20"></a-xyrange>
+    <a-xycontainer direction="row" spacing="0.2">
+        <a-box color="blue"></a-box>
+        <a-box color="red"></a-box>
+        <a-box color="green"></a-box>
+    </a-xycontainer>
+</a-xycontainer>
 ```
 
 Building xylayout-all.min.js
