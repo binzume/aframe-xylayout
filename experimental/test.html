@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>UI Components examples</title>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@v0.9.2/dist/aframe-master.min.js"></script>
+    <script src="../aframe-xylayout.js"></script>
+    <script src="../aframe-window.js?"></script>
+    <script src="xyinput.js?"></script>
+</head>
+
+<body style="background-color: black; color:white;">
+    <a-scene fog="type: linear; color: #000; near:20;far:200;" cursor="rayOrigin: mouse; fuse:false"
+        raycaster="objects:.collidable;far:5500" renderer="antialias: true;">
+        <a-sky></a-sky>
+
+        <a-assets>
+            <a-mixin id="box_animation"
+                animation__mouseenter="startEvents: mouseenter; property: rotation; from:0 0 0; to: 0 360 0; dur: 500">
+            </a-mixin>
+        </a-assets>
+
+        <a-entity id="cameraRig" wasd-controls>
+            <a-camera position="0 1.5 0" look-controls="enabled:false"></a-camera>
+            <a-entity laser-controls="hand: right" raycaster="far:Infinity;objects:.collidable"></a-entity>
+            <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
+            <!-- Software Keyboard-->
+            <a-xykeyboard position="0 0.3 -3"></a-xykeyboard>
+        </a-entity>
+
+        <a-xywindow position="0 0 -12" width="6" height="5" title="UI Components">
+            <a-plane xyitem="fixed:true" width="6" height="5" position="0 0 -0.05" color="#444"></a-plane>
+
+            <a-xycontainer direction="column" spacing="0.1" padding="0.2">
+                <a-xyinput value="abc"></a-xyinput>
+                <a-xyinput value="123" value-type="number"></a-xyinput>
+                <a-xyselect values="abc,123,Foo,Bar" select="1"></a-xyselect>
+                <a-xytoggle value="true"></a-xytoggle>
+                <a-xyrange width="4" height="0.5" value="20"></a-xyrange>
+                <a-xycontainer direction="row" spacing="0.2">
+                    <a-box color="blue" class="collidable" mixin="box_animation"></a-box>
+                    <a-box color="red" class="collidable" mixin="box_animation"></a-box>
+                    <a-box color="green" class="collidable" mixin="box_animation"></a-box>
+                </a-xycontainer>
+            </a-xycontainer>
+
+        </a-xywindow>
+
+        <!-- grabbables -->
+        <a-box width="0.3" height="0.3" depth="0.3" position="-2 1 1" color="yellow" xy-drag-control></a-box>
+        <a-box width="0.3" height="0.3" depth="0.3" position="-1 1 1" color="green" xy-drag-control></a-box>
+        <a-box width="0.3" height="0.3" depth="0.3" position="0 1 1" color="blue" xy-drag-control></a-box>
+        <a-box width="0.3" height="0.3" depth="0.3" position="1 1 1" color="magenta" xy-drag-control></a-box>
+        <a-box width="0.3" height="0.3" depth="0.3" position="2 1 1" color="red" xy-drag-control></a-box>
+
+    </a-scene>
+</body>
+
+</html>

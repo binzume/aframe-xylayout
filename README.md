@@ -61,13 +61,13 @@ T.B.D. (See [examples](./examples))
 ### xycontainer
 
 3Dオブジェクトを平面上に配置するコンテナ．
-[CSS Flexbox](https://developer.mozilla.org/ja/docs/Web/CSS/CSS_Flexible_Box_Layout) を意識した仕様になっていますが挙動は異なります．
+[CSS Flexbox](https://developer.mozilla.org/ja/docs/Web/CSS/CSS_Flexible_Box_Layout) と同様のレイアウトができますが挙動は少し異なります．
 
 Attributes:
 
 | name | default | desc | values |
 | ---- | ------- | ---- | ------ |
-| direction    | column | レイアウト方向 | 'row', 'column', 'horizontal', 'vertical' |
+| direction    | column | レイアウト方向 | 'row', 'column' ('horizontal', 'vertical') |
 | justifyItems | start  | レイアウト方向の小要素の配置 | 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
 | alignItems   | none   | レイアウトに対し垂直方向の小要素の配置 |'none', 'center', 'start', 'end', 'stretch'|
 | alignContent | none   | wrapで折り返した時の各行の配置 |'none', 'center', 'start', 'end', 'stretch'|
@@ -79,7 +79,7 @@ Attributes:
 ### xyitem
 
 親のxycontainerで指定された値を要素ごとに上書くためのコンポーネント．
-xycontainer直下以外の要素以外に追加した場合は何も起きません．
+親要素がxycontainerではない場合は追加しても何も起きません．
 
 Attributes:
 
@@ -110,7 +110,7 @@ Events:
 
 | name | event.detail | desc |
 | ---- | ------------ | ---- |
-| xyresize | {xyrect} | Resize element event |
+| xyresize | {xyrect} | Resize event |
 
 ### xywindow
 
@@ -202,7 +202,7 @@ Events:
 ### xylist
 
 リスト．いわゆる RecyclerView です．xyscrollの子要素で使う前提の実装です．
-`xylist.setCallback()`, `xylist.setContents()` を呼分必要があります (TODO: examples)
+`xylist.setCallback()`, `xylist.setContents()` を呼ぶ必要があります (TODO: examples)
 
 Attributes:
 
