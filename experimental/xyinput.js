@@ -85,11 +85,11 @@ AFRAME.registerComponent('xykeyboard', {
         main: {
             size: [11, 4],
             layout: [
-                { position: [0, 3], keys: ["qQ!", "wW@", "eE#", "rR$", "tT%", "yY^", "uU&", "iI*", "oO(", "pP)"] },
-                { position: [.5, 2], keys: ["aA1", "sS2", "dD3", "fF4", "gG5", "hH`", "jJ'", "kK\"", "lL[", ":;]"] },
-                { position: [0, 1], keys: [{ code: "Shift", symbols: "⇧⬆" }, "zZ6", "xX7", "cC8", "vV9", "bB0", "nN~", "mM{", "..}", "/?\\"] },
+                { position: [0, 3], keys: ["qQ!", "wW@", "eE#", "rR$", "tT%", "yY^", "uU&", "iI*", "oO(", "pP)", "=+-"] },
+                { position: [0, 2], keys: ["aA1", "sS2", "dD3", "fF4", "gG5", "hH`", "jJ'", "kK\"", "lL[", ":;]"] },
+                { position: [0, 1], keys: [{ code: "Shift", symbols: "⇧⬆" }, "zZ6", "xX7", "cC8", "vV9", "bB0", "nN{", "mM}", ",~<", "._>", "/?\\"] },
                 { position: [0, 0], keys: [{ code: "Space", label: "_", size: 4 }] },
-                { position: [-4, 0], keys: [{ code: "Fn", label: "#?" }] },
+                { position: [-4.5, 0], keys: [{ code: "Fn", label: "#!" }] },
             ]
         },
         num: {
@@ -135,9 +135,9 @@ AFRAME.registerComponent('xykeyboard', {
     },
     _createKeys(block, sz, excludes = []) {
         let pane = document.createElement("a-entity");
-        let padding = sz * 0.5;
+        let padding = sz * 0.3;
         pane.setAttribute("geometry", {
-            primitive: "xy-rounded-rect", width: block.size[0] * sz + padding, height: block.size[1] * sz
+            primitive: "xy-rounded-rect", width: block.size[0] * sz + padding, height: block.size[1] * sz + padding
         });
         pane.setAttribute("material", {
             color: "#222233"
