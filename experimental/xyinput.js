@@ -224,14 +224,6 @@ AFRAME.registerComponent('xykeyboard', {
         this.target = null;
         this.keyidx = 0;
         this.hide();
-        if (this.data.kana) {
-            let convText = document.createElement("a-xylabel");
-            convText.setAttribute("color", "yellow");
-            convText.setAttribute("position", { x: 0, y: 2 * this.data.keyPitch * 0.95, z: 0 });
-            convText.setAttribute("xyrect", { width: 8 * this.data.keyPitch, height: this.data.keyPitch * 0.6 });
-            convText.setAttribute("xykana", { label: convText });
-            this.el.appendChild(convText);
-        }
         let excludes = this.data.kana ? [] : ["HiraganaKatakana"];
         if (type == "number") {
             let w = this.blocks.num.size[0] + this.blocks.ctrl.size[0];
@@ -247,6 +239,14 @@ AFRAME.registerComponent('xykeyboard', {
             let w = this.blocks.main.size[0] + this.blocks.ctrl.size[0];
             this._createKeys(this.blocks.main, this.data.keyPitch, excludes);
             this._createKeys(this.blocks.ctrl, this.data.keyPitch, ["Space"]).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
+        }
+        if (this.data.kana) {
+            let convText = document.createElement("a-xylabel");
+            convText.setAttribute("color", "yellow");
+            convText.setAttribute("position", { x: 0, y: 2 * this.data.keyPitch * 0.95, z: 0.03 });
+            convText.setAttribute("xyrect", { width: 8 * this.data.keyPitch, height: this.data.keyPitch * 0.6 });
+            convText.setAttribute("xykana", { label: convText });
+            this.el.appendChild(convText);
         }
     },
     hide() {
