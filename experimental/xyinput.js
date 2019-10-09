@@ -34,6 +34,12 @@ AFRAME.registerComponent('xyinput', {
         });
         el.addEventListener('blur', (ev) => this.update());
         el.addEventListener('focus', (ev) => this.update());
+        el.addEventListener("keypress", ev => {
+            let pos = this.cursor, s = data.value;
+            this.cursor += ev.key.length;
+            el.value = s.slice(0, pos) + ev.key + s.slice(pos);
+        });
+
         el.addEventListener("keydown", ev => {
             let pos = this.cursor, s = data.value;
             if (ev.code == "ArrowLeft") {
@@ -51,10 +57,6 @@ AFRAME.registerComponent('xyinput', {
                     this.cursor--;
                     el.value = s.slice(0, pos - 1) + s.slice(pos);
                 }
-            } else if (["Enter", "Escape", "CapsLock"].includes(this.code) || ev.key == "Shift" || ev.key == "HiraganaKatakana") {
-            } else if (ev.key) {
-                this.cursor += ev.key.length;
-                el.value = s.slice(0, pos) + ev.key + s.slice(pos);
             }
         });
     },
@@ -100,68 +102,76 @@ AFRAME.registerComponent('xykana', {
     init() {
         this._onkeydown = this._onkeydown.bind(this);
         document.body.addEventListener("keydown", this._onkeydown, true);
+        document.body.addEventListener("keypress", this._onkeydown, true);
         this.temp = "";
         this.kana = "";
         this.enable = false;
     },
     _onkeydown(ev) {
+        console.log(ev);
         if (ev.code == "CapsLock" && ev.shiftKey || ev.key == "HiraganaKatakana") {
             this.enable = !this.enable;
-        } else if (!ev.code || !this.enable) {
+        } else if (!ev.code || !this.enable || ev.target == document.body) {
             return;
         }
-        if (ev.key.match(/^[a-z-]$/)) {
-            ev.stopPropagation();
-            this.temp += ev.key;
-            let temp = this.temp.replace(/l([aiueo])/g, "x$1")
-                .replace(/n([ksthmyrwgzbpdjfv])/g, "nn$1")
-                .replace(/([ksthmyrwgzbpdjfv])\1/g, "xtu$1")
-                .replace(/([kstnhmrgzbpdjf])y([aiueo])/g, "$1ixy$2")
-                .replace(/(j|ch|sh)([aueo])/g, "$1ixy$2")
-                .replace(/(f|v|ts)([aieo])/g, "$1ux$2");
-            let lastMatch = 0;
-            for (let p = 0; p < temp.length; p++) {
-                for (let l = 3; l >= 0; l--) {
-                    let t = this.table[temp.slice(p, p + l)];
-                    if (t) {
-                        temp = temp.slice(0, p) + t + temp.slice(p + l);
-                        lastMatch = p + t.length;
-                        break;
+        if (ev.type == "keypress") {
+            if (ev.key.match(/^[a-z-]$/)) {
+                this.temp += ev.key;
+                let temp = this.temp.replace(/l([aiueo])/g, "x$1")
+                    .replace(/n([ksthmyrwgzbpdjfv])/g, "nn$1")
+                    .replace(/([ksthmyrwgzbpdjfv])\1/g, "xtu$1")
+                    .replace(/([kstnhmrgzbpdjf])y([aiueo])/g, "$1ixy$2")
+                    .replace(/(j|ch|sh)([aueo])/g, "$1ixy$2")
+                    .replace(/(f|v|ts)([aieo])/g, "$1ux$2");
+                let lastMatch = 0;
+                for (let p = 0; p < temp.length; p++) {
+                    for (let l = 3; l >= 0; l--) {
+                        let t = this.table[temp.slice(p, p + l)];
+                        if (t) {
+                            temp = temp.slice(0, p) + t + temp.slice(p + l);
+                            lastMatch = p + t.length;
+                            break;
+                        }
                     }
                 }
+                if (lastMatch == 0 && temp.length > 3) { lastMatch = temp.length - 3; }
+                if (lastMatch > 0) {
+                    this.temp = temp.slice(lastMatch);
+                    this.kana += temp.slice(0, lastMatch);
+                }
+                ev.stopPropagation();
+            } else if (ev.code == "Space" && (this.kana || this.temp)) {
+                //  https://www.google.co.jp/ime/cgiapi.html
+                // TODO: select from candidates.
+                this.kana += this.temp;
+                (async (str) => {
+                    let response = await fetch(`http://www.google.com/transliterate?langpair=ja-Hira|ja&text=${str},`);
+                    let result = await response.json();
+                    console.log(result);
+                    ev.target.dispatchEvent(new KeyboardEvent("keypress", { key: result[0][1][0] || str }));
+                    this.kana = "";
+                })(this.kana);
+                this.kana = "";
+                this.temp = "";
+                ev.stopPropagation();
+            } else if (this.kana || this.temp) {
+                this.kana += this.temp + ev.key;
+                this.temp = "";
+                ev.stopPropagation();
             }
-            if (lastMatch == 0 && temp.length > 3) { lastMatch = temp.length - 3; }
-            if (lastMatch > 0) {
-                this.temp = temp.slice(lastMatch);
-                this.kana += temp.slice(0, lastMatch);
-                if (!this.data.label) {
-                    // TODO
-                    ev.target.dispatchEvent(new KeyboardEvent("keydown", { key: temp.slice(0, lastMatch) }));
+        } else if (this.kana || this.temp) {
+            if (ev.code == "Enter" && (this.kana || this.temp)) {
+                ev.target.dispatchEvent(new KeyboardEvent("keypress", { key: this.kana + this.temp }));
+                this.temp = "";
+                this.kana = "";
+            } else if (ev.code == "Backspace" && (this.kana || this.temp)) {
+                if (this.temp) {
+                    this.temp = this.temp.slice(0, -1);
+                } else {
+                    this.kana = this.kana.slice(0, -1);
                 }
             }
-        } else if (ev.code == "Backspace" && (this.kana || this.temp)) {
-            if (this.temp) {
-                this.temp = this.temp.slice(0, -1);
-            } else {
-                this.kana = this.kana.slice(0, -1);
-            }
             ev.stopPropagation();
-        } else if (ev.code == "Space" && this.kana) {
-            //  https://www.google.co.jp/ime/cgiapi.html
-            // TODO: select from candidates.
-            (async (str) => {
-                let response = await fetch(`http://www.google.com/transliterate?langpair=ja-Hira|ja&text=${str},`);
-                let result = await response.json();
-                console.log(result);
-                ev.target.dispatchEvent(new KeyboardEvent("keydown", { key: result[0][1][0] || str }));
-            })(this.kana);
-
-            this.kana = "";
-            ev.stopPropagation();
-        } else if (this.kana || this.temp) {
-            ev.target.dispatchEvent(new KeyboardEvent("keydown", { key: this.kana + this.temp }));
-            this.temp = "";
-            this.kana = "";
         }
         if (this.data.label) {
             this.data.label.setAttribute("value", this.kana + this.temp);
@@ -169,6 +179,7 @@ AFRAME.registerComponent('xykana', {
     },
     remove() {
         document.body.removeEventListener("keydown", this._onkeydown, true);
+        document.body.removeEventListener("keypress", this._onkeydown, true);
     }
 });
 
@@ -186,7 +197,7 @@ AFRAME.registerComponent('xykeyboard', {
                 { position: [0, 3], keys: ["qQ!", "wW@", "eE#", "rR$", "tT%", "yY^", "uU&", "iI*", "oO(", "pP)", "=+-"] },
                 { position: [0, 2], keys: ["aA1", "sS2", "dD3", "fF4", "gG5", "hH`", "jJ'", "kK\"", "lL[", ":;]"] },
                 { position: [0, 1], keys: [{ code: "Shift", symbols: "⇧⬆" }, "zZ6", "xX7", "cC8", "vV9", "bB0", "nN{", "mM}", ",~<", "._>", "/?\\"] },
-                { position: [0, 0], keys: [{ code: "Space", label: "_", size: 4 }] },
+                { position: [0, 0], keys: [{ code: "Space", key: " ", label: "_", size: 4 }] },
                 { position: [-4.5, 0], keys: [{ code: "_Fn", label: "#!" }, { code: "HiraganaKatakana", label: "あ" }] },
             ]
         },
@@ -299,9 +310,12 @@ AFRAME.registerComponent('xykeyboard', {
                     }
 
                     if (this.data.targets.includes(document.activeElement.tagName.toLowerCase())) {
-                        let data = key.code ? { code: key.code, key: key.code == "Space" ? " " : key.code }
+                        let data = key.code ? { code: key.code, key: key.key || key.code }
                             : { key: key[this.keyidx] || key[0], code: "key" + key[0] };
                         document.activeElement.dispatchEvent(new KeyboardEvent("keydown", data));
+                        if (!key.code || key.key) {
+                            document.activeElement.dispatchEvent(new KeyboardEvent("keypress", data));
+                        }
                     }
                     if (key.code == "Enter") {
                         this.hide();
