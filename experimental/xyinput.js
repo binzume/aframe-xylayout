@@ -145,11 +145,10 @@ AFRAME.registerComponent('xykana', {
                 // TODO: select from candidates.
                 this.kana += this.temp;
                 (async (str) => {
-                    let response = await fetch(`http://www.google.com/transliterate?langpair=ja-Hira|ja&text=${str},`);
+                    let response = await fetch(`https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${str},`);
                     let result = await response.json();
-                    console.log(result);
+                    // console.log(result);
                     ev.target.dispatchEvent(new KeyboardEvent("keypress", { key: result[0][1][0] || str }));
-                    this.kana = "";
                 })(this.kana);
                 this.kana = "";
                 this.temp = "";
