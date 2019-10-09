@@ -13,6 +13,8 @@ Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 ![UI example](./examples/ui.png)
 
 
+[Software keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html) [WIP]
+
 ## Usage
 
 Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (30kB)
