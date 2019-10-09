@@ -1,6 +1,4 @@
 "use strict";
-// [WIP] Software keyboard
-// TODO: Japanese Input https://www.google.co.jp/ime/cgiapi.html
 
 AFRAME.registerComponent('xyinput', {
     dependencies: ['xylabel'],
@@ -38,8 +36,7 @@ AFRAME.registerComponent('xyinput', {
         el.addEventListener('focus', (ev) => this.update());
         el.addEventListener("keydown", ev => {
             let pos = this.cursor, s = data.value;
-            if (ev.code == "Enter" || ev.key == "Shift" || ev.code == "Escape") {
-            } else if (ev.code == "ArrowLeft") {
+            if (ev.code == "ArrowLeft") {
                 if (pos > 0) {
                     this.cursor--;
                     this.update();
@@ -54,6 +51,7 @@ AFRAME.registerComponent('xyinput', {
                     this.cursor--;
                     el.value = s.slice(0, pos - 1) + s.slice(pos);
                 }
+            } else if (["Enter", "Escape", "CapsLock"].includes(this.code) || ev.key == "Shift" || ev.key == "HiraganaKatakana") {
             } else if (ev.key) {
                 this.cursor += ev.key.length;
                 el.value = s.slice(0, pos) + ev.key + s.slice(pos);
@@ -62,10 +60,7 @@ AFRAME.registerComponent('xyinput', {
     },
     update(oldData) {
         let s = this.data.value;
-        if (oldData && oldData.value != null && this.cursor == oldData.value.length) {
-            this.cursor = s.length;
-        }
-        if (this.cursor > s.length) {
+        if (this.cursor > s.length || oldData && oldData.value != null && this.cursor == oldData.value.length) {
             this.cursor = s.length;
         }
         if (document.activeElement == this.el) {
@@ -75,26 +70,129 @@ AFRAME.registerComponent('xyinput', {
     }
 });
 
+AFRAME.registerComponent('xykana', {
+    schema: {
+        label: { default: null, type: "selector" }
+    },
+    table: {
+        'a': 'あ', 'i': 'い', 'u': 'う', 'e': 'え', 'o': 'お',
+        'ka': 'か', 'ki': 'き', 'ku': 'く', 'ke': 'け', 'ko': 'こ',
+        'ga': 'が', 'gi': 'ぎ', 'gu': 'ぐ', 'ge': 'げ', 'go': 'ご',
+        'sa': 'さ', 'si': 'し', 'su': 'す', 'se': 'せ', 'so': 'そ',
+        'za': 'ざ', 'zi': 'じ', 'zu': 'ず', 'ze': 'ぜ', 'zo': 'ぞ',
+        'ta': 'た', 'ti': 'ち', 'tu': 'つ', 'te': 'て', 'to': 'と',
+        'da': 'だ', 'di': 'ぢ', 'du': 'づ', 'de': 'で', 'do': 'ど',
+        'na': 'な', 'ni': 'に', 'nu': 'ぬ', 'ne': 'ね', 'no': 'の',
+        'ha': 'は', 'hi': 'ひ', 'hu': 'ふ', 'he': 'へ', 'ho': 'ほ',
+        'pa': 'ぱ', 'pi': 'ぴ', 'pu': 'ぷ', 'pe': 'ぺ', 'po': 'ぽ',
+        'ba': 'ば', 'bi': 'び', 'bu': 'ぶ', 'be': 'べ', 'bo': 'ぼ',
+        'ma': 'ま', 'mi': 'み', 'mu': 'む', 'me': 'め', 'mo': 'も',
+        'ya': 'や', 'yi': 'い', 'yu': 'ゆ', 'ye': 'いぇ', 'yo': 'よ',
+        'ra': 'ら', 'ri': 'り', 'ru': 'る', 're': 'れ', 'ro': 'ろ',
+        'wa': 'わ', 'wi': 'うぃ', 'wu': 'う', 'we': 'うぇ', 'wo': 'を',
+        'xa': 'ぁ', 'xi': 'ぃ', 'xu': 'ぅ', 'xe': 'ぇ', 'xo': 'ぉ',
+        'xya': 'ゃ', 'xyi': 'ぃ', 'xyu': 'ゅ', 'xye': 'ぇ', 'xyo': 'ょ',
+        'xtu': 'っ', 'nn': 'ん', 'wyi': 'ゐ', 'wye': 'ゑ',
+        'fu': 'ふ', 'vu': 'ヴ', 'tsu': 'つ',
+        'chi': 'ち', 'ji': 'じ', 'shi': 'し',
+        '-': 'ー'
+    },
+    init() {
+        this._onkeydown = this._onkeydown.bind(this);
+        document.body.addEventListener("keydown", this._onkeydown, true);
+        this.temp = "";
+        this.kana = "";
+        this.enable = false;
+    },
+    _onkeydown(ev) {
+        if (ev.code == "CapsLock" && ev.shiftKey || ev.key == "HiraganaKatakana") {
+            this.enable = !this.enable;
+        } else if (!ev.code || !this.enable) {
+            return;
+        }
+        if (ev.key.match(/^[a-z-]$/)) {
+            ev.stopPropagation();
+            this.temp += ev.key;
+            let temp = this.temp.replace(/l([aiueo])/g, "x$1")
+                .replace(/n([ksthmyrwgzbpdjfv])/g, "nn$1")
+                .replace(/([ksthmyrwgzbpdjfv])\1/g, "xtu$1")
+                .replace(/([kstnhmrgzbpdjf])y([aiueo])/g, "$1ixy$2")
+                .replace(/(j|ch|sh)([aueo])/g, "$1ixy$2")
+                .replace(/(f|v|ts)([aieo])/g, "$1ux$2");
+            let lastMatch = 0;
+            for (let p = 0; p < temp.length; p++) {
+                for (let l = 3; l >= 0; l--) {
+                    let t = this.table[temp.slice(p, p + l)];
+                    if (t) {
+                        temp = temp.slice(0, p) + t + temp.slice(p + l);
+                        lastMatch = p + t.length;
+                        break;
+                    }
+                }
+            }
+            if (lastMatch == 0 && temp.length > 3) { lastMatch = temp.length - 3; }
+            if (lastMatch > 0) {
+                this.temp = temp.slice(lastMatch);
+                this.kana += temp.slice(0, lastMatch);
+                if (!this.data.label) {
+                    // TODO
+                    ev.target.dispatchEvent(new KeyboardEvent("keydown", { key: temp.slice(0, lastMatch) }));
+                }
+            }
+        } else if (ev.code == "Backspace" && (this.kana || this.temp)) {
+            if (this.temp) {
+                this.temp = this.temp.slice(0, -1);
+            } else {
+                this.kana = this.kana.slice(0, -1);
+            }
+            ev.stopPropagation();
+        } else if (ev.code == "Space" && this.kana) {
+            //  https://www.google.co.jp/ime/cgiapi.html
+            // TODO: select from candidates.
+            (async (str) => {
+                let response = await fetch(`http://www.google.com/transliterate?langpair=ja-Hira|ja&text=${str},`);
+                let result = await response.json();
+                console.log(result);
+                ev.target.dispatchEvent(new KeyboardEvent("keydown", { key: result[0][1][0] || str }));
+            })(this.kana);
+
+            this.kana = "";
+            ev.stopPropagation();
+        } else if (this.kana || this.temp) {
+            ev.target.dispatchEvent(new KeyboardEvent("keydown", { key: this.kana + this.temp }));
+            this.temp = "";
+            this.kana = "";
+        }
+        if (this.data.label) {
+            this.data.label.setAttribute("value", this.kana + this.temp);
+        }
+    },
+    remove() {
+        document.body.removeEventListener("keydown", this._onkeydown, true);
+    }
+});
+
 AFRAME.registerComponent('xykeyboard', {
     schema: {
         type: { default: "" },
         keyPitch: { default: 0.2 },
         targets: { default: ["a-xyinput"] },
+        kana: { default: false },
     },
     blocks: {
         main: {
             size: [11, 4],
-            layout: [
+            rows: [
                 { position: [0, 3], keys: ["qQ!", "wW@", "eE#", "rR$", "tT%", "yY^", "uU&", "iI*", "oO(", "pP)", "=+-"] },
                 { position: [0, 2], keys: ["aA1", "sS2", "dD3", "fF4", "gG5", "hH`", "jJ'", "kK\"", "lL[", ":;]"] },
                 { position: [0, 1], keys: [{ code: "Shift", symbols: "⇧⬆" }, "zZ6", "xX7", "cC8", "vV9", "bB0", "nN{", "mM}", ",~<", "._>", "/?\\"] },
                 { position: [0, 0], keys: [{ code: "Space", label: "_", size: 4 }] },
-                { position: [-4.5, 0], keys: [{ code: "Fn", label: "#!" }] },
+                { position: [-4.5, 0], keys: [{ code: "_Fn", label: "#!" }, { code: "HiraganaKatakana", label: "あ" }] },
             ]
         },
         num: {
             size: [4, 4],
-            layout: [
+            rows: [
                 { position: [0, 3], keys: ["7", "8", "9", "/"] },
                 { position: [0, 2], keys: ["4", "5", "6", "*"] },
                 { position: [0, 1], keys: ["1", "2", "3", "-"] },
@@ -103,7 +201,7 @@ AFRAME.registerComponent('xykeyboard', {
         },
         ctrl: {
             size: [2, 4],
-            layout: [
+            rows: [
                 { position: [0, 3], keys: [{ code: "Backspace", label: "⌫", size: 2 }] },
                 { position: [0, 2], keys: [{ code: "Space", label: "SP", size: 2 }] },
                 { position: [0, 1], keys: [{ code: "Enter", label: "Ok", size: 2 }] },
@@ -111,21 +209,33 @@ AFRAME.registerComponent('xykeyboard', {
             ]
         }
     },
-    init() {
-
-    },
     show(type) {
         this.target = null;
         this.keyidx = 0;
         this.hide();
+        if (this.data.kana) {
+            let convText = document.createElement("a-xylabel");
+            convText.setAttribute("color", "yellow");
+            convText.setAttribute("position", { x: 0, y: 2 * this.data.keyPitch * 0.95, z: 0 });
+            convText.setAttribute("xyrect", { width: 8 * this.data.keyPitch, height: this.data.keyPitch * 0.6 });
+            convText.setAttribute("xykana", { label: convText });
+            this.el.appendChild(convText);
+        }
+        let excludes = this.data.kana ? [] : ["HiraganaKatakana"];
         if (type == "number") {
             let w = this.blocks.num.size[0] + this.blocks.ctrl.size[0];
             this._createKeys(this.blocks.num, this.data.keyPitch);
-            this._createKeys(this.blocks.ctrl, this.data.keyPitch).setAttribute("position", "x", (w / 2 + 0.6) * this.data.keyPitch);
+            this._createKeys(this.blocks.ctrl, this.data.keyPitch).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
+        } else if (type == "full") {
+            let w = this.blocks.main.size[0] + this.blocks.ctrl.size[0];
+            this._createKeys(this.blocks.main, this.data.keyPitch, excludes);
+            this._createKeys(this.blocks.ctrl, this.data.keyPitch, ["Space"]).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
+            w += this.blocks.ctrl.size[0] + this.blocks.num.size[0];
+            this._createKeys(this.blocks.num, this.data.keyPitch).setAttribute("position", "x", (w / 2 + 0.8) * this.data.keyPitch);
         } else {
             let w = this.blocks.main.size[0] + this.blocks.ctrl.size[0];
-            this._createKeys(this.blocks.main, this.data.keyPitch);
-            this._createKeys(this.blocks.ctrl, this.data.keyPitch, ["Space"]).setAttribute("position", "x", (w / 2 + 0.6) * this.data.keyPitch);
+            this._createKeys(this.blocks.main, this.data.keyPitch, excludes);
+            this._createKeys(this.blocks.ctrl, this.data.keyPitch, ["Space"]).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
         }
     },
     hide() {
@@ -142,7 +252,7 @@ AFRAME.registerComponent('xykeyboard', {
         pane.setAttribute("material", {
             color: "#222233"
         });
-        for (let row of block.layout) {
+        for (let row of block.rows) {
             let keyrow = document.createElement("a-xycontainer");
             keyrow.setAttribute("direction", "row");
             keyrow.setAttribute("spacing", 0);
@@ -167,28 +277,35 @@ AFRAME.registerComponent('xykeyboard', {
                 keyEl.addEventListener('mouseenter', () => keyEl.setAttribute("material", "visible", true));
                 keyEl.addEventListener('mouseleave', () => keyEl.setAttribute("material", "visible", false));
                 keyEl.addEventListener("mousedown", ev => {
-                    if (key.code == "Fn") {
+                    if (document.activeElement == document.body && this.target) {
+                        this.target.focus();
+                    }
+                    this.target = document.activeElement;
+                    setTimeout(() => this.target.focus(), 0);
+                    ev.preventDefault();
+
+                    if (key.code == "_Fn") {
                         this.keyidx = this.keyidx == 2 ? 0 : 2;
                         this._updateSymbols();
+                        return;
+                    }
+                    if (key.code == "_Close") {
+                        this.hide();
                         return;
                     }
                     if (key.code == "Shift") {
                         this.keyidx = (this.keyidx + 1) % 2;
                         this._updateSymbols();
                     }
-                    if (document.activeElement == document.body && this.target) {
-                        this.target.focus();
-                    }
-                    this.target = document.activeElement;
+
                     if (this.data.targets.includes(document.activeElement.tagName.toLowerCase())) {
-                        let data = key.code ? { code: key.code, key: key.code == "Space" ? " " : key.code } : { key: key[this.keyidx] || key[0] };
+                        let data = key.code ? { code: key.code, key: key.code == "Space" ? " " : key.code }
+                            : { key: key[this.keyidx] || key[0], code: "key" + key[0] };
                         document.activeElement.dispatchEvent(new KeyboardEvent("keydown", data));
                     }
                     if (key.code == "Enter") {
                         this.hide();
                     }
-                    setTimeout(() => this.target.focus(), 0);
-                    ev.preventDefault();
                 });
             }
             pane.appendChild(keyrow);
@@ -212,6 +329,7 @@ AFRAME.registerPrimitive('a-xykeyboard', {
         rotation: { x: -20, y: 0, z: 0 }
     },
     mappings: {
+        kana: 'xykeyboard.kana',
         type: 'xykeyboard.type',
         "physical-keys": 'xykeyboard.physicalKeys'
     }
