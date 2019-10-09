@@ -214,7 +214,8 @@ AFRAME.registerComponent('xykeyboard', {
             rows: [
                 { position: [0, 3], keys: [{ code: "Backspace", label: "⌫", size: 2 }] },
                 { position: [0, 2], keys: [{ code: "Space", label: "SP", size: 2 }] },
-                { position: [0, 1], keys: [{ code: "Enter", label: "Ok", size: 2 }] },
+                { position: [0, 1], keys: [{ code: "Enter", label: "⏎", size: 2 }] },
+                { position: [1.3, 3.5], keys: [{ code: "_Close", label: "x", size: 0.8 }] },
                 { position: [0, 0], keys: [{ code: "ArrowLeft", label: "⇦" }, { code: "ArrowRight", label: "⇨" }] },
             ]
         }
@@ -315,9 +316,6 @@ AFRAME.registerComponent('xykeyboard', {
                         if (!key.code || key.key) {
                             document.activeElement.dispatchEvent(new KeyboardEvent("keypress", data));
                         }
-                    }
-                    if (key.code == "Enter") {
-                        this.hide();
                     }
                 });
             }
