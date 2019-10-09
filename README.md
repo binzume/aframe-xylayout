@@ -203,8 +203,9 @@ Events:
 
 ### xylist
 
-リスト．いわゆる RecyclerView です．xyscrollの子要素で使う前提の実装です．
-`xylist.setCallback()`, `xylist.setContents()` を呼ぶ必要があります (TODO: examples)
+リスト．RecyclerView です．xyscrollの子要素で使う前提の実装です．
+`xylist.setCallback()`, `xylist.setContents()` を呼ぶ必要があります．
+[サンプル](https://binzume.github.io/aframe-xylayout/examples/list.html)
 
 Attributes:
 
