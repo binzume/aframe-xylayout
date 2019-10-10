@@ -43,25 +43,23 @@ AFRAME.registerComponent('xylabel', {
         let widthFactor = 0.65;
         let wrapCount = data.wrapCount;
         let xyrect = this.el.components.xyrect;
+        let h = xyrect.height;
+        let w = xyrect.width;
 
         if (data.value == "") {
             this.remove();
             return;
         }
-        if (wrapCount == 0) {
-            let h = xyrect.height;
-            if (h > 0) {
-                let w = xyrect.width;
-                wrapCount = Math.max(w / h / widthFactor, data.value.length) + 1;
-            }
+        if (wrapCount == 0 && h > 0) {
+            wrapCount = Math.max(w / h / widthFactor, data.value.length) + 1;
         }
         if (data.renderingMode == 'auto' && !/[\u0100-\uDFFF]/.test(data.value)) {
             let textData = Object.assign({}, data);
             delete textData['resolution'];
             delete textData['renderingMode'];
             textData.wrapCount = wrapCount;
-            textData.width = xyrect.width;
-            textData.height = xyrect.height;
+            textData.width = w;
+            textData.height = h;
             this.el.setAttribute('text', textData);
             let textObj = this.el.getObject3D('text');
             if (textObj) {
@@ -73,22 +71,24 @@ AFRAME.registerComponent('xylabel', {
         }
         this._removeText();
 
-        let canvasWidth = Math.floor(data.resolution * (wrapCount * widthFactor));
-        let canvasHeight = Math.floor(data.resolution);
-        let canvas = this.canvas;
+        let textWidth = Math.floor(data.resolution * (wrapCount * widthFactor));
+        let canvasHeight = data.resolution;
+        let canvasWidth = data.resolution;
+        while (canvasWidth < textWidth) canvasWidth <<= 1;
 
+        let canvas = this.canvas;
         if (!canvas || canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
-            canvas = canvas || document.createElement("canvas");
-            this.canvas = canvas;
+            this.canvas = canvas = canvas || document.createElement("canvas");
             canvas.height = canvasHeight;
             canvas.width = canvasWidth;
-            let w = xyrect.width || 1;
-            let h = xyrect.data.height > 0 ? xyrect.height : w / (wrapCount * widthFactor);
+            let meshH = xyrect.data.height > 0 ? xyrect.height : w / (wrapCount * widthFactor);
             let texture = new THREE.CanvasTexture(canvas);
             texture.anisotropy = 4;
-            // texture.minFilter = THREE.LinearFilter;
-            let material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-            let mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), material);
+            texture.alphaTest = 0.2;
+            texture.repeat.x = textWidth / canvasWidth;
+            let mesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(w, meshH),
+                new THREE.MeshBasicMaterial({ map: texture, transparent: true }));
             mesh.position.copy(new THREE.Vector3(data.xOffset, 0, data.zOffset));
             this._removeObject3d();
             this.el.setObject3D("xylabel", mesh);
@@ -96,12 +96,12 @@ AFRAME.registerComponent('xylabel', {
 
         let ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        ctx.font = "" + (data.resolution * 0.9) + "px bold sans-serif";
+        ctx.font = "" + (canvasHeight * 0.9) + "px bold sans-serif";
         ctx.textBaseline = "top";
         ctx.textAlign = data.align;
         ctx.fillStyle = data.color;
         let x = data.align === "center" ? canvasWidth / 2 : 0;
-        ctx.fillText(data.value, x, data.resolution * 0.1);
+        ctx.fillText(data.value, x, canvasHeight * 0.1);
 
         this.el.object3DMap.xylabel.material.map.needsUpdate = true;
     },
