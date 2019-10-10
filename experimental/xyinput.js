@@ -35,6 +35,7 @@ AFRAME.registerComponent('xyinput', {
         el.addEventListener('blur', (ev) => this.update());
         el.addEventListener('focus', (ev) => this.update());
         el.addEventListener("keypress", ev => {
+            if (ev.code == "Enter") return;
             let pos = this.cursor, s = data.value;
             this.cursor += ev.key.length;
             el.value = s.slice(0, pos) + ev.key + s.slice(pos);
@@ -105,16 +106,27 @@ AFRAME.registerComponent('xykana', {
         document.body.addEventListener("keypress", this._onkeydown, true);
         this.temp = "";
         this.kana = "";
+        this.suggestions = [];
+        this.suggestionIdx = 0;
         this.enable = false;
     },
     _onkeydown(ev) {
-        console.log(ev);
         if (ev.code == "CapsLock" && ev.shiftKey || ev.key == "HiraganaKatakana") {
             this.enable = !this.enable;
         } else if (!ev.code || !this.enable || ev.target == document.body) {
             return;
         }
         if (ev.type == "keypress") {
+            if (this.suggestions.length > 0) {
+                if (ev.code == "Space") {
+                    this.suggestionIdx = (this.suggestionIdx + 1) % this.suggestions.length;
+                    this.kana = this.suggestions[this.suggestionIdx];
+                    this.data.label.setAttribute("value", this.kana);
+                    ev.stopPropagation();
+                    return;
+                }
+            }
+            this.suggestions = [];
             if (ev.key.match(/^[a-z-]$/)) {
                 this.temp += ev.key;
                 let temp = this.temp.replace(/l([aiueo])/g, "x$1")
@@ -142,13 +154,14 @@ AFRAME.registerComponent('xykana', {
                 ev.stopPropagation();
             } else if (ev.code == "Space" && (this.kana || this.temp)) {
                 //  https://www.google.co.jp/ime/cgiapi.html
-                // TODO: select from candidates.
                 this.kana += this.temp;
                 (async (str) => {
                     let response = await fetch(`https://www.google.com/transliterate?langpair=ja-Hira|ja&text=${str},`);
                     let result = await response.json();
-                    // console.log(result);
-                    ev.target.dispatchEvent(new KeyboardEvent("keypress", { key: result[0][1][0] || str }));
+                    this.suggestions = result[0][1];
+                    this.suggestionIdx = 0;
+                    this.kana = result[0][1][0];
+                    this.data.label.setAttribute("value", this.kana);
                 })(this.kana);
                 this.kana = "";
                 this.temp = "";
@@ -163,6 +176,7 @@ AFRAME.registerComponent('xykana', {
                 ev.target.dispatchEvent(new KeyboardEvent("keypress", { key: this.kana + this.temp }));
                 this.temp = "";
                 this.kana = "";
+                this.suggestions = [];
             } else if (ev.code == "Backspace" && (this.kana || this.temp)) {
                 if (this.temp) {
                     this.temp = this.temp.slice(0, -1);
