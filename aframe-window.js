@@ -411,13 +411,14 @@ AFRAME.registerComponent('xywindow', {
     },
     init() {
         this.theme = this.system.theme;
-        this.controls = document.createElement('a-entity');
-        this.controls.setAttribute("position", { x: 0, y: 0, z: 0.05 });
-        this.el.appendChild(this.controls);
+        let controls = this.controls = document.createElement('a-entity');
+        controls.setAttribute("position", { x: 0, y: 0, z: 0.05 });
+        controls.setAttribute("xyitem", { fixed: true });
+        this.el.appendChild(controls);
 
         let dragButton = this.system.createSimpleButton({
             width: 1, height: 0.5, color: this.theme.windowTitleBarColor
-        }, this.controls);
+        }, controls);
         dragButton.setAttribute("xy-drag-control", { target: this.el, autoRotate: true });
         this.dragButton = dragButton;
 
@@ -426,7 +427,7 @@ AFRAME.registerComponent('xywindow', {
                 width: 0.5, height: 0.5,
                 color: this.theme.windowTitleBarColor,
                 hoverColor: this.theme.windowCloseButtonColor
-            }, this.controls);
+            }, controls);
             closeButton.setAttribute("xylabel", {
                 value: "X", align: "center", color: this.theme.buttonLabelColor
             });

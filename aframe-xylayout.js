@@ -17,8 +17,8 @@ AFRAME.registerComponent('xycontainer', {
         alignContent: { default: "", oneOf: ['', 'none', 'start', 'end', 'center', 'stretch'] }
     },
     init() {
-        this.el.addEventListener('xyresize', ev => this.requestLayoutUpdate());
-        this.requestLayoutUpdate();
+        this.el.addEventListener('xyresize', ev => this.requestLayout());
+        this.requestLayout();
     },
     _layout(containerRect, children) {
         let data = this.data;
@@ -43,13 +43,13 @@ AFRAME.registerComponent('xycontainer', {
         let lines = [];
         for (let i = 0; i < children.length; i++) {
             let el = children[i];
-            let layoutItem = el.components.xyitem;
-            if (layoutItem && layoutItem.data.fixed) {
+            let layoutItem = el.getAttribute('xyitem');
+            if (layoutItem && layoutItem.fixed) {
                 continue;
             }
             let rect = el.components.xyrect || el.getAttribute("geometry") || {
-                width: el.getAttribute("width") * 1,
-                height: el.getAttribute("height") * 1
+                width: el.getAttribute("width"),
+                height: el.getAttribute("height")
             };
             let childScale = el.getAttribute("scale") || { x: 1, y: 1 };
             let itemData = {
@@ -58,7 +58,7 @@ AFRAME.registerComponent('xycontainer', {
                 pivot: xyToMainCross(rect.data ? rect.data.pivotX : 0.5, rect.data ? rect.data.pivotY : 0.5),
                 scale: xyToMainCross(childScale.x, childScale.y)
             };
-            if (itemData.size[0] === undefined || isNaN(itemData.size[0])) {
+            if (itemData.size[0] == null || isNaN(itemData.size[0])) {
                 continue;
             }
             let sz = sizeSum + itemData.size[0] * itemData.scale[0] + data.spacing * targets.length;
@@ -74,8 +74,8 @@ AFRAME.registerComponent('xycontainer', {
             }
             targets.push(itemData);
             sizeSum += itemData.size[0] * itemData.scale[0];
-            growSum += layoutItem ? layoutItem.data.grow : 1;
-            shrinkSum += layoutItem ? layoutItem.data.shrink : 1;
+            growSum += layoutItem ? layoutItem.grow : 1;
+            shrinkSum += layoutItem ? layoutItem.shrink : 1;
             crossSize = itemData.size[1] > crossSize ? itemData.size[1] : crossSize;
         }
         if (targets.length > 0) {
@@ -84,9 +84,6 @@ AFRAME.registerComponent('xycontainer', {
             crossSizeSum += crossSize;
         }
 
-        if (lines.length == 0) {
-            return;
-        }
         crossSizeSum += data.spacing * (lines.length - 1);
         if (containerRect.data[attrNames[0]] == -1) {
             containerSize[0] = mainSize;
@@ -139,9 +136,9 @@ AFRAME.registerComponent('xycontainer', {
         for (let i = 0; i < targets.length; i++) {
             let itemData = targets[i];
             let item = itemData.el;
-            let layoutItem = item.components.xyitem;
-            let align = (layoutItem && layoutItem.data.align) || this.data.alignItems;
-            let stretch = (layoutItem ? (stretchFactor > 0 ? layoutItem.data.grow : layoutItem.data.shrink) : 1) * stretchFactor;
+            let layoutItem = item.getAttribute('xyitem');
+            let align = (layoutItem && layoutItem.align) || this.data.alignItems;
+            let stretch = (layoutItem ? (stretchFactor > 0 ? layoutItem.grow : layoutItem.shrink) : 1) * stretchFactor;
             let szMain = itemData.size[0] * itemData.scale[0] + stretch;
             let szCross = itemData.size[1];
             let pos = item.getAttribute("position") || { x: 0, y: 0, z: 0 };
@@ -169,7 +166,7 @@ AFRAME.registerComponent('xycontainer', {
             p += szMain + spacing;
         }
     },
-    requestLayoutUpdate() {
+    requestLayout() {
         this.data && this._layout(this.el.components.xyrect, this.el.children);
     }
 });
@@ -183,7 +180,7 @@ AFRAME.registerComponent('xyitem', {
     },
     update(oldData) {
         if (oldData.align !== undefined && this.el.parent.components.xycontainer) {
-            this.el.parent.components.xycontainer.requestLayoutUpdate();
+            this.el.parent.components.xycontainer.requestLayout();
         }
     }
 });
