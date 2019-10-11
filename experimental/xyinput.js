@@ -66,6 +66,9 @@ AFRAME.registerComponent('xyinput', {
         if (this.cursor > s.length || oldData && oldData.value != null && this.cursor == oldData.value.length) {
             this.cursor = s.length;
         }
+        if (this.data.valueType == "password") {
+            s = s.replace(/./g, '*');
+        }
         if (document.activeElement == this.el) {
             s = s.slice(0, this.cursor) + "|" + s.slice(this.cursor);
         }
@@ -370,6 +373,6 @@ AFRAME.registerPrimitive('a-xyinput', {
         width: 'xyrect.width',
         height: 'xyrect.height',
         value: 'xyinput.value',
-        "value-type": 'xyinput.valueType'
+        type: 'xyinput.valueType'
     }
 });
