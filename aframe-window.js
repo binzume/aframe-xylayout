@@ -77,7 +77,7 @@ AFRAME.registerComponent('xylabel', {
         while (canvasWidth < textWidth) canvasWidth <<= 1;
 
         let canvas = this.canvas;
-        if (!canvas || canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+        if (!canvas || canvas.width !== canvasWidth || canvas.height !== canvasHeight) {  // TODO
             this.canvas = canvas = canvas || document.createElement("canvas");
             canvas.height = canvasHeight;
             canvas.width = canvasWidth;
@@ -100,7 +100,7 @@ AFRAME.registerComponent('xylabel', {
         ctx.textBaseline = "top";
         ctx.textAlign = data.align;
         ctx.fillStyle = data.color;
-        let x = data.align === "center" ? canvasWidth / 2 : 0;
+        let x = data.align === "center" ? textWidth / 2 : 0;
         ctx.fillText(data.value, x, canvasHeight * 0.1);
 
         this.el.object3DMap.xylabel.material.map.needsUpdate = true;
