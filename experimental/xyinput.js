@@ -47,6 +47,10 @@ AFRAME.registerComponent('xyinput', {
             this.cursor += ev.key.length;
             el.value = s.slice(0, pos) + ev.key + s.slice(pos);
         });
+        this.oncopy_ = this.oncopy_.bind(this);
+        this.onpaste_ = this.onpaste_.bind(this);
+        window.addEventListener("copy", this.oncopy_);
+        window.addEventListener("paste", this.onpaste_);
 
         el.addEventListener("keydown", ev => {
             let pos = this.cursor, s = data.value;
@@ -97,6 +101,25 @@ AFRAME.registerComponent('xyinput', {
                     this.caretObj.position.x = (gpos / textLayout.width - 0.5) * xyrect.width;
                 }
             }, 0);
+        }
+    },
+    remove() {
+        window.removeEventListener("copy", this.oncopy_);
+        window.removeEventListener("paste", this.onpaste_);
+    },
+    oncopy_(ev) {
+        if (document.activeElement == this.el) {
+            ev.clipboardData.setData("text/plain", this.el.value);
+            ev.preventDefault();
+        }
+    },
+    onpaste_(ev) {
+        if (document.activeElement == this.el) {
+            let pos = this.cursor, s = this.data.value;
+            let t = ev.clipboardData.getData("text/plain");
+            this.cursor += t.length;
+            this.el.value = s.slice(0, pos) + t + s.slice(pos);
+            ev.preventDefault();
         }
     }
 });
