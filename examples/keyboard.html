@@ -4,7 +4,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>UI Components examples</title>
+    <title>Virtual keyboard</title>
     <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@v0.9.2/dist/aframe-master.min.js"></script>
     <script src="../dist/xylayout-all.min.js"></script>
     <script src="../experimental/xyinput.js"></script>
@@ -21,14 +21,13 @@
             <a-xykeyboard kana="true" position="0 0.3 -3"></a-xykeyboard>
         </a-entity>
 
-        <a-xywindow position="0 0 -12" width="6" height="5" title="UI Components">
-            <a-plane xyitem="fixed:true" width="6" height="5" position="0 0 -0.05" color="#444"></a-plane>
+        <a-xywindow position="0 0 -12" width="6" height="3" title="Input form">
+            <a-plane xyitem="fixed:true" width="6" height="3" position="0 0 -0.05" color="#444"></a-plane>
 
             <a-xycontainer direction="column" spacing="0.1" padding="0.2" align-items="stretch">
                 <a-xyinput value="abc"></a-xyinput>
-                <a-xyinput value="123" value-type="number"></a-xyinput>
-                <a-xyselect values="abc,123,Foo,Bar" select="1"></a-xyselect>
-                <a-xyrange width="4" height="0.5" value="20"></a-xyrange>
+                <a-xyinput value="123" type="number"></a-xyinput>
+                <a-xyinput value="secretstring" type="password"></a-xyinput>
             </a-xycontainer>
 
         </a-xywindow>

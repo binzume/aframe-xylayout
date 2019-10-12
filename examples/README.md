@@ -8,8 +8,8 @@ DEMO:
 - [UI Components](https://binzume.github.io/aframe-xylayout/examples/window.html)
   - プロトタイピングに便利そうなUIコンポーネント色々
   - 見た目ちょっとしょぼい
-- [Software keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html)  [WIP]
-  - WebVR内で日本語入力するためのソフトウェアキーボード．まだ色々足りない
+- [Software keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html)
+  - ソフトウェアキーボード(日本語入力対応)
   - ハードウェアキーボードの入力も拾います
   - [Google CGI API for Japanese Input](https://www.google.co.jp/ime/cgiapi.html) を使っています
 

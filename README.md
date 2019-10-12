@@ -13,7 +13,7 @@ Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 ![UI example](./examples/ui.png)
 
 
-[Software keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html) [WIP]
+[Software keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html)
 
 ## Usage
 
