@@ -5,13 +5,20 @@ AFRAME.registerComponent('xyinput', {
     schema: {
         value: { default: "" },
         valueType: { default: "" },
+        caretColor: { default: "#0088ff" },
         softwareKeyboard: { default: true },
     },
     init() {
         let data = this.data, el = this.el, xyrect = el.components.xyrect;
+        this.caretObj = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.04, xyrect.height * 0.9),
+            new THREE.MeshBasicMaterial({ color: this.data.caretColor }));
+        this.el.object3D.add(this.caretObj);
+        this.caretObj.position.z = 0.05;
+
         Object.defineProperty(el, 'value', {
             get: () => data.value,
-            set: (v) => el.setAttribute("xyinput", "value", "" + v)
+            set: (v) => el.setAttribute('xyinput', 'value', "" + v)
         });
         this.cursor = data.value.length;
         el.classList.add("collidable");
@@ -63,16 +70,34 @@ AFRAME.registerComponent('xyinput', {
     },
     update(oldData) {
         let s = this.data.value;
-        if (this.cursor > s.length || oldData && oldData.value != null && this.cursor == oldData.value.length) {
-            this.cursor = s.length;
-        }
         if (this.data.valueType == "password") {
             s = s.replace(/./g, '*');
         }
-        if (document.activeElement == this.el) {
-            s = s.slice(0, this.cursor) + "|" + s.slice(this.cursor);
-        }
         this.el.setAttribute("xylabel", "value", s);
+        if (this.cursor > s.length || oldData && oldData.value != null && this.lastcursor == oldData.value.length) {
+            this.cursor = s.length;
+        }
+        this.lastcursor = this.cursor;
+        this.caretObj.visible = document.activeElement == this.el;
+        if (document.activeElement == this.el) {
+            setTimeout(() => {
+                let xylabel = this.el.components.xylabel, xyrect = this.el.components.xyrect;
+                if (this.cursor == 0) {
+                    this.caretObj.position.x = (- 0.5) * xyrect.width;
+                } else if (xylabel.canvas) {
+                    let ctx = xylabel.canvas.getContext("2d");
+                    let w = ctx.measureText(s.slice(0, this.cursor)).width / xylabel.textWidth;
+                    this.caretObj.position.x = (w - 0.5) * xyrect.width;
+                } else if (this.el.components.text) {
+                    let textLayout = this.el.components.text.geometry.layout;
+                    let glyphs = textLayout.glyphs;
+                    let p = Math.max(0, this.cursor - (s.length - glyphs.length)); // spaces...
+                    let g = glyphs[Math.min(p, glyphs.length - 1)];
+                    let gpos = g ? g.position[0] + g.data.width * (p >= glyphs.length ? 1 : 0.1) : 0;
+                    this.caretObj.position.x = (gpos / textLayout.width - 0.5) * xyrect.width;
+                }
+            }, 0);
+        }
     }
 });
 
@@ -104,16 +129,16 @@ AFRAME.registerComponent('xykana', {
         '-': 'ー'
     },
     init() {
-        this._onkeydown = this._onkeydown.bind(this);
-        document.body.addEventListener("keydown", this._onkeydown, true);
-        document.body.addEventListener("keypress", this._onkeydown, true);
+        this.onkeydown_ = this.onkeydown_.bind(this);
+        document.body.addEventListener("keydown", this.onkeydown_, true);
+        document.body.addEventListener("keypress", this.onkeydown_, true);
         this.temp = "";
         this.kana = "";
         this.suggestions = [];
         this.suggestionIdx = 0;
         this.enable = false;
     },
-    _onkeydown(ev) {
+    onkeydown_(ev) {
         if (ev.code == "CapsLock" && ev.shiftKey || ev.key == "HiraganaKatakana") {
             this.enable = !this.enable;
         } else if (!ev.code || !this.enable || ev.target == document.body) {
@@ -194,8 +219,8 @@ AFRAME.registerComponent('xykana', {
         }
     },
     remove() {
-        document.body.removeEventListener("keydown", this._onkeydown, true);
-        document.body.removeEventListener("keypress", this._onkeydown, true);
+        document.body.removeEventListener("keydown", this.onkeydown_, true);
+        document.body.removeEventListener("keypress", this.onkeydown_, true);
     }
 });
 
@@ -210,9 +235,9 @@ AFRAME.registerComponent('xykeyboard', {
         main: {
             size: [11, 4],
             rows: [
-                { position: [0, 3], keys: ["qQ!", "wW@", "eE#", "rR$", "tT%", "yY^", "uU&", "iI*", "oO(", "pP)", "=+-"] },
-                { position: [0, 2], keys: ["aA1", "sS2", "dD3", "fF4", "gG5", "hH`", "jJ'", "kK\"", "lL[", ":;]"] },
-                { position: [0, 1], keys: [{ code: "Shift", symbols: "⇧⬆" }, "zZ6", "xX7", "cC8", "vV9", "bB0", "nN{", "mM}", ",~<", "._>", "/?\\"] },
+                { position: [0, 3], keys: ["qQ!", "wW@", "eE#", "rR$", "tT%", "yY^", "uU&", "iI*", "oO(", "pP)", "-_="] },
+                { position: [0, 2], keys: ["aA1", "sS2", "dD3", "fF4", "gG5", "hH`", "jJ~", "kK+", "lL[", ":;]"] },
+                { position: [0, 1], keys: [{ code: "Shift", symbols: "⇧⬆" }, "zZ6", "xX7", "cC8", "vV9", "bB0", "nN{", "mM}", ",'<", ".\">", "/?\\"] },
                 { position: [0, 0], keys: [{ code: "Space", key: " ", label: "_", size: 4 }] },
                 { position: [-4.5, 0], keys: [{ code: "_Fn", label: "#!" }, { code: "HiraganaKatakana", label: "あ" }] },
             ]
@@ -244,18 +269,18 @@ AFRAME.registerComponent('xykeyboard', {
         let excludes = this.data.kana ? [] : ["HiraganaKatakana"];
         if (type == "number") {
             let w = this.blocks.num.size[0] + this.blocks.ctrl.size[0];
-            this._createKeys(this.blocks.num, this.data.keyPitch);
-            this._createKeys(this.blocks.ctrl, this.data.keyPitch).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
+            this.createKeys_(this.blocks.num, this.data.keyPitch);
+            this.createKeys_(this.blocks.ctrl, this.data.keyPitch).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
         } else if (type == "full") {
             let w = this.blocks.main.size[0] + this.blocks.ctrl.size[0];
-            this._createKeys(this.blocks.main, this.data.keyPitch, excludes);
-            this._createKeys(this.blocks.ctrl, this.data.keyPitch, ["Space"]).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
+            this.createKeys_(this.blocks.main, this.data.keyPitch, excludes);
+            this.createKeys_(this.blocks.ctrl, this.data.keyPitch, ["Space"]).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
             w += this.blocks.ctrl.size[0] + this.blocks.num.size[0];
-            this._createKeys(this.blocks.num, this.data.keyPitch).setAttribute("position", "x", (w / 2 + 0.8) * this.data.keyPitch);
+            this.createKeys_(this.blocks.num, this.data.keyPitch).setAttribute("position", "x", (w / 2 + 0.8) * this.data.keyPitch);
         } else {
             let w = this.blocks.main.size[0] + this.blocks.ctrl.size[0];
-            this._createKeys(this.blocks.main, this.data.keyPitch, excludes);
-            this._createKeys(this.blocks.ctrl, this.data.keyPitch, ["Space"]).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
+            this.createKeys_(this.blocks.main, this.data.keyPitch, excludes);
+            this.createKeys_(this.blocks.ctrl, this.data.keyPitch, ["Space"]).setAttribute("position", "x", (w / 2 + 0.4) * this.data.keyPitch);
         }
         if (this.data.kana) {
             let convText = document.createElement("a-xylabel");
@@ -271,7 +296,7 @@ AFRAME.registerComponent('xykeyboard', {
             this.el.removeChild(this.el.firstChild);
         }
     },
-    _createKeys(block, sz, excludes = []) {
+    createKeys_(block, sz, excludes = []) {
         let pane = document.createElement("a-entity");
         let padding = sz * 0.3;
         pane.setAttribute("geometry", {
@@ -314,7 +339,7 @@ AFRAME.registerComponent('xykeyboard', {
 
                     if (key.code == "_Fn") {
                         this.keyidx = this.keyidx == 2 ? 0 : 2;
-                        this._updateSymbols();
+                        this.updateSymbols_();
                         return;
                     }
                     if (key.code == "_Close") {
@@ -323,12 +348,12 @@ AFRAME.registerComponent('xykeyboard', {
                     }
                     if (key.code == "Shift") {
                         this.keyidx = (this.keyidx + 1) % 2;
-                        this._updateSymbols();
+                        this.updateSymbols_();
                     }
 
                     if (this.data.targets.includes(document.activeElement.tagName.toLowerCase())) {
                         let data = key.code ? { code: key.code, key: key.key || key.code }
-                            : { key: key[this.keyidx] || key[0], code: "key" + key[0] };
+                            : { key: key[this.keyidx] || key[0], code: "Key" + key[0].toUpperCase() };
                         document.activeElement.dispatchEvent(new KeyboardEvent("keydown", data));
                         if (!key.code || key.key) {
                             document.activeElement.dispatchEvent(new KeyboardEvent("keypress", data));
@@ -341,7 +366,7 @@ AFRAME.registerComponent('xykeyboard', {
         this.el.appendChild(pane);
         return pane;
     },
-    _updateSymbols() {
+    updateSymbols_() {
         for (let keyEl of this.el.querySelectorAll('.xyinput-key')) {
             let s = keyEl.dataset.keySymbols;
             keyEl.setAttribute('xylabel', 'value', s[this.keyidx] || s[0]);
@@ -359,20 +384,21 @@ AFRAME.registerPrimitive('a-xykeyboard', {
     mappings: {
         kana: 'xykeyboard.kana',
         type: 'xykeyboard.type',
-        "physical-keys": 'xykeyboard.physicalKeys'
+        'physical-keys': 'xykeyboard.physicalKeys'
     }
 });
 
 AFRAME.registerPrimitive('a-xyinput', {
     defaultComponents: {
         xyrect: { width: 2, height: 0.5 },
-        xylabel: { color: "black" },
+        xylabel: { color: 'black' },
         xyinput: {}
     },
     mappings: {
         width: 'xyrect.width',
         height: 'xyrect.height',
         value: 'xyinput.value',
-        type: 'xyinput.valueType'
+        type: 'xyinput.valueType',
+        'caret-color': 'xyinput.caretColor'
     }
 });
