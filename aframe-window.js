@@ -36,6 +36,7 @@ AFRAME.registerComponent('xylabel', {
         renderingMode: { default: 'auto', oneOf: ['auto', 'canvas'] }
     },
     init() {
+        // TODO: removeEventListener
         this.el.addEventListener('xyresize', ev => this.update());
     },
     update() {
@@ -65,7 +66,6 @@ AFRAME.registerComponent('xylabel', {
             if (textObj) {
                 textObj.raycast = function () { }; // to disable raycast
             }
-            this.canvas = null;
             this._removeObject3d();
             return;
         }
@@ -77,10 +77,12 @@ AFRAME.registerComponent('xylabel', {
         while (canvasWidth < textWidth) canvasWidth <<= 1;
 
         let canvas = this.canvas;
-        if (!canvas || canvas.width !== canvasWidth || canvas.height !== canvasHeight) {  // TODO
+        if (!canvas || this.textWidth !== textWidth || canvas.height !== canvasHeight) {
+            this._removeObject3d(); // <= this.canvas = null
             this.canvas = canvas = canvas || document.createElement("canvas");
             canvas.height = canvasHeight;
             canvas.width = canvasWidth;
+            this.textWidth = textWidth;
             let meshH = xyrect.data.height > 0 ? xyrect.height : w / (wrapCount * widthFactor);
             let texture = new THREE.CanvasTexture(canvas);
             texture.anisotropy = 4;
@@ -90,7 +92,6 @@ AFRAME.registerComponent('xylabel', {
                 new THREE.PlaneGeometry(w, meshH),
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true }));
             mesh.position.copy(new THREE.Vector3(data.xOffset, 0, data.zOffset));
-            this._removeObject3d();
             this.el.setObject3D("xylabel", mesh);
         }
 
@@ -106,7 +107,6 @@ AFRAME.registerComponent('xylabel', {
         this.el.object3DMap.xylabel.material.map.needsUpdate = true;
     },
     remove() {
-        this.canvas = null;
         this._removeObject3d();
         this._removeText();
     },
@@ -122,6 +122,7 @@ AFRAME.registerComponent('xylabel', {
             labelObj.material.dispose();
             labelObj.geometry.dispose();
             this.el.removeObject3D("xylabel");
+            this.canvas = null;
         }
     }
 });
