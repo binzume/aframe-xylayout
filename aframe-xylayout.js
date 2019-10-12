@@ -48,8 +48,8 @@ AFRAME.registerComponent('xycontainer', {
                 continue;
             }
             let rect = el.components.xyrect || el.getAttribute("geometry") || {
-                width: el.getAttribute("width"),
-                height: el.getAttribute("height")
+                width: (el.getAttribute("width") || undefined) * 1,
+                height: (el.getAttribute("height") || undefined) * 1
             };
             let childScale = el.getAttribute("scale") || { x: 1, y: 1 };
             let itemData = {
