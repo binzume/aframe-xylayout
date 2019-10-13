@@ -332,8 +332,10 @@ AFRAME.registerComponent('xykeyboard', {
             convText.setAttribute('xykana', { label: convText });
             this.el.appendChild(convText);
         }
+        this.el.setAttribute('xy-drag-control', 'draggable', '.xyinput-close');
     },
     hide() {
+        this.el.removeAttribute('xy-drag-control');
         while (this.el.firstChild) {
             this.el.removeChild(this.el.firstChild);
         }
@@ -371,6 +373,11 @@ AFRAME.registerComponent('xykeyboard', {
                 keyEl.setAttribute('xylabel', { value: label, align: 'center' });
                 keyEl.addEventListener('mouseenter', () => keyEl.setAttribute('material', 'visible', true));
                 keyEl.addEventListener('mouseleave', () => keyEl.setAttribute('material', 'visible', false));
+
+                if (key.code == '_Close') {
+                    keyEl.classList.add('xyinput-close');
+                    keyEl.addEventListener('click', ev => this.hide());
+                }
                 keyEl.addEventListener('mousedown', ev => {
                     if (document.activeElement == document.body && this.target) {
                         this.target.focus();
@@ -382,10 +389,6 @@ AFRAME.registerComponent('xykeyboard', {
                     if (key.code == '_Fn') {
                         this.keyidx = this.keyidx == 2 ? 0 : 2;
                         this.updateSymbols_();
-                        return;
-                    }
-                    if (key.code == '_Close') {
-                        this.hide();
                         return;
                     }
                     if (key.code == 'Shift') {
