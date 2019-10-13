@@ -332,6 +332,7 @@ AFRAME.registerComponent('xy-drag-control', {
     init() {
         this._ondrag = this._ondrag.bind(this);
         this._draggable = [];
+        this._prevQ = new THREE.Quaternion();
     },
     update(oldData) {
         let draggable = this.data.draggable;
@@ -354,50 +355,49 @@ AFRAME.registerComponent('xy-drag-control', {
         });
     },
     _ondrag(ev) {
-        let direction = ev.detail.raycaster.ray.direction;
-        let prevDirection = ev.detail.prevRay.direction;
-        let target = this.data.target || this.el;
-        let rot;
-        if (ev.detail.cursorEl.components['tracked-controls']) {
-            if (ev.type == "xy-dragstart") {
-                rot = new THREE.Quaternion();
-            } else {
-                rot = this._prevQ.inverse().premultiply(ev.detail.cursorEl.object3D.quaternion);
+        let { origin, direction } = ev.detail.raycaster.ray;
+        let { origin: origin0, direction: direction0 } = ev.detail.prevRay;
+        let cursorEl = ev.detail.cursorEl;
+        let targetObj = (this.data.target || this.el).object3D;
+        let rot = new THREE.Quaternion();
+        if (cursorEl.components['tracked-controls']) {
+            let q = cursorEl.object3D.quaternion;
+            if (ev.type != "xy-dragstart") {
+                rot.copy(this._prevQ).inverse().premultiply(q);
             }
-            this._prevQ = ev.detail.cursorEl.object3D.quaternion.clone();
+            this._prevQ.copy(q);
         } else {
-            rot = new THREE.Quaternion().setFromUnitVectors(prevDirection, direction);
+            rot.setFromUnitVectors(direction0, direction);
         }
 
-        let matrix = new THREE.Matrix4().makeRotationFromQuaternion(rot);
-        let o1 = ev.detail.prevRay.origin;
-        let o2 = ev.detail.raycaster.ray.origin;
+        let o1 = targetObj.parent.worldToLocal(origin0.clone());
+        let o2 = targetObj.parent.worldToLocal(origin.clone());
         let tr = new THREE.Matrix4();
-        matrix.multiply(tr.makeTranslation(-o1.x, -o1.y, -o1.z));
-        matrix.premultiply(tr.makeTranslation(o2.x, o2.y, o2.z));
-        target.object3D.applyMatrix(matrix);
+        let mat = new THREE.Matrix4().makeRotationFromQuaternion(rot)
+            .multiply(tr.makeTranslation(-o1.x, -o1.y, -o1.z))
+            .premultiply(tr.makeTranslation(o2.x, o2.y, o2.z));
+        targetObj.applyMatrix(mat);
 
         if (this.data.mode == "pull") {
-            let targetPosition = target.object3D.getWorldPosition(new THREE.Vector3());
-            let d = direction.clone().sub(prevDirection);
-            let f = targetPosition.distanceTo(ev.detail.raycaster.ray.origin) * 2;
-            target.object3D.position.add(direction.clone().multiplyScalar(-d.y * f));
+            let targetPosition = targetObj.getWorldPosition(new THREE.Vector3());
+            let d = direction.clone().sub(direction0);
+            let f = targetPosition.distanceTo(origin) * 2;
+            targetObj.position.add(direction.clone().multiplyScalar(-d.y * f));
         }
 
         if (this.data.autoRotate) {
             let cameraPosition = this.el.sceneEl.camera.getWorldPosition(new THREE.Vector3());
-            let targetPosition = target.object3D.getWorldPosition(new THREE.Vector3());
+            let targetPosition = targetObj.getWorldPosition(new THREE.Vector3());
             let d = cameraPosition.clone().sub(targetPosition).normalize();
             let t = 0.8 - d.y * d.y;
             if (t > 0) {
-                let mat = new THREE.Matrix4().lookAt(cameraPosition, targetPosition, new THREE.Vector3(0, 1, 0));
-                let rotation = new THREE.Quaternion().setFromRotationMatrix(mat);
-                let intersection = ev.detail.cursorEl.components.raycaster.getIntersection(ev.target);
+                mat.lookAt(cameraPosition, targetPosition, new THREE.Vector3(0, 1, 0));
+                let intersection = cursorEl.components.raycaster.getIntersection(ev.target);
                 let intersectPoint = intersection ? intersection.point : targetPosition;
-                let c = target.object3D.parent.worldToLocal(intersectPoint);
-                let oq = target.object3D.quaternion.clone();
-                THREE.Quaternion.slerp(target.object3D.quaternion, rotation, target.object3D.quaternion, t * 0.1);
-                target.object3D.position.sub(c).applyQuaternion(oq.inverse().premultiply(target.object3D.quaternion)).add(c);
+                let c = targetObj.parent.worldToLocal(intersectPoint);
+                let tq = targetObj.quaternion.clone();
+                targetObj.quaternion.slerp(rot.setFromRotationMatrix(mat), t * 0.1);
+                targetObj.position.sub(c).applyQuaternion(tq.inverse().premultiply(targetObj.quaternion)).add(c);
             }
         }
     }
