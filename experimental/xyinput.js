@@ -5,7 +5,9 @@ AFRAME.registerComponent('xyinput', {
     schema: {
         value: { default: "" },
         valueType: { default: "" },
+        placeholder: { default: "" },
         caretColor: { default: "#0088ff" },
+        bgColor: { default: "white" },
         softwareKeyboard: { default: true },
     },
     init() {
@@ -29,7 +31,7 @@ AFRAME.registerComponent('xyinput', {
         el.addEventListener('xyresize', (ev) => {
             el.setAttribute('geometry', { width: ev.detail.xyrect.width, height: ev.detail.xyrect.height });
         });
-        el.setAttribute('material', { color: "white" });
+        el.setAttribute('material', { color: data.bgColor });
         el.addEventListener('click', ev => {
             el.focus();
             if (data.softwareKeyboard) {
@@ -37,6 +39,20 @@ AFRAME.registerComponent('xyinput', {
                 if (kbd) {
                     kbd.components.xykeyboard.show(data.valueType);
                 }
+            }
+            if (ev.detail.intersection) {
+                let min = 0, max = this.el.value.length + 1, p = max;
+                let v = ev.detail.intersection.uv.x;
+                while (max - min >= 2) {
+                    p = min + ((max - min) / 2 | 0);
+                    if (this.caretpos_(p) < v) {
+                        min = p;
+                    } else {
+                        max = p;
+                    }
+                }
+                this.cursor = p;
+                this.update();
             }
         });
         el.addEventListener('blur', (ev) => this.update());
@@ -87,35 +103,45 @@ AFRAME.registerComponent('xyinput', {
     },
     update(oldData) {
         let s = this.el.value;
-        if (this.data.valueType == 'password') {
-            s = s.replace(/./g, '*');
-        }
-        this.el.setAttribute('xylabel', 'value', s);
         if (this.cursor > s.length || oldData && (oldData.value == null || this.lastcursor_ == oldData.value.length)) {
             this.cursor = s.length;
         }
+        if (this.data.valueType == 'password') {
+            s = s.replace(/./g, '*');
+        }
+        if (s == "") {
+            s = this.data.placeholder;
+            this.el.setAttribute('xylabel', 'color', "#aaa");
+        } else {
+            this.el.setAttribute('xylabel', 'color', "black");
+        }
+        this.el.setAttribute('xylabel', 'value', s);
         this.lastcursor_ = this.cursor;
         this.caretObj_.visible = false;
         if (document.activeElement == this.el) {
             setTimeout(() => {
+                this.caretObj_.position.x = this.caretpos_(this.cursor);
                 this.caretObj_.visible = true;
-                let xylabel = this.el.components.xylabel, xyrect = this.el.components.xyrect;
-                let pos = 0; // [0,1]
-                if (this.cursor == 0) {
-                } else if (xylabel.canvas) {
-                    let ctx = xylabel.canvas.getContext('2d');
-                    pos = ctx.measureText(s.slice(0, this.cursor)).width / xylabel.textWidth;
-                } else if (this.el.components.text) {
-                    let textLayout = this.el.components.text.geometry.layout;
-                    let glyphs = textLayout.glyphs;
-                    let p = Math.max(0, this.cursor - (s.length - glyphs.length)); // spaces...
-                    let g = glyphs[Math.min(p, glyphs.length - 1)];
-                    let gpos = g ? g.position[0] + g.data.width * (p >= glyphs.length ? 1 : 0.1) : 0;
-                    pos = gpos / textLayout.width;
-                }
-                this.caretObj_.position.x = (pos - 0.5) * xyrect.width + 0.04;
             }, 0);
         }
+    },
+    caretpos_(cursor) {
+        let xylabel = this.el.components.xylabel, xyrect = this.el.components.xyrect;
+        let s = this.el.value;
+        let pos = 0; // [0,1]
+        if (cursor == 0) {
+        } else if (xylabel.canvas) {
+            let ctx = xylabel.canvas.getContext('2d');
+            pos = ctx.measureText(s.slice(0, cursor)).width / xylabel.textWidth;
+        } else if (this.el.components.text) {
+            let textLayout = this.el.components.text.geometry.layout;
+            let glyphs = textLayout.glyphs;
+            let p = Math.max(0, cursor - (s.length - glyphs.length)); // spaces...
+            let g = glyphs[Math.min(p, glyphs.length - 1)];
+            let gpos = g ? g.position[0] + g.data.width * (p >= glyphs.length ? 1 : 0.1) : 0;
+            pos = gpos / textLayout.width;
+        }
+        return (pos - 0.5) * xyrect.width + 0.04;
     },
     remove() {
         window.removeEventListener('copy', this.oncopy_);
@@ -270,7 +296,7 @@ AFRAME.registerComponent('xykeyboard', {
             size: [2, 4],
             rows: [
                 { position: [0, 3], keys: [{ code: 'Backspace', label: "⌫", size: 2 }] },
-                { position: [0, 2], keys: [{ code: 'Space', label: "SP", size: 2 }] },
+                { position: [0, 2], keys: [{ code: 'Space', key: " ", label: "SP", size: 2 }] },
                 { position: [0, 1], keys: [{ code: 'Enter', label: "⏎", size: 2 }] },
                 { position: [1.3, 3.5], keys: [{ code: '_Close', label: "x", size: 0.8 }] },
                 { position: [0, 0], keys: [{ code: 'ArrowLeft', label: "⇦" }, { code: 'ArrowRight', label: "⇨" }] },
@@ -368,11 +394,12 @@ AFRAME.registerComponent('xykeyboard', {
                     }
 
                     if (document.activeElement != document.body) {
-                        let data = key.code ? { code: key.code, key: key.key || key.code }
-                            : { key: key[this.keyidx] || key[0], code: "Key" + key[0].toUpperCase() };
-                        document.activeElement.dispatchEvent(new KeyboardEvent('keydown', data));
-                        if (!key.code || key.key) {
-                            document.activeElement.dispatchEvent(new KeyboardEvent('keypress', data));
+                        let keydata = typeof key == 'string' ? { key: key } : key;
+                        let k = keydata.key ? keydata.key[this.keyidx] || keydata.key[0] : keydata.code;
+                        let eventdata = { key: k, code: keydata.code || "Key" + keydata.key[0].toUpperCase() };
+                        document.activeElement.dispatchEvent(new KeyboardEvent('keydown', eventdata));
+                        if (keydata.key) {
+                            document.activeElement.dispatchEvent(new KeyboardEvent('keypress', eventdata));
                         }
                     }
                 });
@@ -407,7 +434,7 @@ AFRAME.registerPrimitive('a-xykeyboard', {
 AFRAME.registerPrimitive('a-xyinput', {
     defaultComponents: {
         xyrect: { width: 2, height: 0.5 },
-        xylabel: { color: 'black' },
+        xylabel: {},
         xyinput: {}
     },
     mappings: {
@@ -415,6 +442,8 @@ AFRAME.registerPrimitive('a-xyinput', {
         height: 'xyrect.height',
         value: 'xyinput.value',
         type: 'xyinput.valueType',
-        'caret-color': 'xyinput.caretColor'
+        placeholder: 'xyinput.placeholder',
+        'caret-color': 'xyinput.caretColor',
+        'background-color': 'xyinput.bgColor'
     }
 });
