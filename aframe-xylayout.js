@@ -112,9 +112,10 @@ AFRAME.registerComponent('xycontainer', {
         });
     },
     _layoutLine(targets, sizeSum, growSum, shrinkSum, containerSize, p, crossOffset, xymat, attrNames) {
-        let spacing = this.data.spacing;
+        let data = this.data;
+        let spacing = data.spacing;
+        let justify = data.justifyItems;
         let stretchFactor = 0;
-        let justify = this.data.justifyItems;
         if (justify === "center") {
             p += (containerSize[0] - sizeSum - spacing * targets.length) / 2;
         } else if (justify === "end") {
@@ -137,7 +138,7 @@ AFRAME.registerComponent('xycontainer', {
             let itemData = targets[i];
             let item = itemData.el;
             let layoutItem = item.getAttribute('xyitem');
-            let align = (layoutItem && layoutItem.align) || this.data.alignItems;
+            let align = (layoutItem && layoutItem.align) || data.alignItems;
             let stretch = (layoutItem ? (stretchFactor > 0 ? layoutItem.grow : layoutItem.shrink) : 1) * stretchFactor;
             let szMain = itemData.size[0] * itemData.scale[0] + stretch;
             let szCross = itemData.size[1];
@@ -216,84 +217,6 @@ AFRAME.registerComponent('xyrect', {
         if (oldData.width !== undefined) {
             this.el.emit('xyresize', { xyrect: this }, false);
         }
-    }
-});
-
-AFRAME.registerComponent('xyclipping', {
-    dependencies: ['xyrect'],
-    schema: {
-        exclude: { type: 'selector', default: null },
-        clipTop: { default: true },
-        clipBottom: { default: true },
-        clipLeft: { default: false },
-        clipRight: { default: false }
-    },
-    init() {
-        this.el.sceneEl.renderer.localClippingEnabled = true;
-        this.clippingPlanesLocal = [];
-        this.clippingPlanes = [];
-        this.currentMatrix = null;
-        this._filterEvent = this._filterEvent.bind(this);
-        this.filterTargets = ['click', 'mousedown', 'mouseenter', 'mouseleave', 'mousemove'];
-        this.filterTargets.forEach(t => this.el.addEventListener(t, this._filterEvent, true));
-    },
-    update() {
-        let rect = this.el.components.xyrect;
-        let planes = [];
-        if (this.data.clipBottom) planes.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
-        if (this.data.clipTop) planes.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), rect.height));
-        if (this.data.clipLeft) planes.push(new THREE.Plane(new THREE.Vector3(1, 0, 0), 0));
-        if (this.data.clipRight) planes.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), rect.width));
-        this.clippingPlanesLocal = planes;
-        this.clippingPlanes = [];
-        this.updateMatrix();
-    },
-    remove() {
-        this.filterTargets.forEach(t => this.el.removeEventListener(t, this._filterEvent, true));
-        this.clippingPlanes = [];
-        this.applyClippings();
-    },
-    tick() {
-        if (!this.el.object3D.matrixWorld.equals(this.currentMatrix)) {
-            this.updateMatrix();
-        }
-    },
-    _filterEvent(ev) {
-        if (!(ev.path || ev.composedPath()).includes(this.data.exclude)) {
-            if (ev.detail.intersection && this.isClipped(ev.detail.intersection.point)) {
-                ev.stopPropagation();
-                if (ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster) {
-                    let targets = ev.detail.cursorEl.components.raycaster.intersectedEls;
-                    let c = targets.lastIndexOf(ev.target);
-                    if (c >= 0 && c + 1 < targets.length) {
-                        targets[c + 1].dispatchEvent(new CustomEvent(ev.type, ev));
-                    }
-                }
-            }
-        }
-    },
-    updateMatrix() {
-        this.currentMatrix = this.el.object3D.matrixWorld.clone();
-        for (let i = 0; i < this.clippingPlanesLocal.length; i++) {
-            this.clippingPlanes[i] = this.clippingPlanesLocal[i].clone().applyMatrix4(this.currentMatrix);
-        }
-        this.applyClippings();
-    },
-    applyClippings() {
-        let excludeObj = this.data.exclude && this.data.exclude.object3D;
-        let setCliping = (obj) => {
-            if (obj === excludeObj) return;
-            if (obj.material && obj.material.clippingPlanes !== undefined) {
-                obj.material.clippingPlanes = this.clippingPlanes;
-            }
-            for (let i = 0; i < obj.children.length; i++) {
-                setCliping(obj.children[i]);
-            }
-        };
-        setCliping(this.el.object3D);
-    },
-    isClipped(p) {
-        return this.clippingPlanes.some(plane => plane.distanceToPoint(p) < 0);
     }
 });
 

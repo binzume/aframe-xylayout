@@ -151,12 +151,12 @@ AFRAME.registerComponent('xytoggle', {
         value: { default: false }
     },
     init() {
-        this.buttonParams = {
+        this._buttonParams = {
             width: 1, height: 1
         };
-        this.el.sceneEl.systems.xywindow.createSimpleButton(this.buttonParams, null, this.el);
-        this.thumb = document.createElement('a-circle');
-        this.el.appendChild(this.thumb);
+        this.el.sceneEl.systems.xywindow.createSimpleButton(this._buttonParams, null, this.el);
+        this._thumb = document.createElement('a-circle');
+        this.el.appendChild(this._thumb);
         this.el.addEventListener('click', ev => {
             this.el.setAttribute('xytoggle', 'value', !this.data.value);
             this.el.emit('change', { value: !this.data.value }, false);
@@ -166,14 +166,14 @@ AFRAME.registerComponent('xytoggle', {
     update() {
         let theme = this.el.sceneEl.systems.xywindow.theme;
         let xyrect = this.el.components.xyrect;
-        let params = this.buttonParams;
+        let params = this._buttonParams;
         let v = this.data.value;
         params.color = v ? "#0066ff" : theme.buttonColor;
         params.hoverColor = v ? "#4499ff" : "";
         this.el.setAttribute('material', 'color', params.color);
         let r = xyrect.height / 2;
-        this.thumb.setAttribute("geometry", "radius", r * 0.8);
-        this.thumb.setAttribute("position", { x: (xyrect.width / 2 - r) * (v ? 1 : -1), y: 0, z: 0.05 });
+        this._thumb.setAttribute("geometry", "radius", r * 0.8);
+        this._thumb.setAttribute("position", { x: (xyrect.width / 2 - r) * (v ? 1 : -1), y: 0, z: 0.05 });
         this.el.setAttribute("geometry", {
             primitive: "xy-rounded-rect", width: xyrect.width, height: r * 2, radius: r
         });
@@ -193,13 +193,13 @@ AFRAME.registerComponent('xyselect', {
             if (this.data.toggle) {
                 this.select((this.data.select + 1) % this.data.values.length);
             } else {
-                this.listEl ? this.hide() : this.show();
+                this._listEl ? this.hide() : this.show();
             }
         });
         if (this.data.toggle) {
             this.el.setAttribute("xylabel", "align", "center");
         } else {
-            let marker = this.marker = document.createElement("a-triangle");
+            let marker = this._marker = document.createElement("a-triangle");
             marker.setAttribute('geometry', {
                 vertexA: { x: 0.1, y: 0.03, z: 0 }, vertexB: { x: -0.1, y: 0.03, z: 0 }, vertexC: { x: 0, y: -0.12, z: 0 }
             });
@@ -210,17 +210,17 @@ AFRAME.registerComponent('xyselect', {
     update() {
         let data = this.data;
         this.el.setAttribute('xylabel', { value: data.label || data.values[data.select] });
-        if (this.marker) {
-            this.marker.setAttribute('position', { x: this.el.components.xyrect.width / 2 - 0.2, y: 0, z: 0.05 });
+        if (this._marker) {
+            this._marker.setAttribute('position', { x: this.el.components.xyrect.width / 2 - 0.2, y: 0, z: 0.05 });
         }
     },
     show() {
-        if (this.listEl) return;
+        if (this._listEl) return;
         let listY = (this.el.components.xyrect.height + this.data.values.length * 0.5) / 2 + 0.1;
-        this.listEl = document.createElement('a-entity');
-        this.listEl.setAttribute('xycontainer', { spacing: 0 });
-        this.listEl.setAttribute('position', { x: 0, y: listY, z: 0.05 });
-        this.el.appendChild(this.listEl);
+        this._listEl = document.createElement('a-entity');
+        this._listEl.setAttribute('xycontainer', { spacing: 0 });
+        this._listEl.setAttribute('position', { x: 0, y: listY, z: 0.05 });
+        this.el.appendChild(this._listEl);
         this.data.values.forEach((v, i) => {
             let itemEl = document.createElement('a-xybutton');
             itemEl.setAttribute('label', v);
@@ -229,19 +229,19 @@ AFRAME.registerComponent('xyselect', {
                 this.select(i);
                 this.hide();
             });
-            this.listEl.appendChild(itemEl);
+            this._listEl.appendChild(itemEl);
         });
-        setTimeout(() => this.listEl && this.listEl.setAttribute('xyrect', { width: 2, height: this.data.values.length * 0.5 }), 0);
+        setTimeout(() => this._listEl && this._listEl.setAttribute('xyrect', { width: 2, height: this.data.values.length * 0.5 }), 0);
     },
     select(idx) {
         this.el.setAttribute('xyselect', 'select', idx);
         this.el.emit('change', { value: this.data.values[idx], index: idx }, false);
     },
     hide() {
-        if (!this.listEl) return;
-        this.el.removeChild(this.listEl);
-        this.listEl.destroy();
-        this.listEl = null;
+        if (!this._listEl) return;
+        this.el.removeChild(this._listEl);
+        this._listEl.destroy();
+        this._listEl = null;
     },
 });
 
@@ -255,14 +255,14 @@ AFRAME.registerComponent('xy-draggable', {
         this.el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
         this._onmousedown = this._onmousedown.bind(this);
         this.el.addEventListener('mousedown', this._onmousedown);
-        this.dragFun = null;
+        this._dragFun = null;
     },
     remove() {
         this.el.removeEventListener('mousedown', this._onmousedown);
     },
     tick() {
-        if (this.dragFun !== null) {
-            this.dragFun("xy-drag");
+        if (this._dragFun !== null) {
+            this._dragFun("xy-drag");
         } else {
             this.pause();
         }
@@ -281,25 +281,24 @@ AFRAME.registerComponent('xy-draggable', {
             baseEl.object3D.worldToLocal(point);
         }
         let prevRay = draggingRaycaster.ray.clone();
-        let self = this;
+        let _this = this;
         let dragging = false;
 
-        let dragFun = (event) => {
+        let dragFun = this._dragFun = (event) => {
             if (!dragging) {
                 let d = startDirection.manhattanDistanceTo(draggingRaycaster.ray.direction);
-                if (d < self.data.dragThreshold) return;
+                if (d < _this.data.dragThreshold) return;
                 event = "xy-dragstart"
-                self.dragging = dragging = true;
+                _this.dragging = dragging = true;
             }
             let prevPoint = point.clone();
             if (draggingRaycaster.ray.intersectPlane(dragPlane, point) !== null) {
                 baseEl.object3D.worldToLocal(point);
             }
-            self.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay, cursorEl: cursorEl });
+            _this.el.emit(event, { raycaster: draggingRaycaster, point: point, prevPoint: prevPoint, prevRay: prevRay, cursorEl: cursorEl });
             prevRay.copy(draggingRaycaster.ray);
         };
-        self.dragFun = dragFun;
-        self.play();
+        _this.play();
 
         let cancelEvelt = ev1 => ev1.target != ev.target && ev1.stopPropagation();
         window.addEventListener('mouseenter', cancelEvelt, true);
@@ -310,10 +309,10 @@ AFRAME.registerComponent('xy-draggable', {
             window.removeEventListener('mouseup', mouseup);
             window.removeEventListener('mouseenter', cancelEvelt, true);
             window.removeEventListener('mouseleave', cancelEvelt, true);
-            self.dragFun = null;
+            _this._dragFun = null;
             if (!dragging) return;
-            self.dragging = false;
-            if (self.data.preventClick) {
+            _this.dragging = false;
+            if (_this.data.preventClick) {
                 let cancelClick = ev => ev.stopPropagation();
                 window.addEventListener('click', cancelClick, true);
                 setTimeout(() => window.removeEventListener('click', cancelClick, true), 0);
@@ -332,15 +331,15 @@ AFRAME.registerComponent('xy-drag-control', {
     },
     init() {
         this._ondrag = this._ondrag.bind(this);
-        this.draggable = [];
+        this._draggable = [];
     },
     update(oldData) {
         let draggable = this.data.draggable;
         if (draggable !== oldData.draggable) {
             this.remove();
-            this.draggable = Array.isArray(draggable) ? draggable :
+            this._draggable = Array.isArray(draggable) ? draggable :
                 draggable != "" ? this.el.querySelectorAll(draggable) : [this.el];
-            this.draggable.forEach(el => {
+            this._draggable.forEach(el => {
                 el.setAttribute("xy-draggable", {});
                 el.addEventListener("xy-dragstart", this._ondrag);
                 el.addEventListener("xy-drag", this._ondrag);
@@ -348,7 +347,7 @@ AFRAME.registerComponent('xy-drag-control', {
         }
     },
     remove() {
-        this.draggable.forEach(el => {
+        this._draggable.forEach(el => {
             el.removeAttribute("xy-draggable");
             el.removeEventListener("xy-dragstart", this._ondrag);
             el.removeEventListener("xy-drag", this._ondrag);
@@ -363,9 +362,9 @@ AFRAME.registerComponent('xy-drag-control', {
             if (ev.type == "xy-dragstart") {
                 rot = new THREE.Quaternion();
             } else {
-                rot = this.prevQ.inverse().premultiply(ev.detail.cursorEl.object3D.quaternion);
+                rot = this._prevQ.inverse().premultiply(ev.detail.cursorEl.object3D.quaternion);
             }
-            this.prevQ = ev.detail.cursorEl.object3D.quaternion.clone();
+            this._prevQ = ev.detail.cursorEl.object3D.quaternion.clone();
         } else {
             rot = new THREE.Quaternion().setFromUnitVectors(prevDirection, direction);
         }
@@ -539,21 +538,21 @@ AFRAME.registerComponent('xyrange', {
         let data = this.data;
 
         let plane = new THREE.PlaneGeometry(1, 0.08);
-        let bar = this.bar = new THREE.Mesh(
+        let bar = this._bar = new THREE.Mesh(
             plane, new THREE.MeshBasicMaterial({ color: data.color0 }));
 
-        let prog = this.prog = new THREE.Mesh(
+        let prog = this._prog = new THREE.Mesh(
             plane, new THREE.MeshBasicMaterial({ color: data.color1 }));
-        this.prog.position.z = 0.02;
+        prog.position.z = 0.02;
         this.el.setObject3D("xyrange-bar", bar);
         this.el.setObject3D("xyrange-prog", prog);
 
-        this.thumb = this.el.sceneEl.systems.xywindow.createSimpleButton({
+        this._thumb = this.el.sceneEl.systems.xywindow.createSimpleButton({
             width: data.thumbSize, height: data.thumbSize
         }, this.el);
 
-        this.thumb.setAttribute("xy-draggable", { base: this.el });
-        this.thumb.addEventListener("xy-drag", ev => {
+        this._thumb.setAttribute("xy-draggable", { base: this.el });
+        this._thumb.addEventListener("xy-drag", ev => {
             let r = this.el.components.xyrect.width - data.thumbSize;
             let p = (ev.detail.point.x + r / 2) / r * (data.max - data.min);
             if (data.step > 0) {
@@ -568,18 +567,18 @@ AFRAME.registerComponent('xyrange', {
         if (data.max <= data.min) return;
         let r = this.el.components.xyrect.width - data.thumbSize;
         let w = r * (data.value - data.min) / (data.max - data.min);
-        this.thumb.setAttribute("geometry", "radius", data.thumbSize / 2);
-        this.thumb.setAttribute("position", {
+        this._thumb.setAttribute("geometry", "radius", data.thumbSize / 2);
+        this._thumb.setAttribute("position", {
             x: w - r / 2,
             y: 0,
             z: 0.04
         });
-        this.bar.scale.x = r;
-        this.prog.scale.x = w || 0.01;
-        this.prog.position.x = (w - r) / 2;
+        this._bar.scale.x = r;
+        this._prog.scale.x = w || 0.01;
+        this._prog.position.x = (w - r) / 2;
     },
     setValue(value, emitEvent) {
-        if (!this.thumb.components["xy-draggable"].dragging || emitEvent) {
+        if (!this._thumb.components["xy-draggable"].dragging || emitEvent) {
             let v = Math.max(Math.min(value, this.data.max), this.data.min);
             if (v != this.value && emitEvent) {
                 this.el.emit('change', { value: v }, false);
@@ -589,34 +588,112 @@ AFRAME.registerComponent('xyrange', {
     }
 });
 
+AFRAME.registerComponent('xyclipping', {
+    dependencies: ['xyrect'],
+    schema: {
+        exclude: { type: 'selector', default: null },
+        clipTop: { default: true },
+        clipBottom: { default: true },
+        clipLeft: { default: false },
+        clipRight: { default: false }
+    },
+    init() {
+        this.el.sceneEl.renderer.localClippingEnabled = true;
+        this._clippingPlanesLocal = [];
+        this._clippingPlanes = [];
+        this._currentMatrix = null;
+        this._filterEvent = this._filterEvent.bind(this);
+        this._filterTargets = ['click', 'mousedown', 'mouseenter', 'mouseleave', 'mousemove'];
+        this._filterTargets.forEach(t => this.el.addEventListener(t, this._filterEvent, true));
+    },
+    update() {
+        let rect = this.el.components.xyrect;
+        let planes = [];
+        if (this.data.clipBottom) planes.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
+        if (this.data.clipTop) planes.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), rect.height));
+        if (this.data.clipLeft) planes.push(new THREE.Plane(new THREE.Vector3(1, 0, 0), 0));
+        if (this.data.clipRight) planes.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), rect.width));
+        this._clippingPlanesLocal = planes;
+        this._clippingPlanes = [];
+        this._updateMatrix();
+    },
+    remove() {
+        this._filterTargets.forEach(t => this.el.removeEventListener(t, this._filterEvent, true));
+        this._clippingPlanes = [];
+        this.applyClippings();
+    },
+    tick() {
+        if (!this.el.object3D.matrixWorld.equals(this._currentMatrix)) {
+            this._updateMatrix();
+        }
+    },
+    _filterEvent(ev) {
+        if (!(ev.path || ev.composedPath()).includes(this.data.exclude)) {
+            if (ev.detail.intersection && this.isClipped(ev.detail.intersection.point)) {
+                ev.stopPropagation();
+                if (ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster) {
+                    let targets = ev.detail.cursorEl.components.raycaster.intersectedEls;
+                    let c = targets.lastIndexOf(ev.target);
+                    if (c >= 0 && c + 1 < targets.length) {
+                        targets[c + 1].dispatchEvent(new CustomEvent(ev.type, ev));
+                    }
+                }
+            }
+        }
+    },
+    _updateMatrix() {
+        this._currentMatrix = this.el.object3D.matrixWorld.clone();
+        for (let i = 0; i < this._clippingPlanesLocal.length; i++) {
+            this._clippingPlanes[i] = this._clippingPlanesLocal[i].clone().applyMatrix4(this._currentMatrix);
+        }
+        this.applyClippings();
+    },
+    applyClippings() {
+        let excludeObj = this.data.exclude && this.data.exclude.object3D;
+        let setCliping = (obj) => {
+            if (obj === excludeObj) return;
+            if (obj.material && obj.material.clippingPlanes !== undefined) {
+                obj.material.clippingPlanes = this._clippingPlanes;
+            }
+            for (let i = 0; i < obj.children.length; i++) {
+                setCliping(obj.children[i]);
+            }
+        };
+        setCliping(this.el.object3D);
+    },
+    isClipped(p) {
+        return this._clippingPlanes.some(plane => plane.distanceToPoint(p) < 0);
+    }
+});
+
 AFRAME.registerComponent('xyscroll', {
     dependencies: ['xyrect'],
     schema: {
         scrollbar: { default: true }
     },
     init() {
-        this.scrollX = 0;
-        this.scrollY = 0;
-        this.speedY = 0;
-        this.contentHeight = 0;
-        this.thumbLen = 0.2;
-        this.control = this._initScrollBar(this.el, 0.3);
+        this._scrollX = 0;
+        this._scrollY = 0;
+        this._speedY = 0;
+        this._contentHeight = 0;
+        this._thumbLen = 0.2;
+        this._control = this._initScrollBar(this.el, 0.3);
 
-        this.el.setAttribute("xyclipping", { exclude: this.control });
+        this.el.setAttribute("xyclipping", { exclude: this._control });
 
         this.el.setAttribute("xy-draggable", {});
         this.el.addEventListener("xy-drag", ev => {
-            this.speedY = 0;
-            this.setScroll(this.scrollX, this.scrollY + ev.detail.point.y - ev.detail.prevPoint.y);
+            this._speedY = 0;
+            this.setScroll(this._scrollX, this._scrollY + ev.detail.point.y - ev.detail.prevPoint.y);
         });
         this.el.addEventListener("xy-dragend", ev => {
-            this.speedY = ev.detail.point.y - ev.detail.prevPoint.y;
+            this._speedY = ev.detail.point.y - ev.detail.prevPoint.y;
             this.play();
         });
         this.el.addEventListener('xyresize', ev => this.update());
         let children = this.el.children;
         for (let i = 0; i < children.length; i++) {
-            if (children[i] != this.control) {
+            if (children[i] != this._control) {
                 children[i].addEventListener('xyresize', ev => this.update());
             }
         }
@@ -624,34 +701,34 @@ AFRAME.registerComponent('xyscroll', {
     _initScrollBar(el, w) {
         let scrollBar = document.createElement('a-entity');
         el.appendChild(scrollBar);
-        this.scrollBar = scrollBar;
+        this._scrollBar = scrollBar;
         let xywindow = this.el.sceneEl.systems.xywindow;
 
-        this.upButton = xywindow.createSimpleButton({
+        this._upButton = xywindow.createSimpleButton({
             width: w, height: 0.3
         }, scrollBar);
-        this.upButton.addEventListener('click', (ev) => {
-            this.speedY = -this.scrollDelta * 0.3;
+        this._upButton.addEventListener('click', (ev) => {
+            this._speedY = -this._scrollDelta * 0.3;
             this.play();
         });
 
-        this.downButton = xywindow.createSimpleButton({
+        this._downButton = xywindow.createSimpleButton({
             width: w, height: 0.3
         }, scrollBar);
-        this.downButton.addEventListener('click', (ev) => {
-            this.speedY = this.scrollDelta * 0.3;
+        this._downButton.addEventListener('click', (ev) => {
+            this._speedY = this._scrollDelta * 0.3;
             this.play();
         });
-        this.scrollThumb = xywindow.createSimpleButton({
-            width: w * 0.7, height: this.thumbLen
+        this._scrollThumb = xywindow.createSimpleButton({
+            width: w * 0.7, height: this._thumbLen
         }, scrollBar);
-        this.scrollThumb.setAttribute("xy-draggable", { base: scrollBar });
-        this.scrollThumb.addEventListener("xy-drag", ev => {
+        this._scrollThumb.setAttribute("xy-draggable", { base: scrollBar });
+        this._scrollThumb.addEventListener("xy-drag", ev => {
             let xyrect = this.el.components.xyrect;
-            let thumbH = this.thumbLen;
-            let scrollY = (this.scrollStart - thumbH / 2 - ev.detail.point.y)
-                * Math.max(0.01, this.contentHeight - xyrect.height) / (this.scrollLength - thumbH);
-            this.setScroll(this.scrollX, scrollY);
+            let thumbH = this._thumbLen;
+            let scrollY = (this._scrollStart - thumbH / 2 - ev.detail.point.y)
+                * Math.max(0.01, this._contentHeight - xyrect.height) / (this._scrollLength - thumbH);
+            this.setScroll(this._scrollX, scrollY);
         });
         return scrollBar;
     },
@@ -659,20 +736,20 @@ AFRAME.registerComponent('xyscroll', {
         let xyrect = this.el.components.xyrect;
 
         let scrollBarHeight = xyrect.height;
-        this.scrollBar.setAttribute('visible', this.data.scrollbar);
-        this.scrollBar.setAttribute("position", { x: xyrect.width + 0.1, y: 0, z: 0.05 });
-        this.upButton.setAttribute("position", { x: 0, y: scrollBarHeight - 0.15, z: 0 });
-        this.downButton.setAttribute("position", { x: 0, y: 0.15, z: 0 });
+        this._scrollBar.setAttribute('visible', this.data.scrollbar);
+        this._scrollBar.setAttribute("position", { x: xyrect.width + 0.1, y: 0, z: 0.05 });
+        this._upButton.setAttribute("position", { x: 0, y: scrollBarHeight - 0.15, z: 0 });
+        this._downButton.setAttribute("position", { x: 0, y: 0.15, z: 0 });
 
-        this.scrollDelta = Math.max(scrollBarHeight / 2, 0.5);
-        this.scrollStart = scrollBarHeight - 0.3;
-        this.scrollLength = scrollBarHeight - 0.6;
+        this._scrollDelta = Math.max(scrollBarHeight / 2, 0.5);
+        this._scrollStart = scrollBarHeight - 0.3;
+        this._scrollLength = scrollBarHeight - 0.6;
         this.setScroll(0, 0);
     },
     tick() {
-        if (Math.abs(this.speedY) > 0.001) {
-            this.setScroll(this.scrollX, this.scrollY + this.speedY);
-            this.speedY *= 0.8;
+        if (Math.abs(this._speedY) > 0.001) {
+            this.setScroll(this._scrollX, this._scrollY + this._speedY);
+            this._speedY *= 0.8;
         } else {
             this.pause();
         }
@@ -682,37 +759,37 @@ AFRAME.registerComponent('xyscroll', {
         let contentHeight = 0;
         for (let i = 0; i < children.length; i++) {
             let child = children[i];
-            if (child === this.control) continue;
+            if (child === this._control) continue;
             if (!child.components.xyrect) {
                 child.setAttribute("xyrect", {});
             }
             contentHeight = Math.max(contentHeight, child.components.xyrect.height);
         }
-        this.contentHeight = contentHeight;
+        this._contentHeight = contentHeight;
         let xyrect = this.el.components.xyrect;
 
-        this.scrollX = Math.max(0, x);
-        this.scrollY = Math.max(0, Math.min(y, contentHeight - xyrect.height));
+        this._scrollX = Math.max(0, x);
+        this._scrollY = Math.max(0, Math.min(y, contentHeight - xyrect.height));
 
-        let thumbH = Math.max(0.2, Math.min(this.scrollLength * xyrect.height / contentHeight, this.scrollLength));
-        let thumbY = this.scrollStart - thumbH / 2 - (this.scrollLength - thumbH) * this.scrollY / Math.max(0.01, contentHeight - xyrect.height);
-        this.thumbLen = thumbH;
-        this.scrollThumb.hasAttribute("geometry") && this.scrollThumb.setAttribute("geometry", "height", thumbH);
-        this.scrollThumb.setAttribute("position", "y", thumbY);
+        let thumbH = Math.max(0.2, Math.min(this._scrollLength * xyrect.height / contentHeight, this._scrollLength));
+        let thumbY = this._scrollStart - thumbH / 2 - (this._scrollLength - thumbH) * this._scrollY / Math.max(0.01, contentHeight - xyrect.height);
+        this._thumbLen = thumbH;
+        this._scrollThumb.hasAttribute("geometry") && this._scrollThumb.setAttribute("geometry", "height", thumbH);
+        this._scrollThumb.setAttribute("position", "y", thumbY);
 
         for (let i = 0; i < children.length; i++) {
             let item = children[i];
-            if (item === this.control) continue;
+            if (item === this._control) continue;
             if (item.components.xyitem && item.components.xyitem.data.fixed) {
                 continue;
             }
             let pos = item.getAttribute("position");
             let itemRect = item.components.xyrect;
-            pos.x = -this.scrollX + itemRect.data.pivotX * itemRect.width;
-            pos.y = this.scrollY - (1.0 - itemRect.data.pivotY) * itemRect.height + xyrect.height;
+            pos.x = -this._scrollX + itemRect.data.pivotX * itemRect.width;
+            pos.y = this._scrollY - (1.0 - itemRect.data.pivotY) * itemRect.height + xyrect.height;
             item.setAttribute("position", pos);
-            let t = itemRect.height - this.scrollY;
-            item.emit('xyviewport', [t, t - xyrect.height, this.scrollX, this.scrollX + xyrect.width], false);
+            let t = itemRect.height - this._scrollY;
+            item.emit('xyviewport', [t, t - xyrect.height, this._scrollX, this._scrollX + xyrect.width], false);
         }
         if (this.el.components.xyclipping) {
             this.el.components.xyclipping.applyClippings();
@@ -728,10 +805,10 @@ AFRAME.registerComponent('xylist', {
         vertical: { default: true }
     },
     init() {
-        this.elementFactory = null;
-        this.elementUpdator = null;
+        this._elementFactory = null;
+        this._elementUpdator = null;
         this.elements = [];
-        this.userData = null;
+        this._userData = null;
         this.itemCount = 0;
         this.el.setAttribute("xyrect", { pivotX: 0, pivotY: 0 });
         this.setViewPort([0, 0]);
@@ -749,16 +826,16 @@ AFRAME.registerComponent('xylist', {
         });
     },
     setCallback(factory, constructor) {
-        this.elementFactory = factory;
-        this.elementUpdator = constructor;
+        this._elementFactory = factory;
+        this._elementUpdator = constructor;
         if (this.data.itemHeight <= 0) {
-            let el = this.elementFactory(this.el, this.userData);
+            let el = this._elementFactory(this.el, this._userData);
             this.data.itemHeight = el.getAttribute("height") * 1.0;
             this.data.itemWidth = el.getAttribute("width") * 1.0;
         }
     },
     setContents(data, count) {
-        this.userData = data;
+        this._userData = data;
         this.itemCount = count !== undefined ? count : data.length;
         let height = this.data.itemHeight * this.itemCount;
         this.el.setAttribute("xyrect", { width: this.data.itemWidth, height: height });
@@ -774,7 +851,7 @@ AFRAME.registerComponent('xylist', {
         this.refresh();
     },
     refresh() {
-        if (!this.elementFactory) return;
+        if (!this._elementFactory) return;
         let itemHeight = this.data.itemHeight;
         let totalHeight = itemHeight * this.itemCount;
 
@@ -783,7 +860,7 @@ AFRAME.registerComponent('xylist', {
         let n = en - st + 1;
         // TODO: compaction
         while (n > this.elements.length) {
-            let el = this.elementFactory(this.el, this.userData);
+            let el = this._elementFactory(this.el, this._userData);
             el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
             this.el.appendChild(el);
             this.elements.push(el);
@@ -803,7 +880,7 @@ AFRAME.registerComponent('xylist', {
                     y += xyrect.data.pivotY * xyrect.height;
                 }
                 el.setAttribute("position", { x: x, y: y, z: 0 });
-                this.elementUpdator && this.elementUpdator(position, el, this.userData);
+                this._elementUpdator && this._elementUpdator(position, el, this._userData);
             }
         }
         if (retry) setTimeout(() => this.refresh(), 100);
