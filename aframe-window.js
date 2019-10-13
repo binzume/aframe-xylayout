@@ -410,35 +410,35 @@ AFRAME.registerComponent('xywindow', {
         closable: { default: true }
     },
     init() {
-        this.theme = this.system.theme;
+        let theme = this.system.theme;
         let controls = this.controls = document.createElement('a-entity');
         controls.setAttribute("position", { x: 0, y: 0, z: 0.05 });
         controls.setAttribute("xyitem", { fixed: true });
         this.el.appendChild(controls);
 
-        let dragButton = this.system.createSimpleButton({
-            width: 1, height: 0.5, color: this.theme.windowTitleBarColor
+        let dragButton = this._dragButton = this.system.createSimpleButton({
+            width: 1, height: 0.5, color: theme.windowTitleBarColor
         }, controls);
         dragButton.setAttribute("xy-drag-control", { target: this.el, autoRotate: true });
-        this.dragButton = dragButton;
+
+        this._titleText = document.createElement('a-entity');
+        this._dragButton.appendChild(this._titleText);
 
         if (this.data.closable) {
             let closeButton = this.system.createSimpleButton({
                 width: 0.5, height: 0.5,
-                color: this.theme.windowTitleBarColor,
-                hoverColor: this.theme.windowCloseButtonColor
+                color: theme.windowTitleBarColor,
+                hoverColor: theme.windowCloseButtonColor
             }, controls);
             closeButton.setAttribute("xylabel", {
-                value: "X", align: "center", color: this.theme.buttonLabelColor
+                value: "X", align: "center", color: theme.buttonLabelColor
             });
             closeButton.addEventListener('click', (ev) =>
                 this.el.parentNode.removeChild(this.el)
             );
-            this.closeButton = closeButton;
+            this._closeButton = closeButton;
         }
 
-        this.titleText = document.createElement('a-entity');
-        this.dragButton.appendChild(this.titleText);
         this.el.addEventListener('xyresize', (ev) => {
             this.update({});
         });
@@ -450,21 +450,21 @@ AFRAME.registerComponent('xywindow', {
     update(oldData) {
         let xyrect = this.el.components.xyrect;
         let a = 0;
-        if (this.closeButton) {
-            this.closeButton.setAttribute("position", { x: xyrect.width / 2 - 0.25, y: 0.3, z: 0 });
+        if (this._closeButton) {
+            this._closeButton.setAttribute("position", { x: xyrect.width / 2 - 0.25, y: 0.3, z: 0 });
             a += 0.52;
         }
         if (this.data.title != oldData.title) {
             let titleW = xyrect.width - a - 0.2;
-            this.titleText.setAttribute("xyrect", { width: titleW, height: 0.45 });
-            this.titleText.setAttribute("xylabel", {
+            this._titleText.setAttribute("xyrect", { width: titleW, height: 0.45 });
+            this._titleText.setAttribute("xylabel", {
                 value: this.data.title, wrapCount: Math.max(10, titleW / 0.2),
-                color: this.theme.windowTitleColor, xOffset: 0.1
+                color: this.system.theme.windowTitleColor, xOffset: 0.1
             });
         }
         this.controls.setAttribute("position", "y", xyrect.height * 0.5);
-        this.dragButton.setAttribute("geometry", "width", xyrect.width - a);
-        this.dragButton.setAttribute("position", { x: -a / 2, y: 0.3, z: 0 });
+        this._dragButton.setAttribute("geometry", "width", xyrect.width - a);
+        this._dragButton.setAttribute("position", { x: -a / 2, y: 0.3, z: 0 });
     },
     setTitle(title) {
         this.el.setAttribute("xywindow", "title", title);
