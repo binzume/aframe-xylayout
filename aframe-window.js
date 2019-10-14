@@ -685,7 +685,7 @@ AFRAME.registerComponent('xyscroll', {
         this.el.addEventListener("xy-drag", ev => {
             let d = ev.detail.prevPoint.sub(ev.detail.point);
             this._speedY = 0;
-            this.setScroll(this._scrollX - d.x, this._scrollY - d.y);
+            this.setScroll(this._scrollX + d.x, this._scrollY - d.y);
         });
         this.el.addEventListener("xy-dragend", ev => {
             this._speedY = ev.detail.point.y - ev.detail.prevPoint.y;
@@ -784,7 +784,7 @@ AFRAME.registerComponent('xyscroll', {
             }
             let pos = item.getAttribute("position");
             let itemRect = item.components.xyrect;
-            pos.x = this._scrollX;
+            pos.x = -this._scrollX + (itemRect.data.pivotX) * itemRect.width;
             pos.y = this._scrollY - (1.0 - itemRect.data.pivotY) * itemRect.height + xyrect.height;
             item.setAttribute("position", pos);
             let t = itemRect.height - this._scrollY;
