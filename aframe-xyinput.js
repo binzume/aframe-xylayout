@@ -147,7 +147,7 @@ AFRAME.registerComponent('xyinput', {
     }
 });
 
-AFRAME.registerComponent('xykana', {
+AFRAME.registerComponent('xyime', {
     schema: {
         label: { default: null, type: 'selector' }
     },
@@ -255,7 +255,7 @@ AFRAME.registerComponent('xykana', {
     },
     _updateStr(s) {
         this._kana = s;
-        this.data.label.setAttribute('value', s);
+        (this.data.label || this.el).setAttribute('value', s);
     },
     _confirm(target) {
         if (this._kana) {
@@ -268,9 +268,8 @@ AFRAME.registerComponent('xykana', {
 
 AFRAME.registerComponent('xykeyboard', {
     schema: {
-        type: { default: "" },
         keySize: { default: 0.2 },
-        kana: { default: false },
+        ime: { default: false },
     },
     blocks: {
         main: {
@@ -306,7 +305,7 @@ AFRAME.registerComponent('xykeyboard', {
     show(type) {
         this.hide();
         let keySize = this.data.keySize;
-        let excludes = this.data.kana ? [] : ['HiraganaKatakana'];
+        let excludes = this.data.ime ? [] : ['HiraganaKatakana'];
         let blocks = this.blocks;
         if (type == 'number') {
             let w = blocks.num.size[0] + blocks.ctrl.size[0];
@@ -323,13 +322,13 @@ AFRAME.registerComponent('xykeyboard', {
             this._createKeys(blocks.main, keySize, excludes);
             this._createKeys(blocks.ctrl, keySize, ["Space"]).setAttribute('position', 'x', (w / 2 + 0.4) * keySize);
         }
-        if (this.data.kana) {
+        if (this.data.ime) {
             let convText = document.createElement("a-xylabel");
             convText.setAttribute('color', "yellow");
             convText.setAttribute('mode', "canvas");
             convText.setAttribute('position', { x: 0, y: 2 * keySize * 0.95, z: 0.03 });
             convText.setAttribute('xyrect', { width: 8 * keySize, height: keySize * 0.6 });
-            convText.setAttribute('xykana', { label: convText });
+            convText.setAttribute('xyime', "");
             this.el.appendChild(convText);
         }
         this.el.setAttribute('xy-drag-control', 'draggable', '.xyinput-close');
@@ -427,9 +426,8 @@ AFRAME.registerPrimitive('a-xykeyboard', {
         rotation: { x: -20, y: 0, z: 0 }
     },
     mappings: {
-        kana: 'xykeyboard.kana',
-        type: 'xykeyboard.type',
-        'physical-keys': 'xykeyboard.physicalKeys'
+        ime: 'xykeyboard.ime',
+        'key-size': 'xykeyboard.keySize'
     }
 });
 
