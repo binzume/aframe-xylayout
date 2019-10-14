@@ -215,7 +215,7 @@ AFRAME.registerComponent('xyime', {
             if (ev.key.match(/^[a-z-]$/)) {
                 let temp = (this._kana + ev.key)
                     .replace(/l([aiueo])/g, "x$1")
-                    .replace(/n([ksthmyrwgzbpdjfv])/g, "nn$1")
+                    .replace(/n([ksthmrwgzbpdjfv])/g, "nn$1")
                     .replace(/([ksthmyrwgzbpdjfv])\1/g, "xtu$1")
                     .replace(/([kstnhmrgzbpdjf])y([aiueo])/g, "$1ixy$2")
                     .replace(/(j|ch|sh)([aueo])/g, "$1ixy$2")
