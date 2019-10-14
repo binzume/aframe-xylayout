@@ -4,20 +4,19 @@ Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 
 ## Examples
 
-[Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
+Live demos:
+
+- [Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
+- [UI Components](https://binzume.github.io/aframe-xylayout/examples/window.html)
+- [Virtual keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html)
 
 ![Layout example](./examples/layout.png)
-
-[UI Components](https://binzume.github.io/aframe-xylayout/examples/window.html)
-
 ![UI example](./examples/ui.png)
 
 
-[Software keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html)
-
 ## Usage
 
-Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (30kB)
+Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (35kB)
 
 ```html
 <script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
@@ -55,6 +54,8 @@ T.B.D. (See [examples](./examples))
 - a-xytoggle
 - a-xyselect
 - a-xyscroll
+- a-xyinput
+- a-xykeyboard
 
 それぞれ同名のコンポーネント + `xyrect`コンポーネントが使われます．
 
@@ -256,6 +257,33 @@ Events:
 | name | event.detail | desc |
 | ---- | ------------ | ---- |
 | xyviewport | [t, b, l, r]| viewport change event |
+
+
+### xyinput
+
+テキスト入力ボックス．
+
+Attributes:
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| value | string |  | 内容 |
+| type | string |  | '', 'number', 'password' |
+| placeholder | string |  | プレースホルダーテキスト |
+| caretColor  | color | | キャッレット色 |
+| bgColor  | color | white | 背景色 |
+
+### xykeyboard
+
+キーボード．フォーカスを持った要素にKeyboardEventを送信します．日本語入力可．
+
+Attributes:
+
+| name | type | default | desc |
+| ---- | ---- | ------- | ---- |
+| ime | boolean | false | 漢字変換を有効にする |
+| keySize | number | 0.2 | キーのサイズ |
+
 
 # License
 

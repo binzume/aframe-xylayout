@@ -8,9 +8,9 @@ DEMO:
 - [UI Components](https://binzume.github.io/aframe-xylayout/examples/window.html)
   - プロトタイピングに便利そうなUIコンポーネント色々
   - 見た目ちょっとしょぼい
-- [Software keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html)
-  - ソフトウェアキーボード(日本語入力対応)
-  - ハードウェアキーボードの入力も拾います
+- [Virtual keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html)
+  - 日本語入力対応のソフトウェアキーボード
+  - 物理キーボードの入力も受け付けます
   - [Google CGI API for Japanese Input](https://www.google.co.jp/ime/cgiapi.html) を使っています
 
 
