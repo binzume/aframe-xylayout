@@ -62,22 +62,24 @@ AFRAME.registerComponent('xyinput', {
                 this._updateCursor(p);
             }
         });
-        this._oncopy = (ev) => {
-            if (document.activeElement == el) {
-                ev.clipboardData.setData('text/plain', el.value);
-                ev.preventDefault();
-            }
+        let oncopy = (ev) => {
+            ev.clipboardData.setData('text/plain', el.value);
+            ev.preventDefault();
         };
-        this._onpaste = (ev) => {
-            if (document.activeElement == el) {
-                insertString(ev.clipboardData.getData('text/plain'));
-                ev.preventDefault();
-            }
+        let onpaste = (ev) => {
+            insertString(ev.clipboardData.getData('text/plain'));
+            ev.preventDefault();
         };
-        window.addEventListener('copy', this._oncopy);
-        window.addEventListener('paste', this._onpaste);
-        el.addEventListener('blur', (ev) => this._updateCursor(this.cursor));
-        el.addEventListener('focus', (ev) => this._updateCursor(this.cursor));
+        el.addEventListener('focus', (ev) => {
+            this._updateCursor(this.cursor);
+            window.addEventListener('copy', oncopy);
+            window.addEventListener('paste', onpaste);
+        });
+        el.addEventListener('blur', (ev) => {
+            this._updateCursor(this.cursor);
+            window.removeEventListener('copy', oncopy);
+            window.removeEventListener('paste', onpaste);
+        });
         el.addEventListener('keypress', ev => {
             if (ev.code != 'Enter') {
                 insertString(ev.key);
@@ -140,10 +142,6 @@ AFRAME.registerComponent('xyinput', {
             pos = g ? (g.position[0] + g.data.width * (p >= glyphs.length ? 1 : 0.1)) / textLayout.width : 0;
         }
         return (pos - 0.5) * xyrect.width + 0.04;
-    },
-    remove() {
-        window.removeEventListener('copy', this._oncopy);
-        window.removeEventListener('paste', this._onpaste);
     }
 });
 
