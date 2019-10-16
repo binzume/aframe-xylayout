@@ -71,9 +71,9 @@ AFRAME.registerComponent('xylabel', {
         }
         this._removeText();
 
-        let textWidth = Math.floor(data.resolution * (wrapCount * widthFactor));
         let canvasHeight = data.resolution;
         let canvasWidth = data.resolution;
+        let textWidth = Math.floor(canvasHeight * wrapCount * widthFactor);
         while (canvasWidth < textWidth) canvasWidth <<= 1;
 
         let canvas = this.canvas;
@@ -190,8 +190,9 @@ AFRAME.registerComponent('xyselect', {
     },
     init() {
         this.el.addEventListener('click', ev => {
-            if (this.data.toggle) {
-                this.select((this.data.select + 1) % this.data.values.length);
+            let data = this.data;
+            if (data.toggle) {
+                this.select((data.select + 1) % data.values.length);
             } else {
                 this._listEl ? this.hide() : this.show();
             }
@@ -216,12 +217,13 @@ AFRAME.registerComponent('xyselect', {
     },
     show() {
         if (this._listEl) return;
-        let listY = (this.el.components.xyrect.height + this.data.values.length * 0.5) / 2 + 0.1;
-        this._listEl = document.createElement('a-entity');
-        this._listEl.setAttribute('xycontainer', { spacing: 0 });
-        this._listEl.setAttribute('position', { x: 0, y: listY, z: 0.05 });
-        this.el.appendChild(this._listEl);
-        this.data.values.forEach((v, i) => {
+        let values = this.data.values;
+        let listY = (this.el.components.xyrect.height + values.length * 0.5) / 2 + 0.05;
+        let listEl = this._listEl = document.createElement('a-entity');
+        listEl.setAttribute('xycontainer', { spacing: 0 });
+        listEl.setAttribute('position', { x: 0, y: listY, z: 0.1 });
+        this.el.appendChild(listEl);
+        values.forEach((v, i) => {
             let itemEl = document.createElement('a-xybutton');
             itemEl.setAttribute('label', v);
             itemEl.addEventListener('click', ev => {
@@ -229,9 +231,9 @@ AFRAME.registerComponent('xyselect', {
                 this.select(i);
                 this.hide();
             });
-            this._listEl.appendChild(itemEl);
+            listEl.appendChild(itemEl);
         });
-        setTimeout(() => this._listEl && this._listEl.setAttribute('xyrect', { width: 2, height: this.data.values.length * 0.5 }), 0);
+        setTimeout(() => listEl.setAttribute('xyrect', { width: 2, height: values.length * 0.5 }), 0);
     },
     select(idx) {
         this.el.setAttribute('xyselect', 'select', idx);
@@ -284,7 +286,8 @@ AFRAME.registerComponent('xy-draggable', {
         let _this = this;
         let dragging = false;
 
-        let dragFun = this._dragFun = (event) => {
+        // if (this._dragFun) this._dragFun("xy-dragend");
+        let dragFun = _this._dragFun = (event) => {
             if (!dragging) {
                 let d = startDirection.manhattanDistanceTo(draggingRaycaster.ray.direction);
                 if (d < _this.data.dragThreshold) return;
@@ -304,7 +307,7 @@ AFRAME.registerComponent('xy-draggable', {
         window.addEventListener('mouseenter', cancelEvelt, true);
         window.addEventListener('mouseleave', cancelEvelt, true);
 
-        window.addEventListener('mouseup', function mouseup(ev) {
+        let mouseup = (ev) => {
             if (ev.detail.cursorEl != cursorEl) return;
             window.removeEventListener('mouseup', mouseup);
             window.removeEventListener('mouseenter', cancelEvelt, true);
@@ -318,7 +321,8 @@ AFRAME.registerComponent('xy-draggable', {
                 setTimeout(() => window.removeEventListener('click', cancelClick, true), 0);
             }
             setTimeout(() => dragFun("xy-dragend"), 15);
-        });
+        };
+        window.addEventListener('mouseup', mouseup);
     }
 });
 
@@ -900,7 +904,7 @@ AFRAME.registerComponent('xycanvas', {
         // to avoid texture cache conflict in a-frame.
         this.canvas.id = "_CANVAS" + Math.random();
         let src = new THREE.CanvasTexture(this.canvas);
-        this.updateTexture = function () {
+        this.updateTexture = () => {
             src.needsUpdate = true;
         };
 
