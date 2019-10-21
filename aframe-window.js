@@ -365,11 +365,12 @@ AFRAME.registerComponent('xy-drag-control', {
         let targetObj = (this.data.target || this.el).object3D;
         let rot = new THREE.Quaternion();
         if (cursorEl.components['tracked-controls']) {
-            let q = cursorEl.object3D.quaternion;
             if (ev.type != "xy-dragstart") {
-                rot.copy(this._prevQ).inverse().premultiply(q);
+                rot.copy(this._prevQ).inverse()
+                    .premultiply(cursorEl.object3D.getWorldQuaternion(this._prevQ));
+            } else {
+                cursorEl.object3D.getWorldQuaternion(this._prevQ);
             }
-            this._prevQ.copy(q);
         } else {
             rot.setFromUnitVectors(direction0, direction);
         }
