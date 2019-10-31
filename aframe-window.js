@@ -151,30 +151,36 @@ AFRAME.registerComponent('xytoggle', {
         value: { default: false }
     },
     init() {
+        let el = this.el;
+        Object.defineProperty(el, 'value', {
+            get: () => this.data.value,
+            set: (v) => el.setAttribute('xytoggle', 'value', v)
+        });
         this._buttonParams = {
             width: 1, height: 1
         };
-        this.el.sceneEl.systems.xywindow.createSimpleButton(this._buttonParams, null, this.el);
+        el.sceneEl.systems.xywindow.createSimpleButton(this._buttonParams, null, el);
         this._thumb = document.createElement('a-circle');
-        this.el.appendChild(this._thumb);
-        this.el.addEventListener('click', ev => {
-            this.el.setAttribute('xytoggle', 'value', !this.data.value);
-            this.el.emit('change', { value: !this.data.value }, false);
+        el.appendChild(this._thumb);
+        el.addEventListener('click', ev => {
+            el.value = !el.value;
+            el.emit('change', { value: el.value }, false);
         });
-        this.el.addEventListener('xyresize', (ev) => this.update());
+        el.addEventListener('xyresize', (ev) => this.update());
     },
     update() {
-        let theme = this.el.sceneEl.systems.xywindow.theme;
-        let xyrect = this.el.components.xyrect;
+        let el = this.el;
+        let theme = el.sceneEl.systems.xywindow.theme;
+        let xyrect = el.components.xyrect;
         let params = this._buttonParams;
-        let v = this.data.value;
+        let r = xyrect.height / 2;
+        let v = el.value;
         params.color = v ? "#0066ff" : theme.buttonColor;
         params.hoverColor = v ? "#4499ff" : "";
-        this.el.setAttribute('material', 'color', params.color);
-        let r = xyrect.height / 2;
+        el.setAttribute('material', 'color', params.color);
         this._thumb.setAttribute("geometry", "radius", r * 0.8);
         this._thumb.setAttribute("position", { x: (xyrect.width / 2 - r) * (v ? 1 : -1), y: 0, z: 0.05 });
-        this.el.setAttribute("geometry", {
+        el.setAttribute("geometry", {
             primitive: "xy-rounded-rect", width: xyrect.width, height: r * 2, radius: r
         });
     }
@@ -541,6 +547,11 @@ AFRAME.registerComponent('xyrange', {
     },
     init() {
         let data = this.data;
+        let el = this.el;
+
+        let thumb = this._thumb = this.el.sceneEl.systems.xywindow.createSimpleButton({
+            width: data.thumbSize, height: data.thumbSize
+        }, this.el);
 
         let plane = new THREE.PlaneGeometry(1, 0.08);
         let bar = this._bar = new THREE.Mesh(
@@ -549,27 +560,25 @@ AFRAME.registerComponent('xyrange', {
         let prog = this._prog = new THREE.Mesh(
             plane, new THREE.MeshBasicMaterial({ color: data.color1 }));
         prog.position.z = 0.02;
-        this.el.setObject3D("xyrange-bar", bar);
-        this.el.setObject3D("xyrange-prog", prog);
+        el.setObject3D("xyrange", new THREE.Group().add(bar, prog));
 
-        this._thumb = this.el.sceneEl.systems.xywindow.createSimpleButton({
-            width: data.thumbSize, height: data.thumbSize
-        }, this.el);
-
-        this._thumb.setAttribute("xy-draggable", { base: this.el });
-        this._thumb.addEventListener("xy-drag", ev => {
-            let r = this.el.components.xyrect.width - data.thumbSize;
+        thumb.setAttribute("xy-draggable", { base: el });
+        thumb.addEventListener("xy-drag", ev => {
+            let r = el.components.xyrect.width - data.thumbSize;
             let p = (ev.detail.point.x + r / 2) / r * (data.max - data.min);
             if (data.step > 0) {
                 p = Math.round(p / data.step) * data.step;
             }
             this.setValue(p + data.min, true);
         });
+        Object.defineProperty(el, 'value', {
+            get: () => data.value,
+            set: (v) => this.setValue(v, false)
+        });
     },
     update() {
         let data = this.data;
-        this.value = data.value;
-        if (data.max <= data.min) return;
+        if (data.max == data.min) return;
         let r = this.el.components.xyrect.width - data.thumbSize;
         let w = r * (data.value - data.min) / (data.max - data.min);
         this._thumb.setAttribute("geometry", "radius", data.thumbSize / 2);
@@ -584,8 +593,9 @@ AFRAME.registerComponent('xyrange', {
     },
     setValue(value, emitEvent) {
         if (!this._thumb.components["xy-draggable"].dragging || emitEvent) {
-            let v = Math.max(Math.min(value, this.data.max), this.data.min);
-            if (v != this.value && emitEvent) {
+            let data = this.data;
+            let v = Math.max(Math.min(value, data.max), data.min);
+            if (v != data.value && emitEvent) {
                 this.el.emit('change', { value: v }, false);
             }
             this.el.setAttribute("xyrange", "value", v);
@@ -704,10 +714,11 @@ AFRAME.registerComponent('xyscroll', {
         }
     },
     _initScrollBar(el, w) {
+        let xywindow = this.el.sceneEl.systems.xywindow;
+
         let scrollBar = document.createElement('a-entity');
         el.appendChild(scrollBar);
         this._scrollBar = scrollBar;
-        let xywindow = this.el.sceneEl.systems.xywindow;
 
         this._upButton = xywindow.createSimpleButton({
             width: w, height: 0.3
