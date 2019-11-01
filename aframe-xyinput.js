@@ -8,7 +8,7 @@ AFRAME.registerComponent('xyinput', {
         placeholder: { default: "" },
         caretColor: { default: "#0088ff" },
         bgColor: { default: "white" },
-        virtualKeyboard: { default: true },
+        virtualKeyboard: { default: "[xykeyboard]" },
     },
     init() {
         let data = this.data, el = this.el, xyrect = el.components.xyrect;
@@ -41,25 +41,23 @@ AFRAME.registerComponent('xyinput', {
         el.addEventListener('xyresize', updateGeometory);
         el.addEventListener('click', ev => {
             el.focus();
-            if (data.virtualKeyboard) {
-                let kbd = document.querySelector("[xykeyboard]");
-                if (kbd) {
-                    kbd.components.xykeyboard.show(data.type);
-                }
+            let kbd = document.querySelector(data.virtualKeyboard);
+            if (kbd) {
+                kbd.components.xykeyboard.show(data.type);
             }
             let intersection = ev.detail.intersection;
             if (intersection) {
                 let v = intersection.uv.x;
-                let min = 0, max = this.el.value.length + 1, p = 0;
-                while (max - min >= 2) {
-                    p = min + ((max - min) / 2 | 0);
+                let min = 0, max = this.el.value.length, p = 0;
+                while (max > min) {
+                    p = min + ((max - min + 1) / 2 | 0);
                     if (this._caretpos(p) < v) {
                         min = p;
                     } else {
-                        max = p;
+                        max = p - 1;
                     }
                 }
-                this._updateCursor(p);
+                this._updateCursor(min);
             }
         });
         let oncopy = (ev) => {
@@ -413,8 +411,6 @@ AFRAME.registerComponent('xykeyboard', {
             let s = keyEl.dataset.keySymbols;
             keyEl.setAttribute('xylabel', 'value', s[this._keyidx] || s[0]);
         }
-    },
-    remove() {
     }
 });
 
