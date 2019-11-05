@@ -193,17 +193,20 @@ AFRAME.registerComponent('xyrect', {
         width: { default: -1 }, // -1 : auto
         height: { default: -1 },
         pivotX: { default: 0.5 },
-        pivotY: { default: 0.5 }
+        pivotY: { default: 0.5 },
+        updateGeometry: { default: false },
     },
     update(oldData) {
         let el = this.el;
-        let { width, height } = this.data;
+        let { width, height, updateGeometry } = this.data;
         let geometry = el.getAttribute("geometry") || {};
         this.width = width < 0 ? (el.getAttribute("width") || geometry.width || 0) * 1 : width;
         this.height = height < 0 ? (el.getAttribute("height") || geometry.height || 0) * 1 : height;
-
         if (oldData.width !== undefined) {
             el.emit('xyresize', { xyrect: this }, false);
+            if (updateGeometry) {
+                el.setAttribute("geometry", { width: width, height: height });
+            }
         }
     }
 });
