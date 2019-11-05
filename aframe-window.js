@@ -91,7 +91,7 @@ AFRAME.registerComponent('xylabel', {
             let mesh = new THREE.Mesh(
                 new THREE.PlaneGeometry(w, meshH),
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true }));
-            mesh.position.copy(new THREE.Vector3(data.xOffset, 0, data.zOffset));
+            mesh.position.set(data.xOffset, 0, data.zOffset);
             this.el.setObject3D("xylabel", mesh);
         }
 
@@ -160,8 +160,7 @@ AFRAME.registerComponent('xytoggle', {
             width: 1, height: 1
         };
         el.sceneEl.systems.xywindow.createSimpleButton(this._buttonParams, null, el);
-        this._thumb = document.createElement('a-circle');
-        el.appendChild(this._thumb);
+        this._thumb = el.appendChild(document.createElement('a-circle'));
         el.addEventListener('click', ev => {
             el.value = !el.value;
             el.emit('change', { value: el.value }, false);
@@ -422,18 +421,16 @@ AFRAME.registerComponent('xywindow', {
     },
     init() {
         let theme = this.system.theme;
-        let controls = this.controls = document.createElement('a-entity');
+        let controls = this.controls = this.el.appendChild(document.createElement('a-entity'));
         controls.setAttribute("position", { x: 0, y: 0, z: 0.05 });
         controls.setAttribute("xyitem", { fixed: true });
-        this.el.appendChild(controls);
 
         let dragButton = this._dragButton = this.system.createSimpleButton({
             width: 1, height: 0.5, color: theme.windowTitleBarColor
         }, controls);
         dragButton.setAttribute("xy-drag-control", { target: this.el, autoRotate: true });
 
-        this._titleText = document.createElement('a-entity');
-        this._dragButton.appendChild(this._titleText);
+        this._titleText = this._dragButton.appendChild(document.createElement('a-entity'));
 
         if (this.data.closable) {
             let closeButton = this.system.createSimpleButton({
@@ -459,17 +456,18 @@ AFRAME.registerComponent('xywindow', {
         this.system.unregisterWindow(this);
     },
     update(oldData) {
+        let data = this.data;
         let xyrect = this.el.components.xyrect;
         let a = 0;
         if (this._closeButton) {
             this._closeButton.setAttribute("position", { x: xyrect.width / 2 - 0.25, y: 0.3, z: 0 });
             a += 0.52;
         }
-        if (this.data.title != oldData.title) {
+        if (data.title != oldData.title) {
             let titleW = xyrect.width - a - 0.2;
             this._titleText.setAttribute("xyrect", { width: titleW, height: 0.45 });
             this._titleText.setAttribute("xylabel", {
-                value: this.data.title, wrapCount: Math.max(10, titleW / 0.2),
+                value: data.title, wrapCount: Math.max(10, titleW / 0.2),
                 color: this.system.theme.windowTitleColor, xOffset: 0.1
             });
         }
@@ -505,13 +503,12 @@ AFRAME.registerSystem('xywindow', {
         }
         button.classList.add(this.theme.collidableClass);
         button.addEventListener('mouseenter', ev => {
+            let trackedControls = ev.detail.cursorEl.components['tracked-controls'];
+            let gamepad = trackedControls && trackedControls.controller;
             let theme = this.theme;
             button.setAttribute("material", { color: params.hoverColor || this.theme.buttonHoverColor });
-            if (theme.buttonHoverHaptic && ev.detail.cursorEl.components['tracked-controls']) {
-                let gamepad = ev.detail.cursorEl.components['tracked-controls'].controller;
-                if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
-                    gamepad.hapticActuators[0].pulse(theme.buttonHoverHaptic, theme.buttonHoverHapticMs);
-                }
+            if (theme.buttonHoverHaptic && gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
+                gamepad.hapticActuators[0].pulse(theme.buttonHoverHaptic, theme.buttonHoverHapticMs);
             } else {
                 // theme.buttonHoverHaptic && navigator.vibrate && navigator.vibrate(theme.buttonHoverHapticMs);
             }
@@ -523,14 +520,11 @@ AFRAME.registerSystem('xywindow', {
         parent && parent.appendChild(button);
         return button;
     },
-    registerWindow(w) {
-        this.windows.push(w);
+    registerWindow(window) {
+        this.windows.push(window);
     },
-    unregisterWindow(w) {
-        let p = this.windows.indexOf(w);
-        if (p >= 0) {
-            this.windows.splice(p, 1);
-        }
+    unregisterWindow(window) {
+        this.windows = this.windows.filter(w => w != window);
     }
 });
 
@@ -716,8 +710,7 @@ AFRAME.registerComponent('xyscroll', {
     _initScrollBar(el, w) {
         let xywindow = this.el.sceneEl.systems.xywindow;
 
-        let scrollBar = document.createElement('a-entity');
-        el.appendChild(scrollBar);
+        let scrollBar = el.appendChild(document.createElement('a-entity'));
         this._scrollBar = scrollBar;
 
         this._upButton = xywindow.createSimpleButton({

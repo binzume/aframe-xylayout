@@ -12,12 +12,6 @@ AFRAME.registerComponent('xyinput', {
     },
     init() {
         let data = this.data, el = this.el, xyrect = el.components.xyrect;
-        this._caretObj = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.04, xyrect.height * 0.9),
-            new THREE.MeshBasicMaterial({ color: data.caretColor }));
-        this.el.object3D.add(this._caretObj);
-        this._caretObj.position.z = 0.02;
-
         let insertString = (v) => {
             let pos = this.cursor, s = el.value;
             this.cursor += v.length;
@@ -28,6 +22,12 @@ AFRAME.registerComponent('xyinput', {
             get: () => data.value,
             set: (v) => el.setAttribute('xyinput', 'value', "" + v)
         });
+
+        this._caretObj = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.04, xyrect.height * 0.9),
+            new THREE.MeshBasicMaterial({ color: data.caretColor }));
+        this.el.object3D.add(this._caretObj);
+        this._caretObj.position.z = 0.02;
 
         el.classList.add('collidable');
         let updateGeometory = () => {
@@ -78,12 +78,12 @@ AFRAME.registerComponent('xyinput', {
             window.removeEventListener('copy', oncopy);
             window.removeEventListener('paste', onpaste);
         });
-        el.addEventListener('keypress', ev => {
+        el.addEventListener('keypress', (ev) => {
             if (ev.code != 'Enter') {
                 insertString(ev.key);
             }
         });
-        el.addEventListener('keydown', ev => {
+        el.addEventListener('keydown', (ev) => {
             let pos = this.cursor, s = el.value;
             if (ev.code == 'ArrowLeft') {
                 if (pos > 0) {
@@ -109,8 +109,7 @@ AFRAME.registerComponent('xyinput', {
         if (this.data.type == 'password') {
             s = s.replace(/./g, '*');
         }
-        this.el.setAttribute('xylabel', 'color', s ? "black" : "#aaa");
-        this.el.setAttribute('xylabel', 'value', s || this.data.placeholder);
+        this.el.setAttribute('xylabel', { color: s ? "black" : "#aaa", value: s || this.data.placeholder });
         this._updateCursor(p);
     },
     _updateCursor(p) {
@@ -271,30 +270,30 @@ AFRAME.registerComponent('xykeyboard', {
         main: {
             size: [11, 4],
             rows: [
-                { position: [0, 3], keys: ["qQ!", "wW@", "eE#", "rR$", "tT%", "yY^", "uU&", "iI*", "oO(", "pP)", "-_="] },
-                { position: [0, 2], keys: ["aA1", "sS2", "dD3", "fF4", "gG5", "hH`", "jJ~", "kK+", "lL[", ":;]"] },
-                { position: [0, 1], keys: [{ code: "Shift", symbols: "⇧⬆" }, "zZ6", "xX7", "cC8", "vV9", "bB0", "nN{", "mM}", ",'<", ".\">", "/?\\"] },
-                { position: [0, 0], keys: [{ code: "Space", key: " ", label: "_", size: 4 }] },
-                { position: [-4.5, 0], keys: [{ code: "_Fn", label: "#!" }, { code: "HiraganaKatakana", label: "あ" }] },
+                { offset: [0, 3], keys: ["qQ!", "wW@", "eE#", "rR$", "tT%", "yY^", "uU&", "iI*", "oO(", "pP)", "-_="] },
+                { offset: [0, 2], keys: ["aA1", "sS2", "dD3", "fF4", "gG5", "hH`", "jJ~", "kK+", "lL[", ":;]"] },
+                { offset: [0, 1], keys: [{ code: "Shift", symbols: "⇧⬆" }, "zZ6", "xX7", "cC8", "vV9", "bB0", "nN{", "mM}", ",'<", ".\">", "/?\\"] },
+                { offset: [0, 0], keys: [{ code: "Space", key: " ", label: "_", size: 4 }] },
+                { offset: [-4.5, 0], keys: [{ code: "_Fn", label: "#!" }, { code: "HiraganaKatakana", label: "あ" }] },
             ]
         },
         num: {
             size: [4, 4],
             rows: [
-                { position: [0, 3], keys: ["7", "8", "9", "/"] },
-                { position: [0, 2], keys: ["4", "5", "6", "*"] },
-                { position: [0, 1], keys: ["1", "2", "3", "-"] },
-                { position: [0, 0], keys: ["0", ":", ".", "+"] },
+                { offset: [0, 3], keys: ["7", "8", "9", "/"] },
+                { offset: [0, 2], keys: ["4", "5", "6", "*"] },
+                { offset: [0, 1], keys: ["1", "2", "3", "-"] },
+                { offset: [0, 0], keys: ["0", ":", ".", "+"] },
             ]
         },
         ctrl: {
             size: [2, 4],
             rows: [
-                { position: [0, 3], keys: [{ code: 'Backspace', label: "⌫", size: 2 }] },
-                { position: [0, 2], keys: [{ code: 'Space', key: " ", label: "SP", size: 2 }] },
-                { position: [0, 1], keys: [{ code: 'Enter', label: "⏎", size: 2 }] },
-                { position: [1.3, 3.5], keys: [{ code: '_Close', label: "x", size: 0.8 }] },
-                { position: [0, 0], keys: [{ code: 'ArrowLeft', label: "⇦" }, { code: 'ArrowRight', label: "⇨" }] },
+                { offset: [0, 3], keys: [{ code: 'Backspace', label: "⌫", size: 2 }] },
+                { offset: [0, 2], keys: [{ code: 'Space', key: " ", label: "SP", size: 2 }] },
+                { offset: [0, 1], keys: [{ code: 'Enter', label: "⏎", size: 2 }] },
+                { offset: [1.3, 3.5], keys: [{ code: '_Close', label: "x", size: 0.8 }] },
+                { offset: [0, 0], keys: [{ code: 'ArrowLeft', label: "⇦" }, { code: 'ArrowRight', label: "⇨" }] },
             ]
         }
     },
@@ -319,20 +318,17 @@ AFRAME.registerComponent('xykeyboard', {
             this._createKeys(blocks.ctrl, keySize, ["Space"]).setAttribute('position', 'x', (w / 2 + 0.4) * keySize);
         }
         if (this.data.ime) {
-            let convText = document.createElement("a-xylabel");
-            convText.setAttribute('color', "yellow");
-            convText.setAttribute('mode', "canvas");
+            let convText = this.el.appendChild(document.createElement("a-xylabel"));
+            convText.setAttribute('xylabel', { color: "yellow", mode: 'canvas' });
             convText.setAttribute('position', { x: 0, y: 2 * keySize * 0.95, z: 0.03 });
             convText.setAttribute('xyrect', { width: 8 * keySize, height: keySize * 0.6 });
             convText.setAttribute('xyime', "");
-            this.el.appendChild(convText);
         }
         this.el.setAttribute('xy-drag-control', 'draggable', '.xyinput-close');
-        this._updateSymbols();
+        this._updateSymbols(0);
     },
     hide() {
         this._target = null;
-        this._keyidx = 0;
         this.el.removeAttribute('xy-drag-control');
         while (this.el.firstChild) {
             this.el.removeChild(this.el.firstChild);
@@ -348,26 +344,24 @@ AFRAME.registerComponent('xykeyboard', {
             color: "#222233"
         });
         for (let row of block.rows) {
-            let keyrow = document.createElement('a-xycontainer');
-            keyrow.setAttribute('direction', 'row');
-            keyrow.setAttribute('spacing', 0);
-            keyrow.setAttribute('position', { x: row.position[0] * sz, y: row.position[1] * sz - (block.size[1] - 1) * sz / 2, z: 0.02 });
+            let keyrow = pane.appendChild(document.createElement('a-xycontainer'));
+            keyrow.setAttribute('xycontainer', { spacing: 0, direction: 'row' });
+            keyrow.setAttribute('position', { x: row.offset[0] * sz, y: row.offset[1] * sz - (block.size[1] - 1) * sz / 2, z: 0.02 });
             for (let key of row.keys) {
-                if (key.code && excludes.includes(key.code)) {
+                if (excludes.includes(key.code)) {
                     continue;
                 }
-                let keyEl = document.createElement('a-xybutton');
+                let keyEl = keyrow.appendChild(document.createElement('a-xybutton'));
                 keyEl.setAttribute('material', 'visible', false);
                 keyEl.setAttribute('xylabel', { value: key.label || "", align: 'center' });
                 keyEl.setAttribute('xyrect', { width: (key.size || 1) * sz, height: sz });
-                keyrow.appendChild(keyEl);
+                keyEl.addEventListener('mouseenter', (ev) => keyEl.setAttribute('material', 'visible', true));
+                keyEl.addEventListener('mouseleave', (ev) => keyEl.setAttribute('material', 'visible', false));
+
                 if (key.symbols || typeof key === 'string') {
                     keyEl.classList.add('xyinput-key');
                     keyEl.dataset.keySymbols = key.symbols || key;
                 }
-                keyEl.addEventListener('mouseenter', (ev) => keyEl.setAttribute('material', 'visible', true));
-                keyEl.addEventListener('mouseleave', (ev) => keyEl.setAttribute('material', 'visible', false));
-
                 if (key.code == '_Close') {
                     keyEl.classList.add('xyinput-close');
                     keyEl.addEventListener('click', (ev) => this.hide());
@@ -381,35 +375,34 @@ AFRAME.registerComponent('xykeyboard', {
                     ev.preventDefault();
 
                     if (key.code == '_Fn') {
-                        this._keyidx = this._keyidx == 2 ? 0 : 2;
-                        this._updateSymbols();
+                        this._updateSymbols(this._keyidx == 2 ? 0 : 2);
                         return;
                     }
                     if (key.code == 'Shift') {
-                        this._keyidx = (this._keyidx + 1) % 2;
-                        this._updateSymbols();
+                        this._updateSymbols((this._keyidx + 1) % 2);
                     }
 
                     if (document.activeElement != document.body) {
-                        let keydata = typeof key == 'string' ? { key: key } : key;
-                        let k = keydata.key ? keydata.key[this._keyidx] || keydata.key[0] : keydata.code;
-                        let eventdata = { key: k, code: keydata.code || "Key" + keydata.key[0].toUpperCase() };
+                        let ks = key.code ? key.key : key;
+                        let eventdata = {
+                            key: ks ? ks[this._keyidx] || ks[0] : key.code,
+                            code: key.code || key[0].toUpperCase()
+                        };
                         document.activeElement.dispatchEvent(new KeyboardEvent('keydown', eventdata));
-                        if (keydata.key) {
+                        if (ks) {
                             document.activeElement.dispatchEvent(new KeyboardEvent('keypress', eventdata));
                         }
                     }
                 });
             }
-            pane.appendChild(keyrow);
         }
-        this.el.appendChild(pane);
-        return pane;
+        return this.el.appendChild(pane);
     },
-    _updateSymbols() {
+    _updateSymbols(keyidx) {
+        this._keyidx = keyidx;
         for (let keyEl of this.el.querySelectorAll('.xyinput-key')) {
             let s = keyEl.dataset.keySymbols;
-            keyEl.setAttribute('xylabel', 'value', s[this._keyidx] || s[0]);
+            keyEl.setAttribute('xylabel', 'value', s[keyidx] || s[0]);
         }
     }
 });
@@ -428,7 +421,6 @@ AFRAME.registerPrimitive('a-xykeyboard', {
 AFRAME.registerPrimitive('a-xyinput', {
     defaultComponents: {
         xyrect: { width: 2, height: 0.5 },
-        xylabel: {},
         xyinput: {}
     },
     mappings: {

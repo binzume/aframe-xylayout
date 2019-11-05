@@ -1,9 +1,5 @@
 "use strict";
 
-if (typeof AFRAME === 'undefined') {
-    throw 'AFRAME is not loaded.';
-}
-
 AFRAME.registerComponent('xycontainer', {
     dependencies: ['xyrect'],
     schema: {
@@ -11,21 +7,23 @@ AFRAME.registerComponent('xycontainer', {
         padding: { default: 0 },
         reverse: { default: false },
         wrap: { default: "nowrap", oneOf: ['wrap', 'nowrap'] },
-        direction: { default: "column", oneOf: ['none', 'row', 'column', 'vertical', 'horizontal'] },
+        direction: { default: "row", oneOf: ['none', 'row', 'column', 'vertical', 'horizontal'] },
         alignItems: { default: "none", oneOf: ['none', 'center', 'start', 'end', 'baseline', 'stretch'] },
         justifyItems: { default: "start", oneOf: ['center', 'start', 'end', 'space-between', 'space-around', 'stretch'] },
         alignContent: { default: "", oneOf: ['', 'none', 'start', 'end', 'center', 'stretch'] }
     },
     init() {
-        this.el.addEventListener('xyresize', ev => this.requestLayout());
-        this.requestLayout();
+        this.el.addEventListener('xyresize', (ev) => this.layout());
+        this.layout();
     },
-    _layout(containerRect, children) {
+    layout() {
         let data = this.data;
-        if (!data || data.direction === "none") {
+        let direction = data && data.direction;
+        if (!direction || direction == "none") {
             return;
         }
-        let isVertical = data.direction === "vertical" || data.direction === "column";
+        let containerRect = this.el.components.xyrect, children = this.el.children;
+        let isVertical = direction == "vertical" || direction == "column";
         let padding = data.padding;
         let spacing = data.spacing;
         let mainDir = (data.reverse ^ isVertical) ? -1 : 1;
@@ -170,9 +168,6 @@ AFRAME.registerComponent('xycontainer', {
             el.setAttribute("position", pos);
             p += szMain + spacing;
         }
-    },
-    requestLayout() {
-        this._layout(this.el.components.xyrect, this.el.children);
     }
 });
 
@@ -187,7 +182,7 @@ AFRAME.registerComponent('xyitem', {
         if (oldData.align !== undefined) {
             let xycontainer = this.el.parent.components.xycontainer;
             if (xycontainer) {
-                xycontainer.requestLayout();
+                xycontainer.layout();
             }
         }
     }
