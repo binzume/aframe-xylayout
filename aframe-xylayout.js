@@ -7,7 +7,7 @@ AFRAME.registerComponent('xycontainer', {
         padding: { default: 0 },
         reverse: { default: false },
         wrap: { default: "nowrap", oneOf: ['wrap', 'nowrap'] },
-        direction: { default: "row", oneOf: ['none', 'row', 'column', 'vertical', 'horizontal'] },
+        direction: { default: "column", oneOf: ['none', 'row', 'column', 'vertical', 'horizontal'] },
         alignItems: { default: "none", oneOf: ['none', 'center', 'start', 'end', 'baseline', 'stretch'] },
         justifyItems: { default: "start", oneOf: ['center', 'start', 'end', 'space-between', 'space-around', 'stretch'] },
         alignContent: { default: "", oneOf: ['', 'none', 'start', 'end', 'center', 'stretch'] }

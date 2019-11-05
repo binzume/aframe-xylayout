@@ -985,7 +985,6 @@ AFRAME.registerPrimitive('a-xywindow', {
     mappings: {
         width: 'xyrect.width',
         height: 'xyrect.height',
-        direction: 'xycontainer.direction',
         title: 'xywindow.title'
     }
 });
