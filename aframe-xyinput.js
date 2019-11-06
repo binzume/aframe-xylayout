@@ -345,7 +345,7 @@ AFRAME.registerComponent('xykeyboard', {
         });
         for (let row of block.rows) {
             let keyrow = pane.appendChild(document.createElement('a-xycontainer'));
-            keyrow.setAttribute('xycontainer', { spacing: 0, direction: 'row' });
+            keyrow.setAttribute('xycontainer', { direction: 'row' });
             keyrow.setAttribute('position', { x: row.offset[0] * sz, y: row.offset[1] * sz - (block.size[1] - 1) * sz / 2, z: 0.02 });
             for (let key of row.keys) {
                 if (excludes.includes(key.code)) {

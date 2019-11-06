@@ -3,7 +3,7 @@
 AFRAME.registerComponent('xycontainer', {
     dependencies: ['xyrect'],
     schema: {
-        spacing: { default: 0.05 },
+        spacing: { default: 0.0 },
         padding: { default: 0 },
         reverse: { default: false },
         wrap: { default: "nowrap", oneOf: ['wrap', 'nowrap'] },
