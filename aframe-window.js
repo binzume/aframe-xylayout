@@ -134,14 +134,9 @@ AFRAME.registerComponent('xybutton', {
         hoverColor: { default: "" }
     },
     init() {
-        let xyrect = this.el.components.xyrect;
-        this.el.sceneEl.systems.xywindow.createSimpleButton({
-            width: xyrect.width, height: xyrect.height,
-            color: this.data.color, hoverColor: this.data.hoverColor
-        }, null, this.el);
-        this.el.addEventListener('xyresize', (ev) => {
-            this.el.setAttribute("geometry", { width: ev.detail.xyrect.width, height: ev.detail.xyrect.height });
-        });
+        let el = this.el;
+        let xyrect = el.components.xyrect;
+        el.sceneEl.systems.xywindow.createSimpleButton(xyrect.width, xyrect.height, this.data, null, el);
     }
 });
 
@@ -156,10 +151,6 @@ AFRAME.registerComponent('xytoggle', {
             get: () => this.data.value,
             set: (v) => el.setAttribute('xytoggle', 'value', v)
         });
-        this._buttonParams = {
-            width: 1, height: 1
-        };
-        el.sceneEl.systems.xywindow.createSimpleButton(this._buttonParams, null, el);
         this._thumb = el.appendChild(document.createElement('a-circle'));
         el.addEventListener('click', ev => {
             el.value = !el.value;
@@ -171,11 +162,13 @@ AFRAME.registerComponent('xytoggle', {
         let el = this.el;
         let theme = el.sceneEl.systems.xywindow.theme;
         let xyrect = el.components.xyrect;
-        let params = this._buttonParams;
         let r = xyrect.height / 2;
         let v = el.value;
-        params.color = v ? "#0066ff" : theme.buttonColor;
-        params.hoverColor = v ? "#4499ff" : "";
+        let params = {
+            color: v ? "#0066ff" : theme.buttonColor,
+            hoverColor: v ? "#4499ff" : ""
+        };
+        el.setAttribute('xybutton', params);
         el.setAttribute('material', 'color', params.color);
         this._thumb.setAttribute("geometry", "radius", r * 0.8);
         this._thumb.setAttribute("position", { x: (xyrect.width / 2 - r) * (v ? 1 : -1), y: 0, z: 0.05 });
@@ -224,10 +217,8 @@ AFRAME.registerComponent('xyselect', {
         if (this._listEl) return;
         let values = this.data.values;
         let listY = (this.el.components.xyrect.height + values.length * 0.5) / 2 + 0.05;
-        let listEl = this._listEl = document.createElement('a-entity');
-        listEl.setAttribute('xycontainer', { spacing: 0 });
+        let listEl = this._listEl = this.el.appendChild(document.createElement('a-xycontainer'));
         listEl.setAttribute('position', { x: 0, y: listY, z: 0.1 });
-        this.el.appendChild(listEl);
         values.forEach((v, i) => {
             let itemEl = document.createElement('a-xybutton');
             itemEl.setAttribute('label', v);
@@ -425,19 +416,13 @@ AFRAME.registerComponent('xywindow', {
         controls.setAttribute("position", { x: 0, y: 0, z: 0.05 });
         controls.setAttribute("xyitem", { fixed: true });
 
-        let dragButton = this._dragButton = this.system.createSimpleButton({
-            width: 1, height: 0.5, color: theme.windowTitleBarColor
-        }, controls);
+        let dragButton = this._dragButton = this.system.createSimpleButton(1, 0.5, theme.windowTitleBar, controls);
         dragButton.setAttribute("xy-drag-control", { target: this.el, autoRotate: true });
 
         this._titleText = this._dragButton.appendChild(document.createElement('a-entity'));
 
         if (this.data.closable) {
-            let closeButton = this.system.createSimpleButton({
-                width: 0.5, height: 0.5,
-                color: theme.windowTitleBarColor,
-                hoverColor: theme.windowCloseButtonColor
-            }, controls);
+            let closeButton = this.system.createSimpleButton(0.5, 0.5, theme.windowCloseButton, controls);
             closeButton.setAttribute("xylabel", {
                 value: "X", align: "center", color: theme.buttonLabelColor
             });
@@ -488,17 +473,17 @@ AFRAME.registerSystem('xywindow', {
         buttonHoverHaptic: 0.3,
         buttonHoverHapticMs: 10,
         buttonGeometry: 'xy-rounded-rect',
-        windowCloseButtonColor: "#f00",
-        windowTitleBarColor: "#111",
+        windowCloseButton: { color: "#111", hoverColor: "#f00" },
+        windowTitleBar: { color: "#111" },
         windowTitleColor: "#fff",
         collidableClass: "collidable",
     },
     windows: [],
-    createSimpleButton(params, parent, el) {
+    createSimpleButton(width, height, params, parent, el) {
         let button = el || document.createElement('a-entity');
         if (!button.hasAttribute("geometry")) {
             button.setAttribute("geometry", {
-                primitive: this.theme.buttonGeometry, width: params.width, height: params.height
+                primitive: this.theme.buttonGeometry, width: width, height: height
             });
         }
         button.classList.add(this.theme.collidableClass);
@@ -543,9 +528,8 @@ AFRAME.registerComponent('xyrange', {
         let data = this.data;
         let el = this.el;
 
-        let thumb = this._thumb = this.el.sceneEl.systems.xywindow.createSimpleButton({
-            width: data.thumbSize, height: data.thumbSize
-        }, this.el);
+        let thumb = this._thumb = this.el.sceneEl.systems.xywindow.createSimpleButton(
+            data.thumbSize, data.thumbSize, {}, this.el);
 
         let plane = new THREE.PlaneGeometry(1, 0.08);
         let bar = this._bar = new THREE.Mesh(
@@ -713,24 +697,21 @@ AFRAME.registerComponent('xyscroll', {
         let scrollBar = el.appendChild(document.createElement('a-entity'));
         this._scrollBar = scrollBar;
 
-        this._upButton = xywindow.createSimpleButton({
-            width: w, height: 0.3
-        }, scrollBar);
+        this._upButton = xywindow.createSimpleButton(
+            w, 0.3, {}, scrollBar);
         this._upButton.addEventListener('click', (ev) => {
             this._speedY = -this._scrollDelta * 0.3;
             this.play();
         });
 
-        this._downButton = xywindow.createSimpleButton({
-            width: w, height: 0.3
-        }, scrollBar);
+        this._downButton = xywindow.createSimpleButton(
+            w, 0.3, {}, scrollBar);
         this._downButton.addEventListener('click', (ev) => {
             this._speedY = this._scrollDelta * 0.3;
             this.play();
         });
-        this._scrollThumb = xywindow.createSimpleButton({
-            width: w * 0.7, height: this._thumbLen
-        }, scrollBar);
+        this._scrollThumb = xywindow.createSimpleButton(
+            w * 0.7, this._thumbLen, {}, scrollBar);
         this._scrollThumb.setAttribute("xy-draggable", { base: scrollBar });
         this._scrollThumb.addEventListener("xy-drag", ev => {
             let xyrect = this.el.components.xyrect;
@@ -938,7 +919,7 @@ AFRAME.registerPrimitive('a-xylabel', {
 
 AFRAME.registerPrimitive('a-xybutton', {
     defaultComponents: {
-        xyrect: { width: 2, height: 0.5 },
+        xyrect: { width: 2, height: 0.5, updateGeometry: true },
         xylabel: { align: 'center' },
         xybutton: {}
     },
@@ -964,7 +945,7 @@ AFRAME.registerPrimitive('a-xytoggle', {
 
 AFRAME.registerPrimitive('a-xyselect', {
     defaultComponents: {
-        xyrect: { width: 2, height: 0.5 },
+        xyrect: { width: 2, height: 0.5, updateGeometry: true },
         xyselect: {}
     },
     mappings: {
