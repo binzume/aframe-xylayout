@@ -74,7 +74,7 @@ Attributes:
 | justifyItems | start  | レイアウト方向の小要素の配置 | 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
 | alignItems   | none   | レイアウトに対し垂直方向の小要素の配置 |'none', 'center', 'start', 'end', 'stretch'|
 | alignContent | none   | wrapで折り返した時の各行の配置 |'none', 'center', 'start', 'end', 'stretch'|
-| spacing      | 0.05   | レイアウト間隔 | number |
+| spacing      | 0      | レイアウト間隔 | number |
 | padding      | 0      | 上下左右の余白 | number |
 | wrap         | nowrap | 折返し | wrap, nowrap |
 | reverse      | false  | 逆向きにレイアウト |  |
@@ -145,8 +145,8 @@ Attributes:
 
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
-| label | string | | ボタンのラベル |
 | color | color | | ボタンの色 |
+| hoverColor | color | | カーソルが載った時のボタンの色 |
 
 Events:
 
@@ -161,6 +161,8 @@ Attributes:
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
 | value | boolean | false | トグルスイッチの状態 |
+
+※ このコンポーネントはDOM要素にも `value` 属性を追加します
 
 Events:
 
@@ -179,6 +181,8 @@ Attributes:
 | value | number | 0   | 初期値 |
 | step  | number | 0   | 変化の単位 |
 | thumbSize | number | 0.4 | つまみサイズ |
+
+※ このコンポーネントはDOM要素にも `value` 属性を追加します
 
 Events:
 
@@ -272,6 +276,8 @@ Attributes:
 | placeholder | string |  | プレースホルダーテキスト |
 | caretColor  | color | | キャッレット色 |
 | bgColor  | color | white | 背景色 |
+
+※ このコンポーネントはDOM要素にも `value` 属性を追加します
 
 ### xykeyboard
 
