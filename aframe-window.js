@@ -64,39 +64,39 @@ AFRAME.registerComponent('xylabel', {
             this.el.setAttribute('text', textData);
             let textObj = this.el.getObject3D('text');
             if (textObj) {
-                textObj.raycast = function () { }; // to disable raycast
+                textObj.raycast = () => { }; // disable raycast
             }
             this._removeObject3d();
             return;
         }
-        this._removeText();
 
         let canvasHeight = data.resolution;
-        let canvasWidth = data.resolution;
         let textWidth = Math.floor(canvasHeight * wrapCount * widthFactor);
-        while (canvasWidth < textWidth) canvasWidth <<= 1;
 
         let canvas = this.canvas;
         if (!canvas || this.textWidth !== textWidth || canvas.height !== canvasHeight) {
-            this._removeObject3d(); // <= this.canvas = null
+            let canvasWidth = 8;
+            while (canvasWidth < textWidth) canvasWidth <<= 1;
+            this.remove(); // <= this.canvas = null
             this.canvas = canvas = canvas || document.createElement("canvas");
             canvas.height = canvasHeight;
             canvas.width = canvasWidth;
             this.textWidth = textWidth;
-            let meshH = xyrect.data.height > 0 ? xyrect.height : w / (wrapCount * widthFactor);
             let texture = new THREE.CanvasTexture(canvas);
             texture.anisotropy = 4;
             texture.alphaTest = 0.2;
             texture.repeat.x = textWidth / canvasWidth;
+            let meshH = xyrect.data.height > 0 ? xyrect.height : w / (wrapCount * widthFactor);
             let mesh = new THREE.Mesh(
                 new THREE.PlaneGeometry(w, meshH),
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true }));
             mesh.position.set(data.xOffset, 0, data.zOffset);
+            mesh.raycast = () => { }; // disable raycast
             this.el.setObject3D("xylabel", mesh);
         }
 
         let ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        ctx.clearRect(0, 0, textWidth, canvasHeight);
         ctx.font = "" + (canvasHeight * 0.9) + "px bold sans-serif";
         ctx.textBaseline = "top";
         ctx.textAlign = data.align;
@@ -108,9 +108,6 @@ AFRAME.registerComponent('xylabel', {
     },
     remove() {
         this._removeObject3d();
-        this._removeText();
-    },
-    _removeText() {
         if (this.el.hasAttribute('text')) {
             this.el.removeAttribute('text');
         }
