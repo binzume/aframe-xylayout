@@ -767,8 +767,9 @@ AFRAME.registerComponent('xyscroll', {
             }
             let pos = item.getAttribute("position");
             let itemRect = item.components.xyrect;
-            pos.x = -this._scrollX + (itemRect.data.pivotX) * itemRect.width;
-            pos.y = this._scrollY - (1.0 - itemRect.data.pivotY) * itemRect.height + xyrect.height;
+            let itemPivot = itemRect.data.pivot;
+            pos.x = -this._scrollX + (itemPivot.x) * itemRect.width;
+            pos.y = this._scrollY - (1.0 - itemPivot.y) * itemRect.height + xyrect.height;
             item.setAttribute("position", pos);
             let t = itemRect.height - this._scrollY;
             item.emit('xyviewport', [t, t - xyrect.height, this._scrollX, this._scrollX + xyrect.width], false);
@@ -793,7 +794,7 @@ AFRAME.registerComponent('xylist', {
         this._elements = [];
         this._userData = null;
         this.itemCount = 0;
-        el.setAttribute("xyrect", { pivotX: 0, pivotY: 0 });
+        el.setAttribute("xyrect", 'pivot', { x: 0, y: 1 });
         el.addEventListener('xyviewport', ev => this.setViewport(ev.detail));
         el.classList.add(el.sceneEl.systems.xywindow.theme.collidableClass);
         el.addEventListener('click', (ev) => {
@@ -846,24 +847,21 @@ AFRAME.registerComponent('xylist', {
             this._elements.push(el);
         }
 
-        let retry = false;
         for (let position = st; position < en; position++) {
             let el = this._elements[position % this._elements.length];
             if (!el.hasLoaded) {
-                retry = true;
-            } else if (el.dataset.listPosition != position) {
+                setTimeout(() => this._refresh(), 1);
+                break;
+            }
+            if (el.dataset.listPosition != position) {
                 el.dataset.listPosition = position;
-                let x = 0, y = (this.itemCount - position - 1) * itemHeight;
+                let x = 0, y = - position * itemHeight;
                 let xyrect = el.components.xyrect;
-                if (xyrect) {
-                    x += xyrect.data.pivotX * xyrect.width;
-                    y += xyrect.data.pivotY * xyrect.height;
-                }
-                el.setAttribute("position", { x: x, y: y, z: 0 });
+                let pivot = xyrect ? xyrect.data.pivot : { x: 0.5, y: 0.5 };
+                el.setAttribute("position", { x: x + pivot.x * xyrect.width, y: y - pivot.y * xyrect.height, z: 0 });
                 this._elementUpdator && this._elementUpdator(position, el, this._userData);
             }
         }
-        if (retry) setTimeout(() => this._refresh(), 10);
 
         for (let el of this._elements) {
             let p = el.dataset.listPosition;
@@ -965,7 +963,7 @@ AFRAME.registerPrimitive('a-xywindow', {
 
 AFRAME.registerPrimitive('a-xyscroll', {
     defaultComponents: {
-        xyrect: { pivotX: 0, pivotY: 1 },
+        xyrect: { pivot: { x: 0, y: 1 } },
         xyscroll: {}
     },
     mappings: {

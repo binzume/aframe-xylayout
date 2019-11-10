@@ -61,11 +61,12 @@ AFRAME.registerComponent('xycontainer', {
                 height: (el.getAttribute("height") || undefined) * 1
             };
             let childScale = el.getAttribute("scale") || { x: 1, y: 1 };
+            let pivot = rect.data ? rect.data.pivot : { x: 0.5, y: 0.5 };
             let itemData = {
                 el: el,
                 xyitem: xyitem,
                 size: xyToMainCross(rect.width, rect.height),
-                pivot: xyToMainCross(rect.data ? rect.data.pivotX : 0.5, rect.data ? rect.data.pivotY : 0.5),
+                pivot: xyToMainCross(pivot.x, pivot.y),
                 scale: xyToMainCross(childScale.x, childScale.y)
             };
             if (itemData.size[0] == null || isNaN(itemData.size[0])) {
@@ -95,9 +96,8 @@ AFRAME.registerComponent('xycontainer', {
             containerSize[1] = crossSizeSum;
             containerRect[attrNames[1]] = crossSizeSum + padding * 2;
         }
-        let containerPivot = xyToMainCross(containerRect.data.pivotX, containerRect.data.pivotY);
-        let crossOffset = -containerPivot[1] * containerSize[1];
-        let mainOffset = -(isVertical ? 1 - containerPivot[0] : containerPivot[0]) * containerSize[0];
+        let crossOffset = - containerSize[1] / 2;
+        let mainOffset = - containerSize[0] / 2;
         let crossStretch = 0;
         let alignContent = data.alignContent || data.alignItems;
         if (alignContent == "end") {
@@ -192,8 +192,7 @@ AFRAME.registerComponent('xyrect', {
     schema: {
         width: { default: -1 }, // -1 : auto
         height: { default: -1 },
-        pivotX: { default: 0.5 },
-        pivotY: { default: 0.5 },
+        pivot: { type: 'vec2', default: { x: 0.5, y: 0.5 } },
         updateGeometry: { default: false },
     },
     update(oldData) {
