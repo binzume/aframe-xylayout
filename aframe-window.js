@@ -870,29 +870,6 @@ AFRAME.registerComponent('xylist', {
     }
 });
 
-AFRAME.registerComponent('xycanvas', {
-    schema: {
-        width: { default: 16 },
-        height: { default: 16 }
-    },
-    init() {
-        this.canvas = document.createElement("canvas");
-
-        // to avoid texture cache conflict in a-frame.
-        this.canvas.id = "_CANVAS" + Math.random();
-        let src = new THREE.CanvasTexture(this.canvas);
-        this.updateTexture = () => {
-            src.needsUpdate = true;
-        };
-
-        this.el.setAttribute('material', { shader: "flat", npot: true, src: src, transparent: true });
-    },
-    update() {
-        this.canvas.width = this.data.width;
-        this.canvas.height = this.data.height;
-    }
-});
-
 AFRAME.registerPrimitive('a-xylabel', {
     defaultComponents: {
         xyrect: {},
