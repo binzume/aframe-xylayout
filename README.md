@@ -19,6 +19,7 @@ Live demos:
 Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (35kB)
 
 ```html
+<script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@v1.0.0/dist/aframe-master.min.js"></script>
 <script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
 ...
 <a-xycontainer direction="column" spacing="0.1" padding="0.2">
