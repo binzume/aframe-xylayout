@@ -319,7 +319,7 @@ AFRAME.registerComponent('xykeyboard', {
         }
         if (this.data.ime) {
             let convText = this.el.appendChild(document.createElement("a-xylabel"));
-            convText.setAttribute('xylabel', { color: "yellow", mode: 'canvas' });
+            convText.setAttribute('xylabel', { color: "yellow", renderingMode: 'canvas' });
             convText.setAttribute('position', { x: 0, y: 2 * keySize * 0.95, z: 0.03 });
             convText.setAttribute('xyrect', { width: 8 * keySize, height: keySize * 0.6 });
             convText.setAttribute('xyime', "");
