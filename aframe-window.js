@@ -765,14 +765,15 @@ AFRAME.registerComponent('xyscroll', {
             if (item === this._control || (item.getAttribute('xyitem') || {}).fixed) {
                 continue;
             }
-            let pos = item.getAttribute("position");
             let itemRect = item.components.xyrect;
             let itemPivot = itemRect.data.pivot;
-            pos.x = -this._scrollX + (itemPivot.x) * itemRect.width;
-            pos.y = this._scrollY - (1.0 - itemPivot.y) * itemRect.height + xyrect.height;
+            let vy = (1.0 - itemPivot.y) * itemRect.height - this._scrollY;
+            let vx = (-itemPivot.x) * itemRect.width + this._scrollX;
+            let pos = item.getAttribute("position");
+            pos.x = -vx;
+            pos.y = -vy + xyrect.height;
             item.setAttribute("position", pos);
-            let t = itemRect.height - this._scrollY;
-            item.emit('xyviewport', [t, t - xyrect.height, this._scrollX, this._scrollX + xyrect.width], false);
+            item.emit('xyviewport', [vy, vy - xyrect.height, vx, vx + xyrect.width], false);
         }
         if (this.el.components.xyclipping) {
             this.el.components.xyclipping.applyClippings();
@@ -784,16 +785,36 @@ AFRAME.registerComponent('xylist', {
     dependencies: ['xyrect'],
     schema: {
         itemWidth: { default: -1 },
-        itemHeight: { default: -1 },
-        vertical: { default: true }
+        itemHeight: { default: -1 }
     },
     init() {
         let el = this.el;
+        let data = this.data;
         this._elementFactory = null;
         this._elementUpdator = null;
-        this._elements = [];
+        this._elements = {};
+        this._cache = [];
         this._userData = null;
-        this.itemCount = 0;
+        this._itemCount = 0;
+        this._layout = {
+            size(itemCount) {
+                return { width: data.itemWidth, height: data.itemHeight * itemCount };
+            },
+            targets(viewport, callback) {
+                let itemHeight = data.itemHeight;
+                let position = Math.floor((-viewport[0]) / itemHeight);
+                let end = Math.ceil((-viewport[1]) / itemHeight);
+                while (position < end) {
+                    callback(position++);
+                }
+            },
+            layout(el, position) {
+                let x = 0, y = - position * data.itemHeight;
+                let xyrect = el.components.xyrect;
+                let pivot = xyrect ? xyrect.data.pivot : { x: 0.5, y: 0.5 };
+                el.setAttribute("position", { x: x + pivot.x * xyrect.width, y: y - pivot.y * xyrect.height, z: 0 });
+            }
+        };
         el.setAttribute("xyrect", 'pivot', { x: 0, y: 1 });
         el.addEventListener('xyviewport', ev => this.setViewport(ev.detail));
         el.classList.add(el.sceneEl.systems.xywindow.theme.collidableClass);
@@ -808,6 +829,9 @@ AFRAME.registerComponent('xylist', {
         });
         this.setViewport([0, 0]);
     },
+    setLayout(layout) {
+        this._layout = layout;
+    },
     setCallback(factory, constructor) {
         this._elementFactory = factory;
         this._elementUpdator = constructor;
@@ -819,53 +843,51 @@ AFRAME.registerComponent('xylist', {
     },
     setContents(data, count) {
         this._userData = data;
-        this.itemCount = count !== undefined ? count : data.length;
-        let height = this.data.itemHeight * this.itemCount;
-        this.el.setAttribute("xyrect", { width: this.data.itemWidth, height: height });
-        for (let el of this._elements) {
+        this._itemCount = count !== undefined ? count : data.length;
+        this.el.setAttribute("xyrect", this._layout.size(this._itemCount));
+        for (let el of Object.values(this._elements)) {
             el.dataset.listPosition = -1;
         }
         this._refresh();
     },
     setViewport(vp) {
-        this.viewport = vp;
+        this._viewport = vp;
         this._refresh();
     },
     _refresh() {
         if (!this._elementFactory) return;
-        let itemHeight = this.data.itemHeight;
-        let totalHeight = itemHeight * this.itemCount;
+        let visiblePositions = {};
+        let retry = false;
 
-        let st = Math.max(Math.floor((totalHeight - this.viewport[0]) / itemHeight), 0);
-        let en = Math.min(Math.ceil((totalHeight - this.viewport[1]) / itemHeight), this.itemCount);
-        let n = en - st + 1;
-        // TODO: compaction
-        while (n > this._elements.length) {
-            let el = this._elementFactory(this.el, this._userData);
-            el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
-            this.el.appendChild(el);
-            this._elements.push(el);
-        }
-
-        for (let position = st; position < en; position++) {
-            let el = this._elements[position % this._elements.length];
-            if (!el.hasLoaded) {
-                setTimeout(() => this._refresh(), 1);
-                break;
+        this._layout.targets(this._viewport, (position) => {
+            if (position < 0 || position >= this._itemCount) {
+                return;
             }
-            if (el.dataset.listPosition != position) {
+            visiblePositions[position] = true;
+            let el = this._elements[position];
+            if (!el) {
+                el = this._cache.pop() || this.el.appendChild(this._elementFactory(this.el, this._userData));
+                this._elements[position] = el;
+                el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
+            }
+            retry |= !el.hasLoaded;
+            if (el.hasLoaded && el.dataset.listPosition != position) {
                 el.dataset.listPosition = position;
-                let x = 0, y = - position * itemHeight;
-                let xyrect = el.components.xyrect;
-                let pivot = xyrect ? xyrect.data.pivot : { x: 0.5, y: 0.5 };
-                el.setAttribute("position", { x: x + pivot.x * xyrect.width, y: y - pivot.y * xyrect.height, z: 0 });
+                this._layout.layout(el, position);
                 this._elementUpdator && this._elementUpdator(position, el, this._userData);
             }
-        }
+        });
 
-        for (let el of this._elements) {
-            let p = el.dataset.listPosition;
-            el.setAttribute('visible', p >= st && p < en);
+        for (let position of Object.keys(this._elements)) {
+            let el = this._elements[position];
+            el.setAttribute('visible', visiblePositions[position] == true);
+            if (!visiblePositions[position]) {
+                this._cache.push(el);
+                delete this._elements[position];
+            }
+        }
+        if (retry) {
+            setTimeout(() => this._refresh(), 1);
         }
     }
 });
