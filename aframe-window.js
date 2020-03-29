@@ -71,15 +71,28 @@ AFRAME.registerComponent('xylabel', {
             return;
         }
 
-        let canvasHeight = data.resolution;
-        let textWidth = Math.floor(canvasHeight * wrapCount * widthFactor);
+        let lineHeight = data.resolution;
+        let textWidth = Math.floor(lineHeight * wrapCount * widthFactor);
+        let canvas = this.canvas || document.createElement("canvas");
+        let ctx = canvas.getContext("2d");
+        ctx.font = "" + (lineHeight * 0.9) + "px bold sans-serif";
 
-        let canvas = this.canvas;
-        if (!canvas || this.textWidth !== textWidth || canvas.height !== canvasHeight) {
+        let lines = [''], ln = 0;
+        for (let char of data.value) {
+            if (char == '\n' || ctx.measureText(lines[ln] + char).width > textWidth) {
+                lines.push('');
+                ln++;
+            } else {
+                lines[ln] += char;
+            }
+        }
+
+        let canvasHeight = lineHeight * lines.length;
+        if (!this.canvas || this.textWidth != textWidth || canvas.height != canvasHeight) {
             let canvasWidth = 8;
             while (canvasWidth < textWidth) canvasWidth *= 2;
             this.remove(); // <= this.canvas = null
-            this.canvas = canvas = canvas || document.createElement("canvas");
+            this.canvas = canvas;
             canvas.height = canvasHeight;
             canvas.width = canvasWidth;
             this.textWidth = textWidth;
@@ -87,7 +100,7 @@ AFRAME.registerComponent('xylabel', {
             texture.anisotropy = 4;
             texture.alphaTest = 0.2;
             texture.repeat.x = textWidth / canvasWidth;
-            let meshH = xyrect.data.height > 0 ? xyrect.height : w / (wrapCount * widthFactor);
+            let meshH = Math.min(w / textWidth * canvasHeight, h);
             let mesh = new THREE.Mesh(
                 new THREE.PlaneGeometry(w, meshH),
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true }));
@@ -96,14 +109,17 @@ AFRAME.registerComponent('xylabel', {
             el.setObject3D("xylabel", mesh);
         }
 
-        let ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, textWidth, canvasHeight);
-        ctx.font = "" + (canvasHeight * 0.9) + "px bold sans-serif";
+        ctx.font = "" + (lineHeight * 0.9) + "px bold sans-serif";
         ctx.textBaseline = "top";
         ctx.textAlign = data.align;
         ctx.fillStyle = data.color;
         let x = data.align === "center" ? textWidth / 2 : 0;
-        ctx.fillText(data.value, x, canvasHeight * 0.1);
+        let y = lineHeight * 0.1;
+        for (let line of lines) {
+            ctx.fillText(line, x, y);
+            y += lineHeight;
+        }
 
         el.object3DMap.xylabel.material.map.needsUpdate = true;
     },
