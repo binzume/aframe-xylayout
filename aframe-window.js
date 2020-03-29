@@ -816,12 +816,12 @@ AFRAME.registerComponent('xylist', {
             size(itemCount) {
                 return { width: data.itemWidth, height: data.itemHeight * itemCount };
             },
-            targets(viewport, callback) {
+            *targets(viewport) {
                 let itemHeight = data.itemHeight;
                 let position = Math.floor((-viewport[0]) / itemHeight);
                 let end = Math.ceil((-viewport[1]) / itemHeight);
                 while (position < end) {
-                    callback(position++);
+                    yield position++;
                 }
             },
             layout(el, position) {
@@ -875,24 +875,23 @@ AFRAME.registerComponent('xylist', {
         let visiblePositions = {};
         let retry = false;
 
-        this._layout.targets(this._viewport, (position) => {
-            if (position < 0 || position >= this._itemCount) {
-                return;
+        for (let position of this._layout.targets(this._viewport)) {
+            if (position >= 0 && position < this._itemCount) {
+                visiblePositions[position] = true;
+                let el = this._elements[position];
+                if (!el) {
+                    el = this._cache.pop() || this.el.appendChild(this._elementFactory(this.el, this._userData));
+                    this._elements[position] = el;
+                    el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
+                }
+                retry |= !el.hasLoaded;
+                if (el.hasLoaded && el.dataset.listPosition != position) {
+                    el.dataset.listPosition = position;
+                    this._layout.layout(el, position);
+                    this._elementUpdator(position, el, this._userData);
+                }
             }
-            visiblePositions[position] = true;
-            let el = this._elements[position];
-            if (!el) {
-                el = this._cache.pop() || this.el.appendChild(this._elementFactory(this.el, this._userData));
-                this._elements[position] = el;
-                el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
-            }
-            retry |= !el.hasLoaded;
-            if (el.hasLoaded && el.dataset.listPosition != position) {
-                el.dataset.listPosition = position;
-                this._layout.layout(el, position);
-                this._elementUpdator && this._elementUpdator(position, el, this._userData);
-            }
-        });
+        }
 
         for (let position of Object.keys(this._elements)) {
             let el = this._elements[position];
