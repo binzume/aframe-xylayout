@@ -1,6 +1,8 @@
-# A-Frame xyLayout [WIP]
+# xyLayout
 
 Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
+
+ES2015 をサポートしたブラウザが必要です．最新版の Chrome, Firefox, Edge(79以降) で動作します．
 
 ## Examples
 
@@ -209,8 +211,7 @@ Events:
 ### xylist
 
 リスト．RecyclerView です．xyscrollの子要素で使う前提の実装です．
-`xylist.setCallback()`, `xylist.setContents()` を呼ぶ必要があります．
-[サンプル](https://binzume.github.io/aframe-xylayout/examples/list.html)
+表示の際には`xylist.setAdapter()`, `xylist.setContents()` を呼ぶ必要があります．
 
 Attributes:
 
@@ -224,6 +225,14 @@ Events:
 | name | event.detail | desc |
 | ---- | ------------ | ---- |
 | clickitem | {index} | click item event |
+
+Method:
+
+使い方は[サンプル](https://binzume.github.io/aframe-xylayout/examples/list.html)を参照してください．
+
+- setAdapter({create, bind}): ビューの生成処理を設定します
+- setContents(data, optional_count): リストの内容を設定します
+- setLayout({size, targets, layout}): レイアウトを設定します
 
 ### xyclipping
 

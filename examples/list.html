@@ -38,13 +38,16 @@
             });
 
             let list = listEl.components.xylist;
-            list.setCallback((parent, data) => {
-                var el = document.createElement('a-xylabel');
-                el.setAttribute("width", 4.0);
-                el.setAttribute("height", 1.0);
-                return el;
-            }, (position, el, contents) => {
-                el.setAttribute("value", contents[position]);
+            list.setAdapter({
+                create(parent) {
+                    var el = document.createElement('a-xylabel');
+                    el.setAttribute("width", 4.0);
+                    el.setAttribute("height", 1.0);
+                    return el;
+                },
+                bind(position, el, data) {
+                    el.setAttribute("value", data[position]);
+                }
             });
             let data = [];
             for (let i = 0; i < 100; i++) {
