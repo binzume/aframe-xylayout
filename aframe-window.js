@@ -806,14 +806,18 @@ AFRAME.registerComponent('xylist', {
     init() {
         let el = this.el;
         let data = this.data;
-        this._elementFactory = null;
-        this._elementUpdator = null;
+        this._adapter = null;
         this._elements = {};
         this._cache = [];
         this._userData = null;
         this._itemCount = 0;
         this._layout = {
-            size(itemCount) {
+            size(itemCount, list) {
+                if (data.itemHeight <= 0) {
+                    let el = list._adapter.create();
+                    data.itemHeight = el.getAttribute("height") * 1;
+                    data.itemWidth = el.getAttribute("width") * 1;
+                }
                 return { width: data.itemWidth, height: data.itemHeight * itemCount };
             },
             *targets(viewport) {
@@ -849,18 +853,15 @@ AFRAME.registerComponent('xylist', {
         this._layout = layout;
     },
     setCallback(factory, constructor) {
-        this._elementFactory = factory;
-        this._elementUpdator = constructor;
-        if (this.data.itemHeight <= 0) {
-            let el = this._elementFactory(this.el, this._userData);
-            this.data.itemHeight = el.getAttribute("height") * 1;
-            this.data.itemWidth = el.getAttribute("width") * 1;
-        }
+        this.setAdapter({ create: factory, bind: constructor });
+    },
+    setAdapter(adapter) {
+        this._adapter = adapter;
     },
     setContents(data, count) {
         this._userData = data;
         this._itemCount = count !== undefined ? count : data.length;
-        this.el.setAttribute("xyrect", this._layout.size(this._itemCount));
+        this.el.setAttribute("xyrect", this._layout.size(this._itemCount, this));
         for (let el of Object.values(this._elements)) {
             el.dataset.listPosition = -1;
         }
@@ -871,34 +872,35 @@ AFRAME.registerComponent('xylist', {
         this._refresh();
     },
     _refresh() {
-        if (!this._elementFactory) return;
+        if (!this._adapter) return;
+        let el = this.el;
+        let elements = this._elements;
         let visiblePositions = {};
         let retry = false;
 
         for (let position of this._layout.targets(this._viewport)) {
             if (position >= 0 && position < this._itemCount) {
                 visiblePositions[position] = true;
-                let el = this._elements[position];
-                if (!el) {
-                    el = this._cache.pop() || this.el.appendChild(this._elementFactory(this.el, this._userData));
-                    this._elements[position] = el;
-                    el.classList.add(this.el.sceneEl.systems.xywindow.theme.collidableClass);
+                let itemEl = elements[position];
+                if (!itemEl) {
+                    itemEl = elements[position] = this._cache.pop() || el.appendChild(this._adapter.create(el));
+                    itemEl.classList.add(el.sceneEl.systems.xywindow.theme.collidableClass);
                 }
-                retry |= !el.hasLoaded;
-                if (el.hasLoaded && el.dataset.listPosition != position) {
-                    el.dataset.listPosition = position;
-                    this._layout.layout(el, position);
-                    this._elementUpdator(position, el, this._userData);
+                retry |= !itemEl.hasLoaded;
+                if (itemEl.hasLoaded && itemEl.dataset.listPosition != position) {
+                    itemEl.dataset.listPosition = position;
+                    this._layout.layout(itemEl, position);
+                    this._adapter.bind(position, itemEl, this._userData);
                 }
             }
         }
 
-        for (let position of Object.keys(this._elements)) {
-            let el = this._elements[position];
+        for (let position of Object.keys(elements)) {
+            let el = elements[position];
             el.setAttribute('visible', visiblePositions[position] == true);
             if (!visiblePositions[position]) {
                 this._cache.push(el);
-                delete this._elements[position];
+                delete elements[position];
             }
         }
         if (retry) {
