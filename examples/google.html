@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Search box</title>
-    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@v1.0.0/dist/aframe-master.min.js"></script>
+    <script src="https://binzume.github.io/aframe/dist/aframe-master.min.js"></script>
     <script src="../dist/xylayout-all.min.js"></script>
     <script>
         AFRAME.registerComponent('search-box', {
@@ -31,7 +31,8 @@
 </head>
 
 <body style="background-color: black; color:white;">
-    <a-scene cursor="rayOrigin: mouse; fuse:false" raycaster="objects:.collidable;far:5500" renderer="antialias: true;">
+    <a-scene>
+        <a-entity cursor="rayOrigin: mouse; fuse:false" raycaster="objects:.collidable;far:5500"></a-entity>
 
         <a-entity id="cameraRig" wasd-controls>
             <a-camera position="0 1.5 0" look-controls="enabled:false"></a-camera>

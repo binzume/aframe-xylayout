@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>UI Components examples</title>
+    <script src="https://binzume.github.io/aframe/dist/aframe-master.min.js"></script>
+    <script src="../dist/xylayout-all.min.js"></script>
+</head>
+
+<body style="background-color: black; color:white;">
+    <a-scene>
+        <a-entity cursor="rayOrigin: mouse; fuse:false" raycaster="objects:.collidable;far:5500"></a-entity>
+
+        <a-entity id="cameraRig" wasd-controls>
+            <a-camera position="0 1.5 0" look-controls="enabled:false"></a-camera>
+            <a-entity laser-controls="hand: right" raycaster="far:Infinity;objects:.collidable"></a-entity>
+            <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
+        </a-entity>
+
+        <a-xywindow position="0 0 -2" width="3" height="20" title="Custom Layout">
+            <a-xyscroll width=3 height=20>
+                <a-entity id="listview" xylist=""></a-entity>
+            </a-xyscroll>
+
+        </a-xywindow>
+
+    </a-scene>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', (ev) => {
+            let listEl = document.getElementById("listview");
+            listEl.addEventListener('clickitem', (ev) => {
+                console.log(ev.detail.index);
+            });
+
+            let list = listEl.components.xylist;
+            let itemWidth = 4, itemHeight = 4, cols = 24;
+            list.setLayout({
+                size(itemCount) {
+                    return { width: 0.1, height: itemHeight * Math.ceil(itemCount / cols) };
+                },
+                *targets(viewport) {
+                    let position = Math.floor((-viewport[0]) / itemHeight - 1) * cols;
+                    let end = Math.ceil((-viewport[1]) / itemHeight) * cols;
+                    while (position < end) {
+                        yield position++;
+                    }
+                },
+                layout(el, position) {
+                    let t = (position % cols) / cols * Math.PI * 2, y = - (position / cols) * itemHeight;
+                    let x = Math.sin(t) * (itemWidth * cols) / Math.PI / 2;
+                    let z = Math.cos(t) * (itemWidth * cols) / Math.PI / 2;
+                    let xyrect = el.components.xyrect;
+                    let pivot = xyrect.data.pivot;
+                    el.setAttribute("position", { x: x, y: y - pivot.y * xyrect.height, z: z });
+                    el.setAttribute("rotation", { x: 0, y: t * 180 / Math.PI, z: 0 });
+                }
+            });
+            list.setAdapter({
+                create(parent) {
+                    let el = document.createElement('a-box');
+                    el.setAttribute("xyrect", {});
+                    el.setAttribute("width", itemWidth * 0.9);
+                    el.setAttribute("height", itemHeight * 0.9);
+                    el.setAttribute("depth", 0.1);
+                    return el;
+                },
+                bind(position, el, data) {
+                    el.setAttribute("color", ["red", "blue", "green", "yellow", "cyan"][position % 5]);
+                }
+            });
+            list.setContents(null, 10000);
+        });
+    </script>
+</body>
+
+</html>

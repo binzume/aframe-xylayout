@@ -5,15 +5,14 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>UI Components examples</title>
-    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@v1.0.0/dist/aframe-master.min.js"></script>
+    <script src="https://binzume.github.io/aframe/dist/aframe-master.min.js"></script>
     <script src="../aframe-xylayout.js"></script>
     <script src="../aframe-window.js?"></script>
 </head>
 
 <body style="background-color: black; color:white;">
-    <a-scene fog="type: linear; color: #000; near:20;far:200;" cursor="rayOrigin: mouse; fuse:false"
-        raycaster="objects:.collidable;far:5500" renderer="antialias: true;">
-        <a-sky></a-sky>
+    <a-scene>
+        <a-entity cursor="rayOrigin: mouse; fuse:false" raycaster="objects:.collidable;far:5500"></a-entity>
 
         <a-assets>
             <a-mixin id="box_animation"

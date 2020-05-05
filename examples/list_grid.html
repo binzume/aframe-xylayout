@@ -19,10 +19,10 @@
             <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
         </a-entity>
 
-        <a-xywindow position="0 0 -12" width="4" height="5" title="UI Components">
-            <a-plane xyitem="fixed:true" width="4" height="5" position="0 0 -0.05" color="#444"></a-plane>
+        <a-xywindow position="0 0 -12" width="5" height="5" title="Custom Layout">
+            <a-plane xyitem="fixed:true" width="5" height="5" position="0 0 -0.05" color="#444"></a-plane>
 
-            <a-xyscroll width=4 height=5>
+            <a-xyscroll width=5 height=5>
                 <a-entity id="listview" xylist=""></a-entity>
             </a-xyscroll>
 
@@ -31,7 +31,6 @@
     </a-scene>
 
     <script>
-
         window.addEventListener('DOMContentLoaded', (ev) => {
             let listEl = document.getElementById("listview");
             listEl.addEventListener('clickitem', (ev) => {
@@ -39,24 +38,39 @@
             });
 
             let list = listEl.components.xylist;
+            let itemWidth = 1, itemHeight = 1, cols = 5;
+            list.setLayout({
+                size(itemCount) {
+                    return { width: itemWidth * cols, height: itemHeight * Math.ceil(itemCount / cols) };
+                },
+                *targets(viewport) {
+                    let position = Math.floor((-viewport[0]) / itemHeight) * cols;
+                    let end = Math.ceil((-viewport[1]) / itemHeight) * cols;
+                    while (position < end) {
+                        yield position++;
+                    }
+                },
+                layout(el, position) {
+                    let x = (position % cols) * itemWidth, y = - Math.floor(position / cols) * itemHeight;
+                    let xyrect = el.components.xyrect;
+                    let pivot = xyrect.data.pivot;
+                    el.setAttribute("position", { x: x + pivot.x * xyrect.width, y: y - pivot.y * xyrect.height, z: 0 });
+                }
+            });
             list.setAdapter({
                 create(parent) {
-                    var el = document.createElement('a-plane');
-                    el.setAttribute("width", 4.0);
-                    el.setAttribute("height", 1.0);
-                    el.setAttribute("color", "black");
+                    let el = document.createElement('a-box');
                     el.setAttribute("xyrect", {});
+                    el.setAttribute("width", itemWidth * 0.9);
+                    el.setAttribute("height", itemHeight * 0.9);
+                    el.setAttribute("depth", 0.1);
                     return el;
                 },
                 bind(position, el, data) {
-                    el.setAttribute("xylabel", {value: data[position]});
+                    el.setAttribute("color", ["red", "blue", "green", "yellow"][position % 4]);
                 }
             });
-            let data = [];
-            for (let i = 0; i < 100; i++) {
-                data.push("あああ" + i);
-            }
-            list.setContents(data);
+            list.setContents(null, 1000);
         });
     </script>
 </body>
