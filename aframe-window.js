@@ -389,8 +389,8 @@ AFRAME.registerComponent('xy-drag-control', {
         let mat = new THREE.Matrix4().makeRotationFromQuaternion(rot)
             .multiply(tr.setPosition(origin0.clone().negate()))
             .premultiply(tr.setPosition(origin))
-            .multiply(tr.getInverse(targetObj.parent.matrixWorld))
-            .premultiply(targetObj.parent.matrixWorld);
+            .premultiply(tr.getInverse(targetObj.parent.matrixWorld))
+            .multiply(targetObj.parent.matrixWorld);
         targetObj.applyMatrix(mat);
 
         if (this.data.mode == "pull") {
