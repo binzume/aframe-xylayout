@@ -9,7 +9,7 @@ ES2015 をサポートしたブラウザが必要です．最新版の Chrome, F
 Live demos:
 
 - [Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
-- [UI Components](https://binzume.github.io/aframe-xylayout/examples/window.html)
+- [UI Components](https://binzume.github.io/aframe-xylayout/examples/widgets.html)
 - [Virtual keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html)
 
 ![Layout example](./examples/layout.png)
