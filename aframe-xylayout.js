@@ -202,10 +202,10 @@ AFRAME.registerComponent('xyrect', {
         this.width = width < 0 ? (el.getAttribute("width") || geometry.width || 0) * 1 : width;
         this.height = height < 0 ? (el.getAttribute("height") || geometry.height || 0) * 1 : height;
         if (oldData.width !== undefined) {
-            el.emit('xyresize', { xyrect: this }, false);
             if (updateGeometry) {
                 el.setAttribute("geometry", { width: width, height: height });
             }
+            el.emit('xyresize', { xyrect: this }, false);
         }
     }
 });
