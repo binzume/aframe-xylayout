@@ -164,7 +164,8 @@ AFRAME.registerComponent('xyime', {
         'wa': 'わ', 'wi': 'うぃ', 'wu': 'う', 'we': 'うぇ', 'wo': 'を',
         'xa': 'ぁ', 'xi': 'ぃ', 'xu': 'ぅ', 'xe': 'ぇ', 'xo': 'ぉ',
         'xya': 'ゃ', 'xyi': 'ぃ', 'xyu': 'ゅ', 'xye': 'ぇ', 'xyo': 'ょ',
-        'xtu': 'っ', 'nn': 'ん', 'wyi': 'ゐ', 'wye': 'ゑ',
+        'xtu': 'っ', 'xka': 'ヵ', 'xke': 'ヶ',
+        'nn': 'ん', 'wyi': 'ゐ', 'wye': 'ゑ',
         'fu': 'ふ', 'vu': 'ヴ', 'tsu': 'つ',
         'chi': 'ち', 'ji': 'じ', 'shi': 'し',
         '-': 'ー'
@@ -207,14 +208,15 @@ AFRAME.registerComponent('xyime', {
                 }
                 this._confirm(ev.target);
             }
-            if (ev.key.match(/^[a-z-]$/)) {
-                let temp = (this._kana + ev.key)
-                    .replace(/l([aiueo])/g, "x$1")
-                    .replace(/n([ksthmrwgzbpdjfv])/g, "nn$1")
-                    .replace(/([ksthmyrwgzbpdjfv])\1/g, "xtu$1")
-                    .replace(/([kstnhmrgzbpdjf])y([aiueo])/g, "$1ixy$2")
-                    .replace(/(j|ch|sh)([aueo])/g, "$1ixy$2")
-                    .replace(/(f|v|ts)([aieo])/g, "$1ux$2");
+            if (ev.key.match(/^[^\s]$/)) {
+                let temp = [
+                    [/n([^aiueoyn])/g, "nn$1"],
+                    [/([ksthmyrwgzbpdjfv])\1/g, "xtu$1"],
+                    [/([kstnhmrgzbpdj])(y[aiueo])/g, "$1ix$2"],
+                    [/(j|ch|sh)([aueo])/g, "$1ixy$2"],
+                    [/(f|v|ts)(y?[aieo])/g, "$1ux$2"],
+                    [/(t|d)h([aiueo])/g, "$1exy$2"],
+                ].reduce((acc, [ptn, r]) => acc.replace(ptn, r), this._kana + ev.key);
                 for (let p = 0; p < temp.length; p++) {
                     for (let l = 3; l >= 0; l--) {
                         let t = this.table[temp.slice(p, p + l)];
@@ -274,7 +276,7 @@ AFRAME.registerComponent('xykeyboard', {
                 { offset: [0, 2], keys: ["aA1", "sS2", "dD3", "fF4", "gG5", "hH`", "jJ~", "kK+", "lL[", ":;]"] },
                 { offset: [0, 1], keys: [{ code: "Shift", symbols: "⇧⬆" }, "zZ6", "xX7", "cC8", "vV9", "bB0", "nN{", "mM}", ",'<", ".\">", "/?\\"] },
                 { offset: [0, 0], keys: [{ code: "Space", key: " ", label: "_", size: 4 }] },
-                { offset: [-4.5, 0], keys: [{ code: "_Fn", label: "#!" }, { code: "HiraganaKatakana", label: "あ" }] },
+                { offset: [-4.5, 0], keys: [{ code: "_Fn", label: "#!" }, { code: "HiraganaKatakana", label: "🌐" }] },
             ]
         },
         num: {
