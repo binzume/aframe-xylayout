@@ -2,15 +2,13 @@
 
 Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 
-ES2015 をサポートしたブラウザが必要です．最新版の Chrome, Firefox, Edge(79以降) で動作します．
-
 ## Examples
 
 Live demos:
 
-- [Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
-- [UI Components](https://binzume.github.io/aframe-xylayout/examples/widgets.html)
-- [Virtual keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html)
+- [Flexbox like Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
+- [UI Components](https://binzume.github.io/aframe-xylayout/examples/widgets.html) (マルチバイト文字列対応)
+- [Virtual keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html) (日本語入力対応)
 
 ![Layout example](./examples/layout.png)
 ![UI example](./examples/ui.png)
@@ -19,6 +17,10 @@ Live demos:
 ## Usage
 
 Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (35kB)
+
+AFrameのあとに`xylayout-all.min.js`を読み込んでください．
+
+ES2015 をサポートしたブラウザが必要です．(最新版の Chrome, Firefox, Edge で動作します)
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@v1.0.0/dist/aframe-master.min.js"></script>
@@ -38,7 +40,7 @@ Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (35kB)
 </a-xycontainer>
 ```
 
-Building xylayout-all.min.js
+### Building xylayout-all.min.js
 
 ```bash
 npm install
@@ -206,7 +208,7 @@ Events:
 
 | name | event.detail | desc |
 | ---- | ------------ | ---- |
-| select | {value, index} | changed event |
+| change | {value, index} | changed event |
 
 ### xylist
 
