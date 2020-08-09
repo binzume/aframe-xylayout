@@ -696,26 +696,25 @@ AFRAME.registerComponent('xyscroll', {
         scrollbar: { default: true }
     },
     init() {
-        let el = this.el;
-        this._scrollX = 0;
-        this._scrollY = 0;
-        this._speedY = 0;
+        this._scrollX = this._scrollY = this._speedY = 0;
         this._contentHeight = 0;
-        this._thumbLen = 0.2;
-        this._control = this._initScrollBar(el, 0.3);
+        this._thumbLen = 0;
 
-        el.setAttribute('xyclipping', { exclude: this._control });
+        let el = this.el;
+        let controls = this._control = this._initScrollBar(el, 0.3);
 
+        el.setAttribute('xyclipping', { exclude: controls });
         el.setAttribute('xydraggable', {});
         el.addEventListener('xy-drag', ev => {
             let d = ev.detail.pointDelta;
             this._speedY = -d.y;
             this._scrollOffset(d.x, -d.y);
         });
+        el.addEventListener('xy-dragstart', ev => this.play());
         el.addEventListener('xy-dragend', ev => this.play());
         el.addEventListener('xyresize', ev => this.update());
         for (let child of el.children) {
-            if (child != this._control) {
+            if (child != controls) {
                 child.addEventListener('xyresize', ev => this.update());
             }
         }
@@ -761,8 +760,8 @@ AFRAME.registerComponent('xyscroll', {
     },
     tick() {
         if (Math.abs(this._speedY) > 0.001) {
-            this._scrollOffset(0, this._speedY);
             this._speedY *= 0.8;
+            this._scrollOffset(0, this._speedY);
         } else {
             this.pause();
         }
@@ -789,9 +788,10 @@ AFRAME.registerComponent('xyscroll', {
         this._scrollX = Math.max(0, Math.min(x, contentWidth - xyrect.width));
         this._scrollY = Math.max(0, Math.min(y, contentHeight - xyrect.height));
 
+        // update scroll bar
         let thumbLen = this._thumbLen = Math.max(0.2, Math.min(this._scrollLength * xyrect.height / contentHeight, this._scrollLength));
-        let thumbY = this._scrollStart - thumbLen / 2 - (this._scrollLength - thumbLen) * this._scrollY / (contentHeight - xyrect.height || 1);
         this._scrollThumb.setAttribute('geometry', 'height', thumbLen);
+        let thumbY = this._scrollStart - thumbLen / 2 - (this._scrollLength - thumbLen) * this._scrollY / (contentHeight - xyrect.height || 1);
         this._scrollThumb.setAttribute('position', 'y', thumbY);
 
         for (let item of children) {
