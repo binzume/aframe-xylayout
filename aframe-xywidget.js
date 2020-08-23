@@ -284,7 +284,6 @@ AFRAME.registerComponent('xyselect', {
         let height = this.el.components.xyrect.height;
         let listY = (height + values.length * height) / 2;
         let listEl = this._listEl = document.createElement('a-xycontainer');
-        // listEl.setAttribute('justify-items', 'stretch');
         values.forEach((v, i) => {
             let itemEl = listEl.appendChild(document.createElement('a-xybutton'));
             itemEl.setAttribute('height', height);
@@ -296,7 +295,6 @@ AFRAME.registerComponent('xyselect', {
             });
         });
         listEl.setAttribute('position', { x: 0, y: listY, z: 0.1 });
-        // listEl.setAttribute('xyrect', { width: height * 4, height: values.length * height });
         this.el.appendChild(listEl);
     },
     select(idx) {
@@ -342,7 +340,7 @@ AFRAME.registerComponent('xydraggable', {
         let draggingRaycaster = cursorEl.components.raycaster.raycaster;
         let dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(baseEl.object3D.matrixWorld);
         let startDirection = draggingRaycaster.ray.direction.clone();
-        let point = new THREE.Vector3();
+        let point = new THREE.Vector3(), prevPoint = point.clone();
         if (draggingRaycaster.ray.intersectPlane(dragPlane, point) === null) {
             baseEl.object3D.worldToLocal(point);
         }
@@ -359,7 +357,7 @@ AFRAME.registerComponent('xydraggable', {
                 event = 'xy-dragstart'
                 _this.dragging = dragging = true;
             }
-            let prevPoint = point.clone();
+            prevPoint.copy(point);
             if (draggingRaycaster.ray.intersectPlane(dragPlane, point) !== null) {
                 baseEl.object3D.worldToLocal(point);
             }
@@ -394,8 +392,7 @@ AFRAME.registerComponent('xy-drag-control', {
     schema: {
         target: { type: 'selector', default: null },
         draggable: { default: '' },
-        autoRotate: { default: false },
-        mode: { default: 'grab' }
+        autoRotate: { default: false }
     },
     init() {
         this._ondrag = this._ondrag.bind(this);
@@ -425,9 +422,10 @@ AFRAME.registerComponent('xy-drag-control', {
     _ondrag(ev) {
         let el = this.el;
         let data = this.data;
-        let { origin, direction } = ev.detail.raycaster.ray;
-        let { origin: origin0, direction: direction0 } = ev.detail.prevRay;
-        let cursorEl = ev.detail.cursorEl;
+        let evDetail = ev.detail;
+        let { origin, direction } = evDetail.raycaster.ray;
+        let { origin: origin0, direction: direction0 } = evDetail.prevRay;
+        let cursorEl = evDetail.cursorEl;
         let targetObj = (data.target || el).object3D;
         let rot = new THREE.Quaternion();
         if (cursorEl.components['tracked-controls']) {
@@ -448,13 +446,10 @@ AFRAME.registerComponent('xy-drag-control', {
             .premultiply(tr.setPosition(origin))
             .premultiply(tr.getInverse(pm))
             .multiply(pm);
-        targetObj.applyMatrix(mat);
+        targetObj.applyMatrix4(mat);
 
-        if (data.mode == 'pull') {
-            let targetPosition = targetObj.getWorldPosition(new THREE.Vector3());
-            let d = direction.clone().sub(direction0);
-            let f = targetPosition.distanceTo(origin) * 2;
-            targetObj.position.add(direction.clone().multiplyScalar(-d.y * f));
+        if (this.postProcess) {
+            this.postProcess(targetObj, ev);
         }
 
         if (data.autoRotate) {
@@ -631,13 +626,12 @@ AFRAME.registerComponent('xyclipping', {
     update() {
         let data = this.data;
         let rect = this.el.components.xyrect;
-        let planes = [];
+        let planes = this._clippingPlanesLocal = [];
         if (data.clipBottom) planes.push(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0));
         if (data.clipTop) planes.push(new THREE.Plane(new THREE.Vector3(0, -1, 0), rect.height));
         if (data.clipLeft) planes.push(new THREE.Plane(new THREE.Vector3(1, 0, 0), 0));
         if (data.clipRight) planes.push(new THREE.Plane(new THREE.Vector3(-1, 0, 0), rect.width));
-        this._clippingPlanesLocal = planes;
-        this._clippingPlanes = [];
+        this._clippingPlanes = planes.map(p => p.clone());
         this._updateMatrix();
     },
     remove() {
@@ -668,7 +662,7 @@ AFRAME.registerComponent('xyclipping', {
     _updateMatrix() {
         this._currentMatrix = this.el.object3D.matrixWorld.clone();
         this._clippingPlanesLocal.forEach((plane, i) => {
-            this._clippingPlanes[i] = plane.clone().applyMatrix4(this._currentMatrix);
+            this._clippingPlanes[i].copy(plane).applyMatrix4(this._currentMatrix);
         });
         this.applyClippings();
     },
@@ -874,7 +868,7 @@ AFRAME.registerComponent('xylist', {
     },
     setContents(data, count) {
         this._userData = data;
-        this._itemCount = count !== undefined ? count : data.length;
+        this._itemCount = count != null ? count : data.length;
         this.el.setAttribute('xyrect', this._layout.size(this._itemCount, this));
         for (let el of Object.values(this._elements)) {
             el.dataset.listPosition = -1;
@@ -886,25 +880,26 @@ AFRAME.registerComponent('xylist', {
         this._refresh();
     },
     _refresh() {
-        if (!this._adapter) return;
+        let adapter = this._adapter;
         let el = this.el;
         let elements = this._elements;
         let visiblePositions = {};
         let retry = false;
+        if (!adapter) return;
 
         for (let position of this._layout.targets(this._viewport)) {
             if (position >= 0 && position < this._itemCount) {
                 visiblePositions[position] = true;
                 let itemEl = elements[position];
                 if (!itemEl) {
-                    itemEl = elements[position] = this._cache.pop() || el.appendChild(this._adapter.create(el));
+                    itemEl = elements[position] = this._cache.pop() || el.appendChild(adapter.create(el));
                     itemEl.classList.add(XYTheme.get(el).collidableClass);
                 }
                 retry |= !itemEl.hasLoaded;
                 if (itemEl.hasLoaded && itemEl.dataset.listPosition != position) {
                     itemEl.dataset.listPosition = position;
                     this._layout.layout(itemEl, position);
-                    this._adapter.bind(position, itemEl, this._userData);
+                    adapter.bind(position, itemEl, this._userData);
                 }
             }
         }
