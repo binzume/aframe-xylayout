@@ -13,10 +13,11 @@
         // TODO: support multi theme.
         let theme = XYTheme.defaultTheme;
         theme.button.color = "#aaa";
-        theme.button.hoverColor = "#8f8";
+        theme.button.hoverColor = "#88f";
         theme.button.labelColor = "#111";
-        theme.windowCloseButton = { color: "#999", hoverColor: "#f00", labelColor: "#fff" };
-        theme.windowTitleBar = { color: "#4e9", hoverColor: "#eee", labelColor: "#222" };
+        theme.window.closeButton = { color: "#999", hoverColor: "#f00", labelColor: "#fff" };
+        theme.window.titleBar = { color: "#49e", hoverColor: "#eee", labelColor: "#222" };
+        theme.window.background = { color: "#888" };
     </script>
 </head>
 
@@ -36,9 +37,7 @@
             <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
         </a-entity>
 
-        <a-xywindow position="0 0 -12" width="6" height="5" title="UI Components">
-            <a-plane xyitem="fixed:true" width="6" height="5" position="0 0 -0.05" color="#444"></a-plane>
-
+        <a-xywindow position="0 0 -12" width="6" height="5" title="UI Components" xywindow="background:true">
             <a-xycontainer direction="column" spacing="0.1" padding="0.2">
                 <a-xylabel value="ABC123漢字" width="2" height="0.5"></a-xylabel>
                 <a-xybutton label="Button"></a-xybutton>
