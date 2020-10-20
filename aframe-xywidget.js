@@ -13,8 +13,11 @@ const XYTheme = {
             hoverHaptic: 0.3,
             hoverHapticMs: 10,
         },
-        windowCloseButton: { color: '#111', hoverColor: '#f00' },
-        windowTitleBar: { color: '#111' },
+        window: {
+            closeButton: { color: '#111', hoverColor: '#f00' },
+            titleBar: { color: '#111' },
+            background: { color: '#444' },
+        },
         collidableClass: 'collidable',
         createButton(width, height, parentEl, params, hasLabel, buttonEl) {
             let getParam = (p) => params && params[p] || this.button[p];
@@ -133,7 +136,8 @@ AFRAME.registerComponent('xylabel', {
             if (char == '\n' || ctx.measureText(lines[ln] + char).width > textWidth) {
                 lines.push('');
                 ln++;
-            } else {
+            }
+            if (char != '\n') {
                 lines[ln] += char;
             }
         }
@@ -474,21 +478,29 @@ AFRAME.registerComponent('xywindow', {
     dependencies: ['xycontainer'],
     schema: {
         title: { default: '' },
-        closable: { default: true }
+        closable: { default: true },
+        background: { default: false }
     },
     init() {
         let el = this.el;
         let theme = XYTheme.get(el);
+        let windowStyle = theme.window;
         let controls = this.controls = el.appendChild(document.createElement('a-entity'));
         controls.setAttribute('xyitem', { fixed: true });
         controls.setAttribute('position', { x: 0, y: 0, z: 0.05 });
+        // if (windowStyle.defaultScale && !el.hasAttribute('scale')) { el.setAttribute('scale', windowStyle.defaultScale); }
 
-        let dragButton = this._dragButton = theme.createButton(1, 0.5, controls, theme.windowTitleBar, true);
+        if (this.data.background) {
+            this._background = controls.appendChild(document.createElement('a-plane'));
+            this._background.setAttribute('color', windowStyle.background.color); // TODO
+        }
+
+        let dragButton = this._dragButton = theme.createButton(1, 0.5, controls, windowStyle.titleBar, true);
         dragButton.setAttribute('xy-drag-control', { target: el, autoRotate: true });
         this._buttons = [];
 
         if (this.data.closable) {
-            let closeButton = theme.createButton(0.5, 0.5, controls, theme.windowCloseButton, true);
+            let closeButton = theme.createButton(0.5, 0.5, controls, windowStyle.closeButton, true);
             closeButton.setAttribute('xylabel', {
                 value: 'X', align: 'center'
             });
@@ -506,24 +518,30 @@ AFRAME.registerComponent('xywindow', {
         this.system.unregisterWindow(this);
     },
     update(oldData) {
+        let el = this.el;
         let data = this.data;
-        let xyrect = this.el.components.xyrect;
+        let { width, height } = el.components.xyrect;
         let dragButton = this._dragButton;
-        let a = 0;
+        let background = this._background;
+        let buttonsWidth = 0;
         for (let b of this._buttons) {
-            b.setAttribute('position', { x: xyrect.width / 2 - 0.25 - a, y: 0.3 });
-            a += 0.52;
+            b.setAttribute('position', { x: width / 2 - 0.25 - buttonsWidth, y: 0.3 });
+            buttonsWidth += 0.52;
         }
         if (data.title != oldData.title) {
-            let titleW = xyrect.width - a - 0.1;
+            let titleW = width - buttonsWidth - 0.1;
             dragButton.setAttribute('xyrect', { width: titleW, height: 0.45 });
             dragButton.setAttribute('xylabel', {
                 value: data.title, wrapCount: Math.max(10, titleW / 0.2), xOffset: 0.1
             });
         }
-        this.controls.setAttribute('position', 'y', xyrect.height * 0.5);
-        dragButton.setAttribute('geometry', 'width', xyrect.width - a);
-        dragButton.setAttribute('position', { x: -a / 2, y: 0.3, z: 0 });
+        this.controls.setAttribute('position', 'y', height * 0.5);
+        dragButton.setAttribute('geometry', 'width', width - buttonsWidth);
+        dragButton.setAttribute('position', { x: -buttonsWidth / 2, y: 0.3, z: 0 });
+        if (background) {
+            background.setAttribute('geometry', { width: width, height: height });
+            background.setAttribute('position', { y: - height / 2, z: -0.06 });
+        }
     }
 });
 
@@ -976,7 +994,7 @@ AFRAME.registerPrimitive('a-xyselect', {
 
 AFRAME.registerPrimitive('a-xywindow', {
     defaultComponents: {
-        xycontainer: { alignItems: 'stretch' },
+        xycontainer: { alignItems: 'center' },
         xywindow: {}
     },
     mappings: {
