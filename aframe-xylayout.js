@@ -1,3 +1,4 @@
+/// <reference path="node_modules/@types/aframe/index.d.ts" />
 "use strict";
 
 AFRAME.registerComponent('xycontainer', {
@@ -114,7 +115,7 @@ AFRAME.registerComponent('xycontainer', {
         }
     },
     _layoutLine(targets, sizeSum, growSum, shrinkSum, p, crossOffset, containerSize0, containerSize1, xymat, attrNames) {
-        let { justifyItems, alignItems, spacing } = this.data;
+        let { justifyItems, alignItems, spacing, wrap } = this.data;
         let stretchFactor = 0;
         let numTarget = targets.length;
         if (justifyItems === "center") {
@@ -132,7 +133,7 @@ AFRAME.registerComponent('xycontainer', {
             spacing = (containerSize0 - sizeSum) / (numTarget - 1);
         } else if (justifyItems === "space-around") {
             spacing = (containerSize0 - sizeSum) / numTarget;
-            p += spacing * 0.5;
+            p += spacing / 2;
         }
 
         for (let itemData of targets) {
@@ -145,7 +146,7 @@ AFRAME.registerComponent('xycontainer', {
             let stretch = (xyitem ? (stretchFactor > 0 ? xyitem.grow : xyitem.shrink) : 1) * stretchFactor;
             let szMain = size0 * scale0 + stretch;
             let posMain = (p + pivot0 * szMain);
-            let posCross = crossOffset + containerSize1 * 0.5; // center
+            let posCross = crossOffset + containerSize1 / 2; // center
             let pos = el.getAttribute("position") || { x: 0, y: 0, z: 0 };
             if (scale0 > 0 && stretch != 0) {
                 el.setAttribute(attrNames[0], size0 + stretch / scale0);
@@ -160,7 +161,8 @@ AFRAME.registerComponent('xycontainer', {
                 posCross = crossOffset + containerSize1 - (1 - pivot1) * size1;
             } else if (align === "center") {
                 posCross += (pivot1 - 0.5) * size1;
-            } else if (align === "none") {
+            } else if (align === "none" && wrap != 'wrap') {
+                // Keep original cross position if nowrap.
                 posCross += xymat[1] * pos.x + xymat[3] * pos.y;
             }
             pos.x = xymat[0] * posMain + xymat[1] * posCross;
@@ -224,6 +226,7 @@ AFRAME.registerPrimitive('a-xycontainer', {
         reverse: 'xycontainer.reverse',
         wrap: 'xycontainer.wrap',
         "align-items": 'xycontainer.alignItems',
-        "justify-items": 'xycontainer.justifyItems'
+        "justify-items": 'xycontainer.justifyItems',
+        "align-content": 'xycontainer.alignContent',
     }
 });
