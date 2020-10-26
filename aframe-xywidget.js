@@ -16,7 +16,7 @@ const XYTheme = {
         window: {
             closeButton: { color: '#111', hoverColor: '#f00' },
             titleBar: { color: '#111' },
-            background: { color: '#444' },
+            background: { color: '#111' },
         },
         collidableClass: 'collidable',
         createButton(width, height, parentEl, params, hasLabel, buttonEl) {
@@ -96,20 +96,19 @@ AFRAME.registerComponent('xylabel', {
     update() {
         let data = this.data;
         let el = this.el;
+        let value = data.value;
         let widthFactor = 0.65;
+        let { width: w, height: h } = el.components.xyrect;
         let wrapCount = data.wrapCount;
-        let xyrect = el.components.xyrect;
-        let h = xyrect.height;
-        let w = xyrect.width;
+        if (wrapCount == 0 && h > 0) {
+            wrapCount = Math.max(w / h / widthFactor, value.length) + 1;
+        }
 
-        if (data.value == '') {
+        if (value == '') {
             this.remove();
             return;
         }
-        if (wrapCount == 0 && h > 0) {
-            wrapCount = Math.max(w / h / widthFactor, data.value.length) + 1;
-        }
-        if (data.renderingMode == 'auto' && !/[\u0100-\uDFFF]/.test(data.value)) {
+        if (data.renderingMode == 'auto' && !/[\u0100-\uDFFF]/.test(value)) {
             let textData = Object.assign({}, data);
             delete textData['resolution'];
             delete textData['renderingMode'];
@@ -128,11 +127,12 @@ AFRAME.registerComponent('xylabel', {
         let lineHeight = data.resolution;
         let textWidth = Math.floor(lineHeight * wrapCount * widthFactor);
         let canvas = this.canvas || document.createElement('canvas');
+        let font = "" + (lineHeight * 0.9) + "px bold sans-serif";
         let ctx = canvas.getContext('2d');
-        ctx.font = "" + (lineHeight * 0.9) + "px bold sans-serif";
+        ctx.font = font;
 
         let lines = [''], ln = 0;
-        for (let char of data.value) {
+        for (let char of value) {
             if (char == '\n' || ctx.measureText(lines[ln] + char).width > textWidth) {
                 lines.push('');
                 ln++;
@@ -151,7 +151,7 @@ AFRAME.registerComponent('xylabel', {
             canvas.height = canvasHeight;
             canvas.width = canvasWidth;
             this.textWidth = textWidth;
-            let texture = new THREE.CanvasTexture(canvas);
+            let texture = this._texture = new THREE.CanvasTexture(canvas);
             texture.anisotropy = 4;
             texture.alphaTest = 0.2;
             texture.repeat.x = textWidth / canvasWidth;
@@ -165,7 +165,7 @@ AFRAME.registerComponent('xylabel', {
         }
 
         ctx.clearRect(0, 0, textWidth, canvasHeight);
-        ctx.font = "" + (lineHeight * 0.9) + "px bold sans-serif";
+        ctx.font = font;
         ctx.textBaseline = 'top';
         ctx.textAlign = data.align;
         ctx.fillStyle = data.color;
@@ -176,7 +176,7 @@ AFRAME.registerComponent('xylabel', {
             y += lineHeight;
         }
 
-        el.object3DMap.xylabel.material.map.needsUpdate = true;
+        this._texture.needsUpdate = true;
     },
     remove() {
         this._removeObject3d();
@@ -185,12 +185,13 @@ AFRAME.registerComponent('xylabel', {
         }
     },
     _removeObject3d() {
-        let labelObj = this.el.getObject3D('xylabel');
+        let el = this.el;
+        let labelObj = el.getObject3D('xylabel');
         if (labelObj) {
             labelObj.material.map.dispose();
             labelObj.material.dispose();
             labelObj.geometry.dispose();
-            this.el.removeObject3D('xylabel');
+            el.removeObject3D('xylabel');
             this.canvas = null;
         }
     }
@@ -240,7 +241,7 @@ AFRAME.registerComponent('xytoggle', {
         el.setAttribute('xybutton', params);
         el.setAttribute('material', 'color', params.color);
         this._thumb.setAttribute('geometry', 'radius', r * 0.8);
-        this._thumb.setAttribute('position', { x: (xyrect.width / 2 - r) * (v ? 1 : -1), y: 0, z: 0.05 });
+        this._thumb.object3D.position.set((xyrect.width / 2 - r) * (v ? 1 : -1), 0, 0.05);
         el.setAttribute('geometry', {
             primitive: 'xy-rounded-rect', width: xyrect.width, height: r * 2, radius: r
         });
@@ -279,7 +280,7 @@ AFRAME.registerComponent('xyselect', {
         let data = this.data;
         this.el.setAttribute('xylabel', { value: data.label || data.values[data.select] });
         if (this._marker) {
-            this._marker.setAttribute('position', { x: this.el.components.xyrect.width / 2 - 0.2, y: 0, z: 0.05 });
+            this._marker.object3D.position.set(this.el.components.xyrect.width / 2 - 0.2, 0, 0.05);
         }
     },
     show() {
@@ -298,7 +299,7 @@ AFRAME.registerComponent('xyselect', {
                 this.hide();
             });
         });
-        listEl.setAttribute('position', { x: 0, y: listY, z: 0.1 });
+        listEl.object3D.position.set(0, listY, 0.1);
         this.el.appendChild(listEl);
     },
     select(idx) {
@@ -408,7 +409,7 @@ AFRAME.registerComponent('xy-drag-control', {
         if (draggable !== oldData.draggable) {
             this.remove();
             this._draggable = Array.isArray(draggable) ? draggable :
-                draggable != '' ? this.el.querySelectorAll(draggable) : [this.el];
+                draggable ? this.el.querySelectorAll(draggable) : [this.el];
             this._draggable.forEach(el => {
                 el.setAttribute('xydraggable', {});
                 el.addEventListener('xy-dragstart', this._ondrag);
@@ -487,12 +488,21 @@ AFRAME.registerComponent('xywindow', {
         let windowStyle = theme.window;
         let controls = this.controls = el.appendChild(document.createElement('a-entity'));
         controls.setAttribute('xyitem', { fixed: true });
-        controls.setAttribute('position', { x: 0, y: 0, z: 0.05 });
+        controls.object3D.position.set(0, 0, 0.02);
         // if (windowStyle.defaultScale && !el.hasAttribute('scale')) { el.setAttribute('scale', windowStyle.defaultScale); }
 
         if (this.data.background) {
-            this._background = controls.appendChild(document.createElement('a-plane'));
-            this._background.setAttribute('color', windowStyle.background.color); // TODO
+            // TODO
+            let background = this._background = controls.appendChild(document.createElement('a-plane'));
+            background.setAttribute('material', {
+                color: windowStyle.background.color, side: 'double', transparent: true, opacity: 0.8
+            });
+            background.object3D.position.set(0, 0.25, -0.04);
+            el.addEventListener('object3dset', ev => {
+                if (ev.detail.object.el == background) {
+                    el.object3D.children.unshift(el.object3D.children.pop()); // Move to first.
+                }
+            });
         }
 
         let dragButton = this._dragButton = theme.createButton(1, 0.5, controls, windowStyle.titleBar, true);
@@ -524,8 +534,9 @@ AFRAME.registerComponent('xywindow', {
         let dragButton = this._dragButton;
         let background = this._background;
         let buttonsWidth = 0;
+        let tiyleY = height / 2 + 0.3;
         for (let b of this._buttons) {
-            b.setAttribute('position', { x: width / 2 - 0.25 - buttonsWidth, y: 0.3 });
+            b.object3D.position.set(width / 2 - 0.25 - buttonsWidth, tiyleY, 0);
             buttonsWidth += 0.52;
         }
         if (data.title != oldData.title) {
@@ -535,12 +546,10 @@ AFRAME.registerComponent('xywindow', {
                 value: data.title, wrapCount: Math.max(10, titleW / 0.2), xOffset: 0.1
             });
         }
-        this.controls.setAttribute('position', 'y', height * 0.5);
-        dragButton.setAttribute('geometry', 'width', width - buttonsWidth);
-        dragButton.setAttribute('position', { x: -buttonsWidth / 2, y: 0.3, z: 0 });
+        dragButton.setAttribute('geometry', { width: width - buttonsWidth });
+        dragButton.object3D.position.set(-buttonsWidth / 2, tiyleY, 0);
         if (background) {
-            background.setAttribute('geometry', { width: width, height: height });
-            background.setAttribute('position', { y: - height / 2, z: -0.06 });
+            background.object3D.scale.set(width + 0.1, height + 0.7, 1);
         }
     }
 });
@@ -602,11 +611,7 @@ AFRAME.registerComponent('xyrange', {
         let r = this.el.components.xyrect.width - data.thumbSize;
         let w = r * (data.value - data.min) / (data.max - data.min);
         this._thumb.setAttribute('geometry', 'radius', data.thumbSize / 2);
-        this._thumb.setAttribute('position', {
-            x: w - r / 2,
-            y: 0,
-            z: 0.04
-        });
+        this._thumb.object3D.position.set(w - r / 2, 0, 0.04);
         this._bar.scale.x = r;
         this._prog.scale.x = w || 0.01;
         this._prog.position.x = (w - r) / 2;
@@ -870,7 +875,7 @@ AFRAME.registerComponent('xylist', {
         el.addEventListener('click', (ev) => {
             for (let p of (ev.path || ev.composedPath())) {
                 let index = p.dataset.listPosition;
-                if (index != null && index != -1) {
+                if (index != null && index >= 0) {
                     el.emit('clickitem', { index: index, ev: ev }, false);
                     break;
                 }
@@ -922,8 +927,7 @@ AFRAME.registerComponent('xylist', {
             }
         }
 
-        for (let position of Object.keys(elements)) {
-            let el = elements[position];
+        for (let [position, el] of Object.entries(elements)) {
             el.setAttribute('visible', visiblePositions[position] == true);
             if (!visiblePositions[position]) {
                 this._cache.push(el);
@@ -938,7 +942,6 @@ AFRAME.registerComponent('xylist', {
 
 AFRAME.registerPrimitive('a-xylabel', {
     defaultComponents: {
-        xyrect: {},
         xylabel: {}
     },
     mappings: {
@@ -953,6 +956,7 @@ AFRAME.registerPrimitive('a-xylabel', {
 
 AFRAME.registerPrimitive('a-xybutton', {
     defaultComponents: {
+        xyrect: { width: 2, height: 0.5, updateGeometry: true },
         xyrect: { width: 2, height: 0.5, updateGeometry: true },
         xylabel: { align: 'center' },
         xybutton: {}
@@ -1018,7 +1022,6 @@ AFRAME.registerPrimitive('a-xyscroll', {
 
 AFRAME.registerPrimitive('a-xyrange', {
     defaultComponents: {
-        xyrect: {},
         xyrange: {}
     },
     mappings: {
