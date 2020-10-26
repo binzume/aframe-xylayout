@@ -966,6 +966,9 @@ AFRAME.registerPrimitive('a-xybutton', {
         height: 'xyrect.height',
         label: 'xylabel.value',
         align: 'xylabel.align',
+        color: 'xybutton.color',
+        'hover-color': 'xybutton.hoverColor',
+        'label-color': 'xybutton.labelColor',
     }
 });
 
@@ -993,6 +996,9 @@ AFRAME.registerPrimitive('a-xyselect', {
         label: 'xyselect.label',
         toggle: 'xyselect.toggle',
         select: 'xyselect.select',
+        color: 'xybutton.color',
+        'hover-color': 'xybutton.hoverColor',
+        'label-color': 'xybutton.labelColor',
     }
 });
 
