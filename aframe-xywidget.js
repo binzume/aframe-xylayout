@@ -451,7 +451,9 @@ AFRAME.registerComponent('xy-drag-control', {
             .premultiply(tr.setPosition(origin))
             .premultiply(tr.getInverse(pm))
             .multiply(pm);
-        targetObj.applyMatrix4(mat);
+
+        // TODO: Remove applyMatrix() calls.
+        targetObj.applyMatrix4 ? targetObj.applyMatrix4(mat) : targetObj.applyMatrix(mat);
 
         if (this.postProcess) {
             this.postProcess(targetObj, ev);
