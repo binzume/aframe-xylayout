@@ -1,25 +1,31 @@
 {
   "name": "aframe-xylayout",
-  "version": "1.0.0",
   "description": "Flexbox like layout + UI components for A-Frame",
+  "version": "0.0.1",
+  "author": "binzume",
+  "main": "dist/xylayout-all.js",
+
   "directories": {
     "example": "examples"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dist": "node_modules/.bin/uglifyjs --compress pure_getters=true --mangle --mangle-props regex=/^_/ --source-map -o dist/xylayout-all.min.js -- aframe-*.js && ls -la dist/*.js"
+
+    "dist-concat": "node_modules/.bin/uglifyjs -b -o dist/xylayout-all.js -- aframe-*.js",
+    "dist-min": "node_modules/.bin/uglifyjs --compress pure_getters=true --mangle --mangle-props regex=/^_/ --source-map -o dist/xylayout-all.min.js -- aframe-*.js",
+    "dist": "npm run dist-min && npm run dist-concat && ls -la dist/*.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/binzume/aframe-xylayout.git"
   },
-  "author": "binzume",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/binzume/aframe-xylayout/issues"
   },
   "homepage": "https://github.com/binzume/aframe-xylayout#readme",
   "devDependencies": {
+    "@types/aframe": "^1.0.1",
     "uglify-es": "^3.3.9"
   }
 }
