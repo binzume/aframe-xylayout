@@ -1998,6 +1998,7 @@ AFRAME.registerComponent("xylist", {
 
 AFRAME.registerPrimitive("a-xylabel", {
     defaultComponents: {
+        xyrect: {},
         xylabel: {}
     },
     mappings: {
@@ -2103,6 +2104,7 @@ AFRAME.registerPrimitive("a-xyscroll", {
 
 AFRAME.registerPrimitive("a-xyrange", {
     defaultComponents: {
+        xyrect: {},
         xyrange: {}
     },
     mappings: {

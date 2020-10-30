@@ -62,7 +62,8 @@ T.B.D. (See [examples](./examples))
 - a-xyinput
 - a-xykeyboard
 
-それぞれ同名のコンポーネント + `xyrect`コンポーネントが使われます．
+- それぞれ同名のコンポーネント + `xyrect`コンポーネントが使われます．
+- デフォルトのUIのサイズは巨大なのでscaleで調整してください．
 
 ## Components
 
@@ -127,6 +128,7 @@ Attributes:
 | ---- | ---- | ------- | ---- |
 | title    | string   |      | ウィンドウタイトル |
 | closable | boolean  | true | 閉じるボタンの表示 |
+| background | boolean  | true | 背景の表示 |
 
 ### xylabel
 
@@ -299,8 +301,7 @@ Attributes:
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
 | ime | boolean | false | 漢字変換を有効にする |
-| keySize | number | 0.2 | キーのサイズ |
-
+| keySize | number | 0.2 | キーのサイズ(削除予定) |
 
 # License
 
