@@ -959,7 +959,6 @@ AFRAME.registerPrimitive('a-xylabel', {
 AFRAME.registerPrimitive('a-xybutton', {
     defaultComponents: {
         xyrect: { width: 2, height: 0.5, updateGeometry: true },
-        xyrect: { width: 2, height: 0.5, updateGeometry: true },
         xylabel: { align: 'center' },
         xybutton: {}
     },

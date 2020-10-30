@@ -27,7 +27,7 @@ AFRAME.registerComponent('xycontainer', {
         let isVertical = direction == "vertical" || direction == "column";
         let padding = data.padding;
         let spacing = data.spacing;
-        let mainDir = (data.reverse ^ isVertical) ? -1 : 1;
+        let mainDir = (data.reverse != isVertical) ? -1 : 1;
         let xymat = isVertical ? [0, 1, mainDir, 0] : [mainDir, 0, 0, -1]; // [main,corss] to [x,y]
         let xyToMainCross = isVertical ? (x, y) => [y, x] : (x, y) => [x, y];
         let containerSize = xyToMainCross(containerRect.width - padding * 2, containerRect.height - padding * 2);
@@ -114,6 +114,18 @@ AFRAME.registerComponent('xycontainer', {
             crossOffset += crossSize + crossStretch + spacing;
         }
     },
+    /**
+     * @param {{el:import("aframe").Entity, xyitem: any, size: number[], pivot: number[], scale:number[]}[]} targets
+     * @param {number} sizeSum
+     * @param {number} growSum
+     * @param {number} shrinkSum
+     * @param {number} p
+     * @param {number} crossOffset
+     * @param {number} containerSize0
+     * @param {number} containerSize1
+     * @param {number[]} xymat
+     * @param {string[]} attrNames
+     */
     _layoutLine(targets, sizeSum, growSum, shrinkSum, p, crossOffset, containerSize0, containerSize1, xymat, attrNames) {
         let { justifyItems, alignItems, spacing, wrap } = this.data;
         let stretchFactor = 0;
@@ -182,7 +194,7 @@ AFRAME.registerComponent('xyitem', {
     },
     update(oldData) {
         if (oldData.align !== undefined) {
-            let xycontainer = this.el.parent.components.xycontainer;
+            let xycontainer = this.el.parentNode.components.xycontainer;
             if (xycontainer) {
                 xycontainer.layout();
             }
