@@ -732,10 +732,17 @@ AFRAME.registerComponent('xyscroll', {
         el.addEventListener('xy-dragstart', ev => this.pause());
         el.addEventListener('xy-dragend', ev => this.play());
         el.addEventListener('xyresize', ev => this.update());
-        for (let child of el.children) {
-            if (child != scrollBar) {
-                child.addEventListener('xyresize', ev => this.update());
+        let item = this._getContentEl();
+        if (item) {
+            item.addEventListener('xyresize', ev => this.update());
+        }
+    },
+    _getContentEl() {
+        for (let item of this.el.children) {
+            if (item === this._scrollBar || (item.getAttribute('xyitem') || {}).fixed) {
+                continue;
             }
+            return item;
         }
     },
     _initScrollBar(el, w) {
@@ -789,19 +796,17 @@ AFRAME.registerComponent('xyscroll', {
         this.setScroll(this._scrollX + dx, this._scrollY + dy);
     },
     setScroll(x, y) {
+        let item = this._getContentEl();
+        if (!item) {
+            return;
+        }
         let el = this.el;
         let { width: scrollWidth, height: scrollHeight } = el.components.xyrect;
-        let children = el.children;
-        let contentHeight = 0;
-        let contentWidth = 0;
-        for (let item of children) {
-            if (item === this._scrollBar) continue;
-            if (!item.components.xyrec) {
-                item.setAttribute('xyrect', {});
-            }
-            let itemRect = item.components.xyrect;
-            contentWidth = Math.max(contentWidth, itemRect.width);
-            contentHeight = Math.max(contentHeight, itemRect.height);
+        let itemRect = item.components.xyrect;
+        let contentHeight = itemRect.height;
+        let contentWidth = itemRect.width;
+        if (!item.components.xyrec) {
+            item.setAttribute('xyrect', {});
         }
 
         this._scrollX = Math.max(0, Math.min(x, contentWidth - scrollWidth));
@@ -814,17 +819,12 @@ AFRAME.registerComponent('xyscroll', {
         this._scrollThumb.setAttribute('geometry', 'height', thumbLen);
         this._scrollThumb.setAttribute('position', 'y', thumbY);
 
-        for (let item of children) {
-            if (item === this._scrollBar || (item.getAttribute('xyitem') || {}).fixed) {
-                continue;
-            }
-            let itemRect = item.components.xyrect;
-            let itemPivot = itemRect.data.pivot;
-            let vx = (itemPivot.x) * itemRect.width - this._scrollX;
-            let vy = (1.0 - itemPivot.y) * itemRect.height - this._scrollY;
-            item.setAttribute('position', { x: vx, y: scrollHeight - vy });
-            item.emit('xyviewport', [vy, vy - scrollHeight, -vx, scrollWidth - vx], false);
-        }
+        let itemPivot = itemRect.data.pivot;
+        let vx = (itemPivot.x) * itemRect.width - this._scrollX;
+        let vy = (1.0 - itemPivot.y) * itemRect.height - this._scrollY;
+        item.setAttribute('position', { x: vx, y: scrollHeight - vy });
+        item.emit('xyviewport', [vy, vy - scrollHeight, -vx, scrollWidth - vx], false);
+
         let clippling = el.components.xyclipping;
         if (clippling) {
             clippling.applyClippings();
