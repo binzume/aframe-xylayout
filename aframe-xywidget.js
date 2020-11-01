@@ -341,16 +341,21 @@ AFRAME.registerComponent('xydraggable', {
         if (!ev.detail.cursorEl || !ev.detail.cursorEl.components.raycaster) {
             return;
         }
-        let baseEl = this.data.base || this.el;
+        let baseObj = (this.data.base || this.el).object3D;
         let cursorEl = ev.detail.cursorEl;
         let draggingRaycaster = cursorEl.components.raycaster.raycaster;
-        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(baseEl.object3D.matrixWorld);
+        let point = new THREE.Vector3();
         let startDirection = draggingRaycaster.ray.direction.clone();
-        let point = new THREE.Vector3(), prevPoint = point.clone();
+        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(baseObj.matrixWorld);
+        let intersection = ev.detail.intersection;
+        if (intersection) {
+            dragPlane.setFromNormalAndCoplanarPoint(baseObj.getWorldDirection(point), intersection.point);
+        }
         if (draggingRaycaster.ray.intersectPlane(dragPlane, point) === null) {
-            baseEl.object3D.worldToLocal(point);
+            baseObj.worldToLocal(point);
         }
         let prevRay = draggingRaycaster.ray.clone();
+        let prevPoint = point.clone();
         let _this = this;
         let dragging = false;
         ev.stopPropagation();
@@ -365,7 +370,7 @@ AFRAME.registerComponent('xydraggable', {
             }
             prevPoint.copy(point);
             if (draggingRaycaster.ray.intersectPlane(dragPlane, point) !== null) {
-                baseEl.object3D.worldToLocal(point);
+                baseObj.worldToLocal(point);
             }
             _this.el.emit(event, { raycaster: draggingRaycaster, point: point, pointDelta: prevPoint.sub(point), prevRay: prevRay, cursorEl: cursorEl }, false);
             prevRay.copy(draggingRaycaster.ray);
@@ -677,6 +682,7 @@ AFRAME.registerComponent('xyclipping', {
     },
     applyClippings() {
         // TODO: handle added/removed event.
+        // TODO: fix shared material issue.
         let excludeObj = this.data.exclude && this.data.exclude.object3D;
         let setCliping = (obj) => {
             if (obj === excludeObj) return;
@@ -714,27 +720,27 @@ AFRAME.registerComponent('xyscroll', {
         this._thumbLen = 0;
 
         let el = this.el;
-        let controls = this._control = this._initScrollBar(el, 0.3);
+        let scrollBar = this._scrollBar = this._initScrollBar(el, 0.3);
 
-        el.setAttribute('xyclipping', { exclude: controls });
+        el.setAttribute('xyclipping', { exclude: scrollBar });
         el.setAttribute('xydraggable', {});
         el.addEventListener('xy-drag', ev => {
             let d = ev.detail.pointDelta;
             this._speedY = -d.y;
             this._scrollOffset(d.x, -d.y);
         });
-        el.addEventListener('xy-dragstart', ev => this.play());
+        el.addEventListener('xy-dragstart', ev => this.pause());
         el.addEventListener('xy-dragend', ev => this.play());
         el.addEventListener('xyresize', ev => this.update());
         for (let child of el.children) {
-            if (child != controls) {
+            if (child != scrollBar) {
                 child.addEventListener('xyresize', ev => this.update());
             }
         }
     },
     _initScrollBar(el, w) {
         let theme = XYTheme.get(el);
-        let scrollBar = this._scrollBar = el.appendChild(document.createElement('a-entity'));
+        let scrollBar = el.appendChild(document.createElement('a-entity'));
 
         this._upButton = theme.createButton(w, w, scrollBar);
         this._upButton.addEventListener('click', (ev) => {
@@ -769,7 +775,7 @@ AFRAME.registerComponent('xyscroll', {
         this._scrollDelta = Math.max(scrollBarHeight / 2, 0.5) * 0.3;
         this._scrollStart = scrollBarHeight - 0.3;
         this._scrollLength = scrollBarHeight - 0.6;
-        this.setScroll(0, 0);
+        this._scrollOffset(0, 0);
     },
     tick() {
         if (Math.abs(this._speedY) > 0.001) {
@@ -788,12 +794,12 @@ AFRAME.registerComponent('xyscroll', {
         let children = el.children;
         let contentHeight = 0;
         let contentWidth = 0;
-        for (let child of children) {
-            if (child === this._control) continue;
-            if (!child.components.xyrec) {
-                child.setAttribute('xyrect', {});
+        for (let item of children) {
+            if (item === this._scrollBar) continue;
+            if (!item.components.xyrec) {
+                item.setAttribute('xyrect', {});
             }
-            let itemRect = child.components.xyrect;
+            let itemRect = item.components.xyrect;
             contentWidth = Math.max(contentWidth, itemRect.width);
             contentHeight = Math.max(contentHeight, itemRect.height);
         }
@@ -804,12 +810,12 @@ AFRAME.registerComponent('xyscroll', {
         // update scroll bar
         this._contentHeight = contentHeight;
         let thumbLen = this._thumbLen = Math.max(0.2, Math.min(this._scrollLength * scrollHeight / contentHeight, this._scrollLength));
-        this._scrollThumb.setAttribute('geometry', 'height', thumbLen);
         let thumbY = this._scrollStart - thumbLen / 2 - (this._scrollLength - thumbLen) * this._scrollY / (contentHeight - scrollHeight || 1);
+        this._scrollThumb.setAttribute('geometry', 'height', thumbLen);
         this._scrollThumb.setAttribute('position', 'y', thumbY);
 
         for (let item of children) {
-            if (item === this._control || (item.getAttribute('xyitem') || {}).fixed) {
+            if (item === this._scrollBar || (item.getAttribute('xyitem') || {}).fixed) {
                 continue;
             }
             let itemRect = item.components.xyrect;
