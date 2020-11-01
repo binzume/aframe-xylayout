@@ -19,7 +19,8 @@ AFRAME.registerComponent("xyinput", {
             default: "white"
         },
         virtualKeyboard: {
-            default: "[xykeyboard]"
+            default: "[xykeyboard]",
+            type: "selector"
         }
     },
     init() {
@@ -54,7 +55,7 @@ AFRAME.registerComponent("xyinput", {
         el.addEventListener("xyresize", updateGeometory);
         el.addEventListener("click", ev => {
             el.focus();
-            let kbd = document.querySelector(data.virtualKeyboard);
+            let kbd = data.virtualKeyboard;
             if (kbd) {
                 kbd.components.xykeyboard.show(data.type);
             }
@@ -522,16 +523,14 @@ AFRAME.registerComponent("xykeyboard", {
                         if (key.code == "Shift") {
                             this._updateSymbols((this._keyidx + 1) % 2);
                         }
-                        if (document.activeElement != document.body) {
-                            let ks = key.code ? key.key : key;
-                            let eventdata = {
-                                key: ks ? ks[this._keyidx] || ks[0] : key.code,
-                                code: key.code || key[0].toUpperCase()
-                            };
-                            document.activeElement.dispatchEvent(new KeyboardEvent("keydown", eventdata));
-                            if (ks) {
-                                document.activeElement.dispatchEvent(new KeyboardEvent("keypress", eventdata));
-                            }
+                        let ks = key.code ? key.key : key;
+                        let eventdata = {
+                            key: ks ? ks[this._keyidx] || ks[0] : key.code,
+                            code: key.code || key[0].toUpperCase()
+                        };
+                        this._target.dispatchEvent(new KeyboardEvent("keydown", eventdata));
+                        if (ks) {
+                            this._target.dispatchEvent(new KeyboardEvent("keypress", eventdata));
                         }
                     });
                 }
@@ -601,8 +600,7 @@ AFRAME.registerPrimitive("a-xykeyboard", {
         xykeyboard: {}
     },
     mappings: {
-        ime: "xykeyboard.ime",
-        "key-size": "xykeyboard.keySize"
+        ime: "xykeyboard.ime"
     }
 });
 
@@ -1058,12 +1056,13 @@ AFRAME.registerComponent("xylabel", {
             return;
         }
         if (data.renderingMode == "auto" && !/[\u0100-\uDFFF]/.test(value)) {
-            let textData = Object.assign({}, data);
+            let textData = Object.assign({}, data, {
+                wrapCount: wrapCount,
+                width: w,
+                height: h
+            });
             delete textData["resolution"];
             delete textData["renderingMode"];
-            textData.wrapCount = wrapCount;
-            textData.width = w;
-            textData.height = h;
             el.setAttribute("text", textData);
             let textObj = el.getObject3D("text");
             if (textObj) {
@@ -1330,16 +1329,21 @@ AFRAME.registerComponent("xydraggable", {
         if (!ev.detail.cursorEl || !ev.detail.cursorEl.components.raycaster) {
             return;
         }
-        let baseEl = this.data.base || this.el;
+        let baseObj = (this.data.base || this.el).object3D;
         let cursorEl = ev.detail.cursorEl;
         let draggingRaycaster = cursorEl.components.raycaster.raycaster;
-        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(baseEl.object3D.matrixWorld);
+        let point = new THREE.Vector3();
         let startDirection = draggingRaycaster.ray.direction.clone();
-        let point = new THREE.Vector3(), prevPoint = point.clone();
+        let dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0).applyMatrix4(baseObj.matrixWorld);
+        let intersection = ev.detail.intersection;
+        if (intersection) {
+            dragPlane.setFromNormalAndCoplanarPoint(baseObj.getWorldDirection(point), intersection.point);
+        }
         if (draggingRaycaster.ray.intersectPlane(dragPlane, point) === null) {
-            baseEl.object3D.worldToLocal(point);
+            baseObj.worldToLocal(point);
         }
         let prevRay = draggingRaycaster.ray.clone();
+        let prevPoint = point.clone();
         let _this = this;
         let dragging = false;
         ev.stopPropagation();
@@ -1352,7 +1356,7 @@ AFRAME.registerComponent("xydraggable", {
             }
             prevPoint.copy(point);
             if (draggingRaycaster.ray.intersectPlane(dragPlane, point) !== null) {
-                baseEl.object3D.worldToLocal(point);
+                baseObj.worldToLocal(point);
             }
             _this.el.emit(event, {
                 raycaster: draggingRaycaster,
@@ -1466,7 +1470,6 @@ AFRAME.registerComponent("xy-drag-control", {
 });
 
 AFRAME.registerComponent("xywindow", {
-    dependencies: [ "xycontainer" ],
     schema: {
         title: {
             default: ""
@@ -1673,9 +1676,7 @@ AFRAME.registerComponent("xyclipping", {
         this._clippingPlanesLocal = [];
         this._clippingPlanes = [];
         this._currentMatrix = null;
-        this._filterEvent = this._filterEvent.bind(this);
-        this._filterTargets = [ "click", "mousedown", "mouseenter", "mouseleave", "mousemove" ];
-        this._filterTargets.forEach(t => this.el.addEventListener(t, this._filterEvent, true));
+        this._raycastOverrides = {};
     },
     update() {
         let data = this.data;
@@ -1689,28 +1690,14 @@ AFRAME.registerComponent("xyclipping", {
         this._updateMatrix();
     },
     remove() {
-        this._filterTargets.forEach(t => this.el.removeEventListener(t, this._filterEvent, true));
-        this._clippingPlanes = [];
-        this.applyClippings();
+        this._clippingPlanes.splice(0);
+        for (let [obj, raycast] of Object.values(this._raycastOverrides)) {
+            obj.raycast = raycast;
+        }
     },
     tick() {
         if (!this.el.object3D.matrixWorld.equals(this._currentMatrix)) {
             this._updateMatrix();
-        }
-    },
-    _filterEvent(ev) {
-        if (!(ev.path || ev.composedPath()).includes(this.data.exclude)) {
-            if (ev.detail.intersection && this.isClipped(ev.detail.intersection.point)) {
-                ev.stopPropagation();
-                let raycaster = ev.detail.cursorEl && ev.detail.cursorEl.components.raycaster;
-                if (raycaster) {
-                    let targets = raycaster.intersectedEls;
-                    let c = targets.lastIndexOf(ev.target);
-                    if (c >= 0 && c + 1 < targets.length) {
-                        targets[c + 1].dispatchEvent(new CustomEvent(ev.type, ev));
-                    }
-                }
-            }
         }
     },
     _updateMatrix() {
@@ -1726,15 +1713,24 @@ AFRAME.registerComponent("xyclipping", {
             if (obj === excludeObj) return;
             if (obj.material && obj.material.clippingPlanes !== undefined) {
                 obj.material.clippingPlanes = this._clippingPlanes;
+                if (!this._raycastOverrides[obj.uuid]) {
+                    this._raycastOverrides[obj.uuid] = [ obj, obj.raycast ];
+                    let orgRaycast = obj.raycast.bind(obj);
+                    obj.raycast = ((r, intersects) => {
+                        let len = intersects.length;
+                        orgRaycast(r, intersects);
+                        let added = intersects[len];
+                        if (added && this._clippingPlanes.some(plane => plane.distanceToPoint(added.point) < 0)) {
+                            intersects.pop();
+                        }
+                    });
+                }
             }
             for (let child of obj.children) {
                 setCliping(child);
             }
         };
         setCliping(this.el.object3D);
-    },
-    isClipped(p) {
-        return this._clippingPlanes.some(plane => plane.distanceToPoint(p) < 0);
     }
 });
 
@@ -1750,9 +1746,9 @@ AFRAME.registerComponent("xyscroll", {
         this._contentHeight = 0;
         this._thumbLen = 0;
         let el = this.el;
-        let controls = this._control = this._initScrollBar(el, .3);
+        let scrollBar = this._scrollBar = this._initScrollBar(el, .3);
         el.setAttribute("xyclipping", {
-            exclude: controls
+            exclude: scrollBar
         });
         el.setAttribute("xydraggable", {});
         el.addEventListener("xy-drag", ev => {
@@ -1760,18 +1756,25 @@ AFRAME.registerComponent("xyscroll", {
             this._speedY = -d.y;
             this._scrollOffset(d.x, -d.y);
         });
-        el.addEventListener("xy-dragstart", ev => this.play());
+        el.addEventListener("xy-dragstart", ev => this.pause());
         el.addEventListener("xy-dragend", ev => this.play());
         el.addEventListener("xyresize", ev => this.update());
-        for (let child of el.children) {
-            if (child != controls) {
-                child.addEventListener("xyresize", ev => this.update());
+        let item = this._getContentEl();
+        if (item) {
+            item.addEventListener("xyresize", ev => this.update());
+        }
+    },
+    _getContentEl() {
+        for (let item of this.el.children) {
+            if (item === this._scrollBar || (item.getAttribute("xyitem") || {}).fixed) {
+                continue;
             }
+            return item;
         }
     },
     _initScrollBar(el, w) {
         let theme = XYTheme.get(el);
-        let scrollBar = this._scrollBar = el.appendChild(document.createElement("a-entity"));
+        let scrollBar = el.appendChild(document.createElement("a-entity"));
         this._upButton = theme.createButton(w, w, scrollBar);
         this._upButton.addEventListener("click", ev => {
             this._speedY = -this._scrollDelta;
@@ -1815,7 +1818,7 @@ AFRAME.registerComponent("xyscroll", {
         this._scrollDelta = Math.max(scrollBarHeight / 2, .5) * .3;
         this._scrollStart = scrollBarHeight - .3;
         this._scrollLength = scrollBarHeight - .6;
-        this.setScroll(0, 0);
+        this._scrollOffset(0, 0);
     },
     tick() {
         if (Math.abs(this._speedY) > .001) {
@@ -1829,40 +1832,33 @@ AFRAME.registerComponent("xyscroll", {
         this.setScroll(this._scrollX + dx, this._scrollY + dy);
     },
     setScroll(x, y) {
+        let item = this._getContentEl();
+        if (!item) {
+            return;
+        }
         let el = this.el;
-        let xyrect = el.components.xyrect;
-        let children = el.children;
-        let contentHeight = 0;
-        let contentWidth = 0;
-        for (let child of children) {
-            if (child === this._control) continue;
-            if (!child.components.xyrec) {
-                child.setAttribute("xyrect", {});
-            }
-            contentWidth = Math.max(contentWidth, child.components.xyrect.width);
-            contentHeight = Math.max(contentHeight, child.components.xyrect.height);
+        let {width: scrollWidth, height: scrollHeight} = el.components.xyrect;
+        let itemRect = item.components.xyrect;
+        let contentHeight = itemRect.height;
+        let contentWidth = itemRect.width;
+        if (!item.components.xyrec) {
+            item.setAttribute("xyrect", {});
         }
+        this._scrollX = Math.max(0, Math.min(x, contentWidth - scrollWidth));
+        this._scrollY = Math.max(0, Math.min(y, contentHeight - scrollHeight));
         this._contentHeight = contentHeight;
-        this._scrollX = Math.max(0, Math.min(x, contentWidth - xyrect.width));
-        this._scrollY = Math.max(0, Math.min(y, contentHeight - xyrect.height));
-        let thumbLen = this._thumbLen = Math.max(.2, Math.min(this._scrollLength * xyrect.height / contentHeight, this._scrollLength));
+        let thumbLen = this._thumbLen = Math.max(.2, Math.min(this._scrollLength * scrollHeight / contentHeight, this._scrollLength));
+        let thumbY = this._scrollStart - thumbLen / 2 - (this._scrollLength - thumbLen) * this._scrollY / (contentHeight - scrollHeight || 1);
         this._scrollThumb.setAttribute("geometry", "height", thumbLen);
-        let thumbY = this._scrollStart - thumbLen / 2 - (this._scrollLength - thumbLen) * this._scrollY / (contentHeight - xyrect.height || 1);
         this._scrollThumb.setAttribute("position", "y", thumbY);
-        for (let item of children) {
-            if (item === this._control || (item.getAttribute("xyitem") || {}).fixed) {
-                continue;
-            }
-            let itemRect = item.components.xyrect;
-            let itemPivot = itemRect.data.pivot;
-            let vy = (1 - itemPivot.y) * itemRect.height - this._scrollY;
-            let vx = -itemPivot.x * itemRect.width + this._scrollX;
-            let pos = item.getAttribute("position");
-            pos.x = -vx;
-            pos.y = -vy + xyrect.height;
-            item.setAttribute("position", pos);
-            item.emit("xyviewport", [ vy, vy - xyrect.height, vx, vx + xyrect.width ], false);
-        }
+        let itemPivot = itemRect.data.pivot;
+        let vx = itemPivot.x * itemRect.width - this._scrollX;
+        let vy = (1 - itemPivot.y) * itemRect.height - this._scrollY;
+        item.setAttribute("position", {
+            x: vx,
+            y: scrollHeight - vy
+        });
+        item.emit("xyviewport", [ vy, vy - scrollHeight, -vx, scrollWidth - vx ], false);
         let clippling = el.components.xyclipping;
         if (clippling) {
             clippling.applyClippings();
