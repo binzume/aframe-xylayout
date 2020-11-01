@@ -8,7 +8,7 @@ AFRAME.registerComponent('xyinput', {
         placeholder: { default: "" },
         caretColor: { default: "#0088ff" },
         bgColor: { default: "white" },
-        virtualKeyboard: { default: "[xykeyboard]" },
+        virtualKeyboard: { default: "[xykeyboard]", type: 'selector' },
     },
     init() {
         let data = this.data, el = this.el, xyrect = el.components.xyrect;
@@ -41,7 +41,7 @@ AFRAME.registerComponent('xyinput', {
         el.addEventListener('xyresize', updateGeometory);
         el.addEventListener('click', ev => {
             el.focus();
-            let kbd = document.querySelector(data.virtualKeyboard);
+            let kbd = data.virtualKeyboard;
             if (kbd) {
                 kbd.components.xykeyboard.show(data.type);
             }
@@ -357,16 +357,14 @@ AFRAME.registerComponent('xykeyboard', {
                             this._updateSymbols((this._keyidx + 1) % 2);
                         }
 
-                        if (document.activeElement != document.body) {
-                            let ks = key.code ? key.key : key;
-                            let eventdata = {
-                                key: ks ? ks[this._keyidx] || ks[0] : key.code,
-                                code: key.code || key[0].toUpperCase()
-                            };
-                            document.activeElement.dispatchEvent(new KeyboardEvent('keydown', eventdata));
-                            if (ks) {
-                                document.activeElement.dispatchEvent(new KeyboardEvent('keypress', eventdata));
-                            }
+                        let ks = key.code ? key.key : key;
+                        let eventdata = {
+                            key: ks ? ks[this._keyidx] || ks[0] : key.code,
+                            code: key.code || key[0].toUpperCase()
+                        };
+                        this._target.dispatchEvent(new KeyboardEvent('keydown', eventdata));
+                        if (ks) {
+                            this._target.dispatchEvent(new KeyboardEvent('keypress', eventdata));
                         }
                     });
                 }
@@ -428,8 +426,7 @@ AFRAME.registerPrimitive('a-xykeyboard', {
         xykeyboard: {}
     },
     mappings: {
-        ime: 'xykeyboard.ime',
-        'key-size': 'xykeyboard.keySize'
+        ime: 'xykeyboard.ime'
     }
 });
 
