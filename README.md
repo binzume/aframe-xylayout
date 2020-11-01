@@ -77,8 +77,8 @@ Attributes:
 | name | default | desc | values |
 | ---- | ------- | ---- | ------ |
 | direction    | column | レイアウト方向 | 'row', 'column' ('horizontal', 'vertical') |
-| justifyItems | start  | レイアウト方向の小要素の配置 | 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
-| alignItems   | none   | レイアウトに対し垂直方向の小要素の配置 |'none', 'center', 'start', 'end', 'stretch'|
+| justifyItems | start  | レイアウト方向の子要素の配置 | 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
+| alignItems   | none   | レイアウトに対し垂直方向の子要素の配置 |'none', 'center', 'start', 'end', 'stretch'|
 | alignContent | none   | wrapで折り返した時の各行の配置 |'none', 'center', 'start', 'end', 'stretch'|
 | spacing      | 0      | レイアウト間隔 | number |
 | padding      | 0      | 上下左右の余白 | number |
@@ -242,7 +242,7 @@ Method:
 
 表示をクリッピングするためのコンポーネント．xyscrollで使用．
 
-小要素のサイズが親要素をはみ出す場合にレンダリング時にクリッピングされます．
+子要素のサイズが親要素をはみ出す場合にレンダリング時にクリッピングされます．
 
 Attributes:
 
@@ -259,9 +259,7 @@ THREE.js標準のシェーダを使っている場合のみ正しく動きます
 ### xyscroll
 
 スクロールを管理するコンポーネント．
-小要素の高さがはみ出す場合にスクロールバーによるスクロールができるようにします．横スクロールは未対応です．
-
-このコンポーネントだけは，要素の中心ではなく左下を原点として扱います．
+子要素の高さがはみ出す場合にスクロールバーによるスクロールができるようにします．
 
 Attributes:
 
@@ -275,6 +273,9 @@ Events:
 | ---- | ------------ | ---- |
 | xyviewport | [t, b, l, r]| viewport change event |
 
+- xyscroll直下に複数の要素がある場合，最初の一つがスクロール対象になります．
+- このコンポーネントだけは，要素の中心ではなく左下を原点として扱います．
+- スクロールバーは縦方向のみ表示します．
 
 ### xyinput
 
@@ -301,7 +302,6 @@ Attributes:
 | name | type | default | desc |
 | ---- | ---- | ------- | ---- |
 | ime | boolean | false | 漢字変換を有効にする |
-| keySize | number | 0.2 | キーのサイズ(削除予定) |
 
 # License
 

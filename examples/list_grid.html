@@ -11,7 +11,7 @@
 
 <body style="background-color: black; color:white;">
     <a-scene>
-        <a-entity cursor="rayOrigin: mouse; fuse:false" raycaster="objects:.collidable;far:5500"></a-entity>
+        <a-entity cursor="rayOrigin: mouse; fuse:false" raycaster="objects:.collidable"></a-entity>
 
         <a-entity id="cameraRig" wasd-controls>
             <a-camera position="0 1.5 0" look-controls="enabled:false"></a-camera>
@@ -20,12 +20,10 @@
         </a-entity>
 
         <a-xywindow position="0 0 -12" width="5" height="5" title="Custom Layout">
-            <a-plane xyitem="fixed:true" width="5" height="5" position="0 0 -0.05" color="#444"></a-plane>
-
             <a-xyscroll width=5 height=5>
+                <a-plane xyitem="fixed:true" class='collidable' width="5" height="5" position="2.5 2.5 -0.05" color="#444"></a-plane>
                 <a-entity id="listview" xylist=""></a-entity>
             </a-xyscroll>
-
         </a-xywindow>
 
     </a-scene>
