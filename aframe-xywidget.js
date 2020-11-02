@@ -127,7 +127,7 @@ AFRAME.registerComponent('xylabel', {
 
         let lineHeight = data.resolution;
         let textWidth = Math.floor(lineHeight * wrapCount * widthFactor);
-        let canvas = this.canvas || document.createElement('canvas');
+        let canvas = this._canvas || document.createElement('canvas');
         let font = "" + (lineHeight * 0.9) + "px bold sans-serif";
         let ctx = canvas.getContext('2d');
         ctx.font = font;
@@ -144,14 +144,14 @@ AFRAME.registerComponent('xylabel', {
         }
 
         let canvasHeight = lineHeight * lines.length;
-        if (!this.canvas || this.textWidth != textWidth || canvas.height != canvasHeight) {
+        if (!this._canvas || this.textWidth != textWidth || canvas.height != canvasHeight) {
             let canvasWidth = 8;
             while (canvasWidth < textWidth) canvasWidth *= 2;
-            this.remove(); // <= this.canvas = null
-            this.canvas = canvas;
+            this.remove(); // <= this._canvas = null
+            this._canvas = canvas;
             canvas.height = canvasHeight;
             canvas.width = canvasWidth;
-            this.textWidth = textWidth;
+            this._textWidth = textWidth;
             let texture = this._texture = new THREE.CanvasTexture(canvas);
             texture.anisotropy = 4;
             texture.alphaTest = 0.2;
@@ -193,8 +193,25 @@ AFRAME.registerComponent('xylabel', {
             labelObj.material.dispose();
             labelObj.geometry.dispose();
             el.removeObject3D('xylabel');
-            this.canvas = null;
+            this._canvas = null;
         }
+    },
+    getPos(cursorPos) {
+        let { text, xyrect } = this.el.components;
+        let s = this.data.value;
+        let pos = 0; // [0,1]
+        if (this._canvas) {
+            let ctx = this._canvas.getContext('2d');
+            pos = ctx.measureText(s.slice(0, cursorPos)).width / this._textWidth;
+        } else if (text) {
+            let textLayout = text.geometry.layout;
+            let glyphs = textLayout.glyphs;
+            let numGlyph = glyphs.length;
+            let p = Math.max(0, numGlyph + cursorPos - s.length); // spaces...
+            let g = glyphs[Math.min(p, numGlyph - 1)];
+            pos = g ? (g.position[0] + g.data.width * (p >= numGlyph ? 1 : 0.1)) / textLayout.width : 0;
+        }
+        return (pos - 0.5) * xyrect.width;
     }
 });
 
@@ -278,10 +295,10 @@ AFRAME.registerComponent('xyselect', {
         }
     },
     update() {
-        let data = this.data;
-        this.el.setAttribute('xylabel', { value: data.label || data.values[data.select] });
+        let data = this.data, el = this.el;
+        el.setAttribute('xylabel', { value: data.label || data.values[data.select] });
         if (this._marker) {
-            this._marker.object3D.position.set(this.el.components.xyrect.width / 2 - 0.2, 0, 0.05);
+            this._marker.object3D.position.set(el.components.xyrect.width / 2 - 0.2, 0, 0.05);
         }
     },
     show() {
@@ -590,12 +607,8 @@ AFRAME.registerComponent('xyrange', {
             data.thumbSize, data.thumbSize, el);
 
         let plane = new THREE.PlaneGeometry(1, 0.08);
-        let bar = this._bar = new THREE.Mesh(
-            plane, new THREE.MeshBasicMaterial({ color: data.color0 }));
-
-        let prog = this._prog = new THREE.Mesh(
-            plane, new THREE.MeshBasicMaterial({ color: data.color1 }));
-        prog.position.z = 0.02;
+        let bar = this._bar = new THREE.Mesh(plane);
+        let prog = this._prog = new THREE.Mesh(plane);
         el.setObject3D('xyrange', new THREE.Group().add(bar, prog));
 
         thumb.setAttribute('xydraggable', { base: el });
@@ -617,11 +630,14 @@ AFRAME.registerComponent('xyrange', {
         if (data.max == data.min) return;
         let r = this.el.components.xyrect.width - data.thumbSize;
         let w = r * (data.value - data.min) / (data.max - data.min);
+        let prog = this._prog, bar = this._bar;
         this._thumb.setAttribute('geometry', 'radius', data.thumbSize / 2);
         this._thumb.object3D.position.set(w - r / 2, 0, 0.04);
-        this._bar.scale.x = r;
-        this._prog.scale.x = w || 0.01;
-        this._prog.position.x = (w - r) / 2;
+        bar.scale.x = r;
+        bar.material.color = new THREE.Color(data.color0);
+        prog.scale.x = w;
+        prog.position.set((w - r) / 2, 0, 0.02);
+        prog.material.color = new THREE.Color(data.color1);
     },
     setValue(value, emitEvent) {
         if (!this._thumb.components.xydraggable.dragging || emitEvent) {

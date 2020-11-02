@@ -23,11 +23,8 @@ AFRAME.registerComponent('xyinput', {
             set: (v) => el.setAttribute('xyinput', 'value', "" + v)
         });
 
-        this._caretObj = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.04, xyrect.height * 0.9),
-            new THREE.MeshBasicMaterial({ color: data.caretColor }));
+        this._caretObj = new THREE.Mesh(new THREE.PlaneGeometry(0.04, xyrect.height * 0.9));
         el.setObject3D('caret', this._caretObj);
-        this._caretObj.position.z = 0.02;
 
         el.classList.add('collidable');
         let updateGeometory = () => {
@@ -36,7 +33,6 @@ AFRAME.registerComponent('xyinput', {
             });
         };
         updateGeometory();
-        el.setAttribute('material', { color: data.bgColor });
         el.setAttribute('tabindex', 0);
         el.addEventListener('xyresize', updateGeometory);
         el.addEventListener('click', ev => {
@@ -103,15 +99,17 @@ AFRAME.registerComponent('xyinput', {
     },
     update(oldData) {
         let el = this.el, data = this.data;
-        let s = el.value, p = this.cursor;
-        if (p > s.length || oldData.value == null) {
-            p = s.length;
+        let s = el.value, cursor = this.cursor, len = s.length;
+        if (cursor > len || oldData.value == null) {
+            cursor = len;
         }
-        if (data.type == 'password') {
-            s = s.replace(/./g, '*');
-        }
-        el.setAttribute('xylabel', { color: s ? "black" : "#aaa", value: s || data.placeholder });
-        this._updateCursor(p);
+        el.setAttribute('xylabel', {
+            color: s ? "black" : "#aaa",
+            value: (data.type == 'password' ? '*'.repeat(len) : s) || data.placeholder
+        });
+        el.setAttribute('material', { color: data.bgColor });
+        this._caretObj.material.color = new THREE.Color(data.caretColor);
+        this._updateCursor(cursor);
     },
     _updateCursor(p) {
         let caretObj = this._caretObj;
@@ -119,28 +117,13 @@ AFRAME.registerComponent('xyinput', {
         caretObj.visible = false;
         if (document.activeElement == this.el) {
             setTimeout(() => {
-                caretObj.position.x = this._caretpos(p);
+                caretObj.position.set(this._caretpos(p), 0, 0.02);
                 caretObj.visible = true;
             }, 0);
         }
     },
     _caretpos(cursorPos) {
-        let el = this.el;
-        let { xylabel, xyrect, text } = el.components;
-        let s = el.value;
-        let pos = 0; // [0,1]
-        if (cursorPos == 0) {
-        } else if (xylabel.canvas) {
-            let ctx = xylabel.canvas.getContext('2d');
-            pos = ctx.measureText(s.slice(0, cursorPos)).width / xylabel.textWidth;
-        } else if (text) {
-            let textLayout = text.geometry.layout;
-            let glyphs = textLayout.glyphs;
-            let p = Math.max(0, cursorPos - (s.length - glyphs.length)); // spaces...
-            let g = glyphs[Math.min(p, glyphs.length - 1)];
-            pos = g ? (g.position[0] + g.data.width * (p >= glyphs.length ? 1 : 0.1)) / textLayout.width : 0;
-        }
-        return (pos - 0.5) * xyrect.width + 0.04;
+        return this.el.components.xylabel.getPos(cursorPos) + 0.04;
     }
 });
 
@@ -267,7 +250,7 @@ AFRAME.registerComponent('xyime', {
 
 AFRAME.registerComponent('xykeyboard', {
     schema: {
-        keySize: { default: 0.2 },
+        distance: { default: 0.7 },
         ime: { default: false },
     },
     blocks: {
@@ -305,7 +288,7 @@ AFRAME.registerComponent('xykeyboard', {
         this.hide();
         let el = this.el;
         let data = this.data;
-        let keySize = data.keySize;
+        let keySize = 0.2;
         let excludes = data.ime ? [] : ['HiraganaKatakana'];
         let blocks = this.blocks;
         let createKeys = (block, excludes = []) => {
@@ -400,7 +383,7 @@ AFRAME.registerComponent('xykeyboard', {
         let obj = el.object3D, position = obj.position;
         let tr = new THREE.Matrix4().getInverse(obj.parent.matrixWorld).multiply(el.sceneEl.camera.matrixWorld);
         let orgY = position.y;
-        position.set(0, 0, -0.7).applyMatrix4(tr);
+        position.set(0, 0, -data.distance).applyMatrix4(tr);
         position.y = orgY;
         obj.rotation.y = new THREE.Euler().setFromRotationMatrix(tr.extractRotation(tr), 'YXZ').y;
     },
@@ -426,7 +409,8 @@ AFRAME.registerPrimitive('a-xykeyboard', {
         xykeyboard: {}
     },
     mappings: {
-        ime: 'xykeyboard.ime'
+        ime: 'xykeyboard.ime',
+        distance: 'xykeyboard.distance',
     }
 });
 
