@@ -34,11 +34,8 @@ AFRAME.registerComponent("xyinput", {
             get: () => data.value,
             set: v => el.setAttribute("xyinput", "value", "" + v)
         });
-        this._caretObj = new THREE.Mesh(new THREE.PlaneGeometry(.04, xyrect.height * .9), new THREE.MeshBasicMaterial({
-            color: data.caretColor
-        }));
+        this._caretObj = new THREE.Mesh(new THREE.PlaneGeometry(.04, xyrect.height * .9));
         el.setObject3D("caret", this._caretObj);
-        this._caretObj.position.z = .02;
         el.classList.add("collidable");
         let updateGeometory = () => {
             el.setAttribute("geometry", {
@@ -48,9 +45,6 @@ AFRAME.registerComponent("xyinput", {
             });
         };
         updateGeometory();
-        el.setAttribute("material", {
-            color: data.bgColor
-        });
         el.setAttribute("tabindex", 0);
         el.addEventListener("xyresize", updateGeometory);
         el.addEventListener("click", ev => {
@@ -117,18 +111,19 @@ AFRAME.registerComponent("xyinput", {
     },
     update(oldData) {
         let el = this.el, data = this.data;
-        let s = el.value, p = this.cursor;
-        if (p > s.length || oldData.value == null) {
-            p = s.length;
-        }
-        if (data.type == "password") {
-            s = s.replace(/./g, "*");
+        let s = el.value, cursor = this.cursor, len = s.length;
+        if (cursor > len || oldData.value == null) {
+            cursor = len;
         }
         el.setAttribute("xylabel", {
             color: s ? "black" : "#aaa",
-            value: s || data.placeholder
+            value: (data.type == "password" ? "*".repeat(len) : s) || data.placeholder
         });
-        this._updateCursor(p);
+        el.setAttribute("material", {
+            color: data.bgColor
+        });
+        this._caretObj.material.color = new THREE.Color(data.caretColor);
+        this._updateCursor(cursor);
     },
     _updateCursor(p) {
         let caretObj = this._caretObj;
@@ -136,27 +131,13 @@ AFRAME.registerComponent("xyinput", {
         caretObj.visible = false;
         if (document.activeElement == this.el) {
             setTimeout(() => {
-                caretObj.position.x = this._caretpos(p);
+                caretObj.position.set(this._caretpos(p), 0, .02);
                 caretObj.visible = true;
             }, 0);
         }
     },
     _caretpos(cursorPos) {
-        let el = this.el;
-        let {xylabel: xylabel, xyrect: xyrect, text: text} = el.components;
-        let s = el.value;
-        let pos = 0;
-        if (cursorPos == 0) {} else if (xylabel.canvas) {
-            let ctx = xylabel.canvas.getContext("2d");
-            pos = ctx.measureText(s.slice(0, cursorPos)).width / xylabel.textWidth;
-        } else if (text) {
-            let textLayout = text.geometry.layout;
-            let glyphs = textLayout.glyphs;
-            let p = Math.max(0, cursorPos - (s.length - glyphs.length));
-            let g = glyphs[Math.min(p, glyphs.length - 1)];
-            pos = g ? (g.position[0] + g.data.width * (p >= glyphs.length ? 1 : .1)) / textLayout.width : 0;
-        }
-        return (pos - .5) * xyrect.width + .04;
+        return this.el.components.xylabel.getPos(cursorPos) + .04;
     }
 });
 
@@ -356,8 +337,8 @@ AFRAME.registerComponent("xyime", {
 
 AFRAME.registerComponent("xykeyboard", {
     schema: {
-        keySize: {
-            default: .2
+        distance: {
+            default: .7
         },
         ime: {
             default: false
@@ -460,7 +441,7 @@ AFRAME.registerComponent("xykeyboard", {
         this.hide();
         let el = this.el;
         let data = this.data;
-        let keySize = data.keySize;
+        let keySize = .2;
         let excludes = data.ime ? [] : [ "HiraganaKatakana" ];
         let blocks = this.blocks;
         let createKeys = (block, excludes = []) => {
@@ -574,7 +555,7 @@ AFRAME.registerComponent("xykeyboard", {
         let obj = el.object3D, position = obj.position;
         let tr = new THREE.Matrix4().getInverse(obj.parent.matrixWorld).multiply(el.sceneEl.camera.matrixWorld);
         let orgY = position.y;
-        position.set(0, 0, -.7).applyMatrix4(tr);
+        position.set(0, 0, -data.distance).applyMatrix4(tr);
         position.y = orgY;
         obj.rotation.y = new THREE.Euler().setFromRotationMatrix(tr.extractRotation(tr), "YXZ").y;
     },
@@ -600,7 +581,8 @@ AFRAME.registerPrimitive("a-xykeyboard", {
         xykeyboard: {}
     },
     mappings: {
-        ime: "xykeyboard.ime"
+        ime: "xykeyboard.ime",
+        distance: "xykeyboard.distance"
     }
 });
 
@@ -1073,7 +1055,7 @@ AFRAME.registerComponent("xylabel", {
         }
         let lineHeight = data.resolution;
         let textWidth = Math.floor(lineHeight * wrapCount * widthFactor);
-        let canvas = this.canvas || document.createElement("canvas");
+        let canvas = this._canvas || document.createElement("canvas");
         let font = "" + lineHeight * .9 + "px bold sans-serif";
         let ctx = canvas.getContext("2d");
         ctx.font = font;
@@ -1088,14 +1070,14 @@ AFRAME.registerComponent("xylabel", {
             }
         }
         let canvasHeight = lineHeight * lines.length;
-        if (!this.canvas || this.textWidth != textWidth || canvas.height != canvasHeight) {
+        if (!this._canvas || this.textWidth != textWidth || canvas.height != canvasHeight) {
             let canvasWidth = 8;
             while (canvasWidth < textWidth) canvasWidth *= 2;
             this.remove();
-            this.canvas = canvas;
+            this._canvas = canvas;
             canvas.height = canvasHeight;
             canvas.width = canvasWidth;
-            this.textWidth = textWidth;
+            this._textWidth = textWidth;
             let texture = this._texture = new THREE.CanvasTexture(canvas);
             texture.anisotropy = 4;
             texture.alphaTest = .2;
@@ -1136,8 +1118,25 @@ AFRAME.registerComponent("xylabel", {
             labelObj.material.dispose();
             labelObj.geometry.dispose();
             el.removeObject3D("xylabel");
-            this.canvas = null;
+            this._canvas = null;
         }
+    },
+    getPos(cursorPos) {
+        let {text: text, xyrect: xyrect} = this.el.components;
+        let s = this.data.value;
+        let pos = 0;
+        if (this._canvas) {
+            let ctx = this._canvas.getContext("2d");
+            pos = ctx.measureText(s.slice(0, cursorPos)).width / this._textWidth;
+        } else if (text) {
+            let textLayout = text.geometry.layout;
+            let glyphs = textLayout.glyphs;
+            let numGlyph = glyphs.length;
+            let p = Math.max(0, numGlyph + cursorPos - s.length);
+            let g = glyphs[Math.min(p, numGlyph - 1)];
+            pos = g ? (g.position[0] + g.data.width * (p >= numGlyph ? 1 : .1)) / textLayout.width : 0;
+        }
+        return (pos - .5) * xyrect.width;
     }
 });
 
@@ -1256,12 +1255,12 @@ AFRAME.registerComponent("xyselect", {
         }
     },
     update() {
-        let data = this.data;
-        this.el.setAttribute("xylabel", {
+        let data = this.data, el = this.el;
+        el.setAttribute("xylabel", {
             value: data.label || data.values[data.select]
         });
         if (this._marker) {
-            this._marker.object3D.position.set(this.el.components.xyrect.width / 2 - .2, 0, .05);
+            this._marker.object3D.position.set(el.components.xyrect.width / 2 - .2, 0, .05);
         }
     },
     show() {
@@ -1602,13 +1601,8 @@ AFRAME.registerComponent("xyrange", {
         let el = this.el;
         let thumb = this._thumb = XYTheme.get(el).createButton(data.thumbSize, data.thumbSize, el);
         let plane = new THREE.PlaneGeometry(1, .08);
-        let bar = this._bar = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({
-            color: data.color0
-        }));
-        let prog = this._prog = new THREE.Mesh(plane, new THREE.MeshBasicMaterial({
-            color: data.color1
-        }));
-        prog.position.z = .02;
+        let bar = this._bar = new THREE.Mesh(plane);
+        let prog = this._prog = new THREE.Mesh(plane);
         el.setObject3D("xyrange", new THREE.Group().add(bar, prog));
         thumb.setAttribute("xydraggable", {
             base: el
@@ -1631,11 +1625,14 @@ AFRAME.registerComponent("xyrange", {
         if (data.max == data.min) return;
         let r = this.el.components.xyrect.width - data.thumbSize;
         let w = r * (data.value - data.min) / (data.max - data.min);
+        let prog = this._prog, bar = this._bar;
         this._thumb.setAttribute("geometry", "radius", data.thumbSize / 2);
         this._thumb.object3D.position.set(w - r / 2, 0, .04);
-        this._bar.scale.x = r;
-        this._prog.scale.x = w || .01;
-        this._prog.position.x = (w - r) / 2;
+        bar.scale.x = r;
+        bar.material.color = new THREE.Color(data.color0);
+        prog.scale.x = w;
+        prog.position.set((w - r) / 2, 0, .02);
+        prog.material.color = new THREE.Color(data.color1);
     },
     setValue(value, emitEvent) {
         if (!this._thumb.components.xydraggable.dragging || emitEvent) {
