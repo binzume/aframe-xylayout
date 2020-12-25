@@ -23,7 +23,7 @@ AFrameのあとに`xylayout-all.min.js`を読み込んでください．
 ES2015 をサポートしたブラウザが必要です．(最新版の Chrome, Firefox, Edge で動作します)
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@v1.0.0/dist/aframe-master.min.js"></script>
+<script src="https://aframe.io/releases/1.1.0/aframe.min.js"></script>
 <script src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
 ...
 <a-xycontainer direction="column" spacing="0.1" padding="0.2">
