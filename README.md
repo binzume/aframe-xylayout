@@ -2,6 +2,8 @@
 
 Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 
+- [English](README.en.md)
+
 ## Examples
 
 Live demos:
