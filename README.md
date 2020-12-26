@@ -2,7 +2,7 @@
 
 Flexbox like layout + UI components for [A-Frame](https://aframe.io/).
 
-- [English](README.en.md)
+- [English documentation](README.en.md)
 
 ## Examples
 
@@ -51,21 +51,22 @@ npm run dist
 
 ## Primitives
 
-T.B.D. (See [examples](./examples))
-
-- a-xycontainer
-- a-xywindow
-- a-xylabel
-- a-xybutton
-- a-xyrange
-- a-xytoggle
-- a-xyselect
-- a-xyscroll
-- a-xyinput
-- a-xykeyboard
+| Primitive     | Components            | Description |
+| ------------- | --------------------- | ----------- |
+| a-xycontainer | xycontainer           | Layout container |
+| a-xylabel     | xylabel               | Text label  |
+| a-xybutton    | xybutton, xylabel     | Button      |
+| a-xytoggle    | xytoggle              | Toggle button |
+| a-xyrange     | xyrange               | Slider      |
+| a-xyselect    | xyselect              | Option selector |
+| a-xyscroll    | xyscroll, xyclipping  | Scroll      |
+| a-xywindow    | xywindow, xycontainer | Window      |
+| a-xyinput     | xyinput, xylabel      | Text input field |
+| a-xykeyboard  | xykeyboard, (xyime)   | Screen keyboard |
 
 - それぞれ同名のコンポーネント + `xyrect`コンポーネントが使われます．
 - デフォルトのUIのサイズは巨大なのでscaleで調整してください．
+- See [examples](./examples)
 
 ## Components
 

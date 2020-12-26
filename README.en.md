@@ -38,7 +38,7 @@ Include `xylayout-all.min.js` after the AFrame.
 </a-xycontainer>
 ```
 
-### Building xylayout-all.min.js
+## Building xylayout-all.min.js
 
 ```bash
 npm install
@@ -47,21 +47,23 @@ npm run dist
 
 ## Primitives
 
-T.B.D. (See [examples](./examples))
+| Primitive     | Components            | Description |
+| ------------- | --------------------- | ----------- |
+| a-xycontainer | xycontainer           | Layout container |
+| a-xylabel     | xylabel               | Text label  |
+| a-xybutton    | xybutton, xylabel     | Button      |
+| a-xytoggle    | xytoggle              | Toggle button |
+| a-xyrange     | xyrange               | Slider      |
+| a-xyselect    | xyselect              | Option selector |
+| a-xyscroll    | xyscroll, xyclipping  | Scroll      |
+| a-xywindow    | xywindow, xycontainer | Window      |
+| a-xyinput     | xyinput, xylabel      | Text input field |
+| a-xykeyboard  | xykeyboard, (xyime)   | Screen keyboard |
 
-- a-xycontainer
-- a-xywindow
-- a-xylabel
-- a-xybutton
-- a-xyrange
-- a-xytoggle
-- a-xyselect
-- a-xyscroll
-- a-xyinput
-- a-xykeyboard
-
-- The component of the same name described below is used. In addition, `xyrect` will also be attached.
-- The default size of UI objects is so large, so adjust it by `scale`. 
+- In addition, `xyrect` will also be attached.
+- There are `xyitem`, `xylist` and `xydraggable` as components that are not associated with primitives.
+- The default size of UI objects may be too large, so adjust it by `scale`. 
+- See [examples](./examples)
 
 ## Components
 
@@ -71,9 +73,9 @@ A component that layouts 3D objects on the XY plane.
 
 [CSS Flexbox](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flexible_Box_Layout) linke layout is available.
 
-Attributes:
+Properties:
 
-| name | default | desc | values |
+| name | default | Description | values |
 | ---- | ------- | ---- | ------ |
 | direction    | column | Defining the main axis | 'row', 'column' ('horizontal', 'vertical') |
 | justifyItems | start  | layout mode for along the main axis | 'center', 'start', 'end', 'space-between', 'space-around', 'stretch'|
@@ -89,9 +91,9 @@ Attributes:
 A component that controls how child elements are placed in a `xycontainer`.
 The properties of this component take precedence over the parameters specified in the parent container.
 
-Attributes:
+Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | align  | align   | none  | see xycontainer.alignItems |
 | grow   | number  | 1     | stretch factor for growing |
@@ -104,25 +106,25 @@ Components that provide element sizes and pivots for `xycontainer`.
 By default, xycontainer uses the width and height attributes of the element. 
 If width and height do not represent the actual size of the object (e.g. `a-sphere`), we need to be specified in this component.
 
-Attributes:
+#### Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | width  | number | -1  | width of element. use size of geometry if set to -1 |
 | height | number | -1  | height of element. use size of geometry if set to -1 |
 | pivot  | vec2   | (0.5, 0.5) | pivot position. bottom left is `0 0`. Most primitive of a-frame have their origin at the center(`0.5 0.5`). |
 
-Events:
+#### Events:
 
-| name | event.detail | desc |
+| name | event.detail | Description |
 | ---- | ------------ | ---- |
 | xyresize | {xyrect} | Resize event |
 
 ### xywindow
 
-Attributes:
+Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | title    | string   |      | title of window |
 | closable | boolean  | true | closable |
@@ -133,53 +135,56 @@ Attributes:
 An alternative to the text component.
 This component will fallback to rendering with Canvas if `value` contains multibyte characters.
 
-Attributes:
+#### Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | value         | string |      | text |
-| renderingMode | string | auto | canvas: always use canvas for rendering. auto: use text if possible |
-| resolution    | number | 32   | canvasを使う場合の高さ方向の解像度 |
+| align         | string | left | text alignment |
+| xOffset       | number | 0    | X-offset |
+| zOffset       | number | 0.01 | Z-offset |
+| renderingMode | string | auto | `canvas`: always use canvas for rendering. `auto`: use text if possible |
+| resolution    | number | 32   | Canvas height |
 
 see [text](https://aframe.io/docs/1.1.0/components/text.html)
 
 
 ### xybutton
 
-Attributes:
+#### Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | color | color | | button surface color |
 | hoverColor | color | | hover color |
 
-Events:
+#### Events:
 
-| name | event.detail | desc |
+| name | event.detail | Description |
 | ---- | ------------ | ---- |
 | click |   | Click event |
 
 ### xytoggle
 
-Attributes:
+#### Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | value | boolean | false | state of the toggle |
 
 NOTE: This component defines `value` property into the DOM element.
 
-Events:
+#### Events:
 
-| name | event.detail | desc |
+| name | event.detail | Description |
 | ---- | ------------ | ---- |
 | change | {value} | changed event |
 
 ### xyrange
 
-Attributes:
+#### Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | min   | number | 0   | min value |
 | max   | number | 100 | max value |
@@ -189,25 +194,25 @@ Attributes:
 
 NOTE: This component defines `value` property into the DOM element.
 
-Events:
+#### Events:
 
-| name | event.detail | desc |
+| name | event.detail | Description |
 | ---- | ------------ | ---- |
 | change | {value} | changed event |
 
 ### xyselect
 
-Attributes:
+#### Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | values | array | []    | choices |
 | select | int   | 0     | selected index for the choices |
 | toggle | boolean | false | If set to true, the value will toggle with each click instead of displaying the choices |
 
-Events:
+#### Events:
 
-| name | event.detail | desc |
+| name | event.detail | Description |
 | ---- | ------------ | ---- |
 | change | {value, index} | changed event |
 
@@ -216,20 +221,20 @@ Events:
 List component that supports element recycling.
 Intended to be used as a child element of xyscroll.
 
-Attributes:
+#### Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | itemWidth  | number | -1 | width of a item |
 | itemHeight | number | -1 | height of a item |
 
-Events:
+#### Events:
 
-| name | event.detail | desc |
+| name | event.detail | Description |
 | ---- | ------------ | ---- |
 | clickitem | {index} | click item event |
 
-Method:
+#### Method:
 
 Needs to be initialized by `xylist.setAdapter()` and `xylist.setContents()`.
 See [list example](https://binzume.github.io/aframe-xylayout/examples/list.html).
@@ -238,52 +243,50 @@ See [list example](https://binzume.github.io/aframe-xylayout/examples/list.html)
 - setContents(data, optional_count): set contents of list.
 - setLayout({sizeFunc, targetsFunc, layoutFunc}): set custom layout (optional)
 
-### xyclipping
-
-表示をクリッピングするためのコンポーネント．xyscrollで使用．
-
-子要素のサイズが親要素をはみ出す場合にレンダリング時にクリッピングされます．
-
-Attributes:
-
-| name | type | default | desc |
-| ---- | ---- | ------- | ---- |
-| clipTop    | boolean  | true  | 上部をクリッピングします |
-| clipBottom | boolean  | true  | 下部をクリッピングします |
-| clipLeft   | boolean  | false | 左側をクリッピングします |
-| clipRight  | boolean  | false | 右側をクリッピングします |
-| exclude    | selector |       | クリッピングから除外する要素 |
-
-THREE.js標準のシェーダを使っている場合のみ正しく動きます．例えばa-textはシェーダが専用のものなので正しくクリッピングされません．
 
 ### xyscroll
 
-スクロールを管理するコンポーネント．
-子要素の高さがはみ出す場合にスクロールバーによるスクロールができるようにします．
+A component that makes element scrollable.
+#### Properties:
 
-Attributes:
-
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
-| scrollbar | boolean | true | スクロールバーを表示 |
+| scrollbar | boolean | true | Show scrollbar |
 
-Events:
+#### Events:
 
-| name | event.detail | desc |
+| name | event.detail | Description |
 | ---- | ------------ | ---- |
 | xyviewport | [t, b, l, r]| viewport change event |
 
-- xyscroll直下に複数の要素がある場合，最初の一つがスクロール対象になります．
-- このコンポーネントだけは，要素の中心ではなく左下を原点として扱います．
-- スクロールバーは縦方向のみ表示します．
+- Make sure xyscroll has only one child. If there are multiple children, only the first one will be scrolled.
+- This component treats the bottom left as the origin.
+- The scroll bar can only be used vertically.
+### xyclipping
+
+A component that clips UI rendering. Intended to be used with xyscroll.
+
+The outside of the area represented by xyrect will no longer be rendered. 
+#### Properties:
+
+| name | type | default | Description |
+| ---- | ---- | ------- | ---- |
+| clipTop    | boolean  | true  | Clip top |
+| clipBottom | boolean  | true  | Clip bottom |
+| clipLeft   | boolean  | false | Clip left |
+| clipRight  | boolean  | false | Clip right |
+| exclude    | selector |       | excluded elements |
+
+Known issue: It doesn't work properly except with the standard Three.js shader. (e.g. a-text )
+
 
 ### xyinput
 
 text input box.
 
-Attributes:
+#### Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | value | string |  | text |
 | type | string |  | '', 'number', 'password' |
@@ -297,11 +300,15 @@ NOTE: This component defines `value` property into the DOM element.
 
 A component displays screen keyboard. Sends `KeyboardEvent` to the focused element.
 
-Attributes:
+#### Properties:
 
-| name | type | default | desc |
+| name | type | default | Description |
 | ---- | ---- | ------- | ---- |
 | ime | boolean | false | Enable Japanese input method |
+
+### xyime
+
+A component used internally by `xykeyboard`.
 
 # License
 
