@@ -597,7 +597,8 @@ AFRAME.registerComponent('xyrange', {
         value: { default: 0 },
         color0: { default: 'white' },
         color1: { default: '#06f' },
-        thumbSize: { default: 0.4 }
+        thumbSize: { default: 0.4 },
+        barHeight: { default: 0.08 },
     },
     init() {
         let data = this.data;
@@ -606,7 +607,8 @@ AFRAME.registerComponent('xyrange', {
         let thumb = this._thumb = XYTheme.get(el).createButton(
             data.thumbSize, data.thumbSize, el);
 
-        let plane = new THREE.PlaneGeometry(1, 0.08);
+        // TODO: dispose geometry.
+        let plane = new THREE.PlaneGeometry(1, 1);
         let bar = this._bar = new THREE.Mesh(plane);
         let prog = this._prog = new THREE.Mesh(plane);
         el.setObject3D('xyrange', new THREE.Group().add(bar, prog));
@@ -627,16 +629,16 @@ AFRAME.registerComponent('xyrange', {
     },
     update() {
         let data = this.data;
-        if (data.max == data.min) return;
-        let r = this.el.components.xyrect.width - data.thumbSize;
-        let w = r * (data.value - data.min) / (data.max - data.min);
-        let prog = this._prog, bar = this._bar;
-        this._thumb.setAttribute('geometry', 'radius', data.thumbSize / 2);
-        this._thumb.object3D.position.set(w - r / 2, 0, 0.04);
-        bar.scale.x = r;
+        let barHeight = data.barHeight;
+        let barWidth = this.el.components.xyrect.width - data.thumbSize;
+        let w = data.max > data.min ? barWidth * (data.value - data.min) / (data.max - data.min) : 0;
+        let prog = this._prog, bar = this._bar, thumb = this._thumb;
+        thumb.setAttribute('geometry', 'radius', data.thumbSize / 2);
+        thumb.object3D.position.set(w - barWidth / 2, 0, 0.04);
+        bar.scale.set(barWidth, barHeight, 1);
         bar.material.color = new THREE.Color(data.color0);
-        prog.scale.x = w;
-        prog.position.set((w - r) / 2, 0, 0.02);
+        prog.scale.set(w, barHeight, 1);
+        prog.position.set((w - barWidth) / 2, 0, 0.02);
         prog.material.color = new THREE.Color(data.color1);
     },
     setValue(value, emitEvent) {
@@ -1053,6 +1055,7 @@ AFRAME.registerPrimitive('a-xyrange', {
         min: 'xyrange.min',
         max: 'xyrange.max',
         step: 'xyrange.step',
-        value: 'xyrange.value'
+        value: 'xyrange.value',
+        'bar-height': 'xyrange.barHeight',
     }
 });
