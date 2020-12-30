@@ -483,16 +483,15 @@ AFRAME.registerComponent('xy-drag-control', {
         }
 
         if (data.autoRotate) {
-            let cameraPosition = el.sceneEl.camera.getWorldPosition(new THREE.Vector3());
             let targetPosition = targetObj.getWorldPosition(new THREE.Vector3());
-            let d = cameraPosition.clone().sub(targetPosition).normalize();
+            let d = origin.clone().sub(targetPosition).normalize();
             let t = 0.8 - d.y * d.y;
             if (t > 0) {
-                mat.lookAt(cameraPosition, targetPosition, new THREE.Vector3(0, 1, 0));
                 let intersection = cursorEl.components.raycaster.getIntersection(ev.target);
                 let intersectPoint = intersection ? intersection.point : targetPosition;
                 let c = targetObj.parent.worldToLocal(intersectPoint);
                 let tq = targetObj.quaternion.clone();
+                mat.lookAt(origin, targetPosition, new THREE.Vector3(0, 1, 0));
                 targetObj.quaternion.slerp(rot.setFromRotationMatrix(mat.premultiply(tr.getInverse(pm))), t * 0.1);
                 targetObj.position.sub(c).applyQuaternion(tq.inverse().premultiply(targetObj.quaternion)).add(c);
             }
