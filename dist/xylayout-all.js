@@ -1451,16 +1451,15 @@ AFRAME.registerComponent("xy-drag-control", {
             this.postProcess(targetObj, ev);
         }
         if (data.autoRotate) {
-            let cameraPosition = el.sceneEl.camera.getWorldPosition(new THREE.Vector3());
             let targetPosition = targetObj.getWorldPosition(new THREE.Vector3());
-            let d = cameraPosition.clone().sub(targetPosition).normalize();
+            let d = origin.clone().sub(targetPosition).normalize();
             let t = .8 - d.y * d.y;
             if (t > 0) {
-                mat.lookAt(cameraPosition, targetPosition, new THREE.Vector3(0, 1, 0));
                 let intersection = cursorEl.components.raycaster.getIntersection(ev.target);
                 let intersectPoint = intersection ? intersection.point : targetPosition;
                 let c = targetObj.parent.worldToLocal(intersectPoint);
                 let tq = targetObj.quaternion.clone();
+                mat.lookAt(origin, targetPosition, new THREE.Vector3(0, 1, 0));
                 targetObj.quaternion.slerp(rot.setFromRotationMatrix(mat.premultiply(tr.getInverse(pm))), t * .1);
                 targetObj.position.sub(c).applyQuaternion(tq.inverse().premultiply(targetObj.quaternion)).add(c);
             }
@@ -1594,18 +1593,24 @@ AFRAME.registerComponent("xyrange", {
         },
         thumbSize: {
             default: .4
+        },
+        barHeight: {
+            default: .08
         }
     },
     init() {
         let data = this.data;
         let el = this.el;
-        let thumb = this._thumb = XYTheme.get(el).createButton(data.thumbSize, data.thumbSize, el);
-        let plane = new THREE.PlaneGeometry(1, .08);
+        let thumb = this._thumb = XYTheme.get(el).createButton(0, 0, el, {
+            geometry: "circle"
+        });
+        let plane = new THREE.PlaneGeometry(1, 1);
         let bar = this._bar = new THREE.Mesh(plane);
         let prog = this._prog = new THREE.Mesh(plane);
         el.setObject3D("xyrange", new THREE.Group().add(bar, prog));
         thumb.setAttribute("xydraggable", {
-            base: el
+            base: el,
+            dragThreshold: 0
         });
         thumb.addEventListener("xy-drag", ev => {
             let r = el.components.xyrect.width - data.thumbSize;
@@ -1622,17 +1627,18 @@ AFRAME.registerComponent("xyrange", {
     },
     update() {
         let data = this.data;
-        if (data.max == data.min) return;
-        let r = this.el.components.xyrect.width - data.thumbSize;
-        let w = r * (data.value - data.min) / (data.max - data.min);
-        let prog = this._prog, bar = this._bar;
-        this._thumb.setAttribute("geometry", "radius", data.thumbSize / 2);
-        this._thumb.object3D.position.set(w - r / 2, 0, .04);
-        bar.scale.x = r;
+        let barHeight = data.barHeight;
+        let barWidth = this.el.components.xyrect.width - data.thumbSize;
+        let len = data.max - data.min;
+        let pos = len > 0 ? barWidth * (data.value - data.min) / len : 0;
+        let prog = this._prog, bar = this._bar, thumb = this._thumb;
+        bar.scale.set(barWidth, barHeight, 1);
         bar.material.color = new THREE.Color(data.color0);
-        prog.scale.x = w;
-        prog.position.set((w - r) / 2, 0, .02);
+        prog.scale.set(pos, barHeight, 1);
+        prog.position.set((pos - barWidth) / 2, 0, .02);
         prog.material.color = new THREE.Color(data.color1);
+        thumb.setAttribute("geometry", "radius", data.thumbSize / 2);
+        thumb.object3D.position.set(pos - barWidth / 2, 0, .04);
     },
     setValue(value, emitEvent) {
         if (!this._thumb.components.xydraggable.dragging || emitEvent) {
@@ -1954,38 +1960,44 @@ AFRAME.registerComponent("xylist", {
         this._refresh();
     },
     _refresh() {
-        let adapter = this._adapter;
         let el = this.el;
-        let elements = this._elements;
-        let visiblePositions = {};
-        let retry = false;
+        let adapter = this._adapter, layout = this._layout, elements = this._elements;
+        let visibleItems = {};
         if (!adapter) return;
-        for (let position of this._layout.targets(this._viewport)) {
+        for (let position of layout.targets(this._viewport)) {
             if (position >= 0 && position < this._itemCount) {
-                visiblePositions[position] = true;
                 let itemEl = elements[position];
                 if (!itemEl) {
                     itemEl = elements[position] = this._cache.pop() || el.appendChild(adapter.create(el));
                     itemEl.classList.add(XYTheme.get(el).collidableClass);
                 }
-                retry |= !itemEl.hasLoaded;
-                if (itemEl.hasLoaded && itemEl.dataset.listPosition != position) {
-                    itemEl.dataset.listPosition = position;
-                    this._layout.layout(itemEl, position);
-                    adapter.bind(position, itemEl, this._userData);
+                visibleItems[position] = itemEl;
+                let dataset = itemEl.dataset;
+                if (dataset.listPosition != position) {
+                    dataset.listPosition = position;
+                    let update = () => {
+                        if (dataset.listPosition == position) {
+                            layout.layout(itemEl, position);
+                            adapter.bind(position, itemEl, this._userData);
+                        }
+                    };
+                    if (itemEl.hasLoaded) {
+                        update();
+                    } else {
+                        itemEl.addEventListener("loaded", update, {
+                            once: true
+                        });
+                    }
                 }
             }
         }
         for (let [position, el] of Object.entries(elements)) {
-            el.setAttribute("visible", visiblePositions[position] == true);
-            if (!visiblePositions[position]) {
+            el.setAttribute("visible", visibleItems[position] != null);
+            if (!visibleItems[position]) {
                 this._cache.push(el);
-                delete elements[position];
             }
         }
-        if (retry) {
-            setTimeout(() => this._refresh(), 1);
-        }
+        this._elements = visibleItems;
     }
 });
 
@@ -2106,6 +2118,7 @@ AFRAME.registerPrimitive("a-xyrange", {
         min: "xyrange.min",
         max: "xyrange.max",
         step: "xyrange.step",
-        value: "xyrange.value"
+        value: "xyrange.value",
+        "bar-height": "xyrange.barHeight"
     }
 });
