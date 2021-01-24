@@ -603,8 +603,7 @@ AFRAME.registerComponent('xyrange', {
         let data = this.data;
         let el = this.el;
 
-        let thumb = this._thumb = XYTheme.get(el).createButton(
-            data.thumbSize, data.thumbSize, el);
+        let thumb = this._thumb = XYTheme.get(el).createButton(0, 0, el, { geometry: 'circle' });
 
         // TODO: dispose geometry.
         let plane = new THREE.PlaneGeometry(1, 1);
@@ -612,7 +611,7 @@ AFRAME.registerComponent('xyrange', {
         let prog = this._prog = new THREE.Mesh(plane);
         el.setObject3D('xyrange', new THREE.Group().add(bar, prog));
 
-        thumb.setAttribute('xydraggable', { base: el });
+        thumb.setAttribute('xydraggable', { base: el, dragThreshold: 0 });
         thumb.addEventListener('xy-drag', ev => {
             let r = el.components.xyrect.width - data.thumbSize;
             let p = (ev.detail.point.x + r / 2) / r * (data.max - data.min);
@@ -630,15 +629,16 @@ AFRAME.registerComponent('xyrange', {
         let data = this.data;
         let barHeight = data.barHeight;
         let barWidth = this.el.components.xyrect.width - data.thumbSize;
-        let w = data.max > data.min ? barWidth * (data.value - data.min) / (data.max - data.min) : 0;
+        let len = data.max - data.min;
+        let pos = len > 0 ? barWidth * (data.value - data.min) / len : 0;
         let prog = this._prog, bar = this._bar, thumb = this._thumb;
-        thumb.setAttribute('geometry', 'radius', data.thumbSize / 2);
-        thumb.object3D.position.set(w - barWidth / 2, 0, 0.04);
         bar.scale.set(barWidth, barHeight, 1);
         bar.material.color = new THREE.Color(data.color0);
-        prog.scale.set(w, barHeight, 1);
-        prog.position.set((w - barWidth) / 2, 0, 0.02);
+        prog.scale.set(pos, barHeight, 1);
+        prog.position.set((pos - barWidth) / 2, 0, 0.02);
         prog.material.color = new THREE.Color(data.color1);
+        thumb.setAttribute('geometry', 'radius', data.thumbSize / 2);
+        thumb.object3D.position.set(pos - barWidth / 2, 0, 0.04);
     },
     setValue(value, emitEvent) {
         if (!this._thumb.components.xydraggable.dragging || emitEvent) {
@@ -920,40 +920,44 @@ AFRAME.registerComponent('xylist', {
         this._refresh();
     },
     _refresh() {
-        let adapter = this._adapter;
         let el = this.el;
-        let elements = this._elements;
-        let visiblePositions = {};
-        let retry = false;
+        let adapter = this._adapter, layout = this._layout, elements = this._elements;
+        let visibleItems = {};
         if (!adapter) return;
 
-        for (let position of this._layout.targets(this._viewport)) {
+        for (let position of layout.targets(this._viewport)) {
             if (position >= 0 && position < this._itemCount) {
-                visiblePositions[position] = true;
                 let itemEl = elements[position];
                 if (!itemEl) {
                     itemEl = elements[position] = this._cache.pop() || el.appendChild(adapter.create(el));
                     itemEl.classList.add(XYTheme.get(el).collidableClass);
                 }
-                retry |= !itemEl.hasLoaded;
-                if (itemEl.hasLoaded && itemEl.dataset.listPosition != position) {
-                    itemEl.dataset.listPosition = position;
-                    this._layout.layout(itemEl, position);
-                    adapter.bind(position, itemEl, this._userData);
+                visibleItems[position] = itemEl;
+                let dataset = itemEl.dataset;
+                if (dataset.listPosition != position) {
+                    dataset.listPosition = position;
+                    let update = () => {
+                        if (dataset.listPosition == position) {
+                            layout.layout(itemEl, position);
+                            adapter.bind(position, itemEl, this._userData);
+                        }
+                    };
+                    if (itemEl.hasLoaded) {
+                        update();
+                    } else {
+                        itemEl.addEventListener('loaded', update, { once: true });
+                    }
                 }
             }
         }
 
         for (let [position, el] of Object.entries(elements)) {
-            el.setAttribute('visible', visiblePositions[position] == true);
-            if (!visiblePositions[position]) {
+            el.setAttribute('visible', visibleItems[position] != null);
+            if (!visibleItems[position]) {
                 this._cache.push(el);
-                delete elements[position];
             }
         }
-        if (retry) {
-            setTimeout(() => this._refresh(), 1);
-        }
+        this._elements = visibleItems;
     }
 });
 
