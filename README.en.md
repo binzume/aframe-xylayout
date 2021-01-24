@@ -197,6 +197,7 @@ NOTE: This component defines `value` property into the DOM element.
 | color1    | color  | white | background color |
 | color2    | color  | #06f  | active color |
 | thumbSize | number | 0.4 | Thumb size |
+| barHeight | number | 0.08 | Height of progress bar |
 
 NOTE: This component defines `value` property into the DOM element.
 

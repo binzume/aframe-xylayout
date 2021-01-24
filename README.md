@@ -190,6 +190,7 @@ Attributes:
 | value | number | 0   | 初期値 |
 | step  | number | 0   | 変化の単位 |
 | thumbSize | number | 0.4 | つまみサイズ |
+| barHeight | number | 0.08 | バーの高さ |
 
 ※ このコンポーネントはDOM要素にも `value` 属性を追加します
 
