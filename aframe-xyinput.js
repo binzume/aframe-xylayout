@@ -8,7 +8,6 @@ AFRAME.registerComponent('xyinput', {
         placeholder: { default: "" },
         caretColor: { default: "#0088ff" },
         bgColor: { default: "white" },
-        virtualKeyboard: { default: "[xykeyboard]", type: 'selector' },
     },
     init() {
         let data = this.data, el = this.el, xyrect = el.components.xyrect;
@@ -37,10 +36,7 @@ AFRAME.registerComponent('xyinput', {
         el.addEventListener('xyresize', updateGeometory);
         el.addEventListener('click', ev => {
             el.focus();
-            let kbd = data.virtualKeyboard;
-            if (kbd) {
-                kbd.components.xykeyboard.show(data.type);
-            }
+            el.emit('xykeyboard-request', data.type);
             let intersection = ev.detail.intersection;
             if (intersection) {
                 let v = intersection.uv.x;
@@ -283,6 +279,9 @@ AFRAME.registerComponent('xykeyboard', {
                 { pos: [0, 0], keys: [{ code: 'ArrowLeft', label: "⇦" }, { code: 'ArrowRight', label: "⇨" }] },
             ]
         }
+    },
+    init() {
+        this.el.sceneEl.addEventListener('xykeyboard-request', (ev) => this.show(ev.detail));
     },
     show(type) {
         this.hide();
