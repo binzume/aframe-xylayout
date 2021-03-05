@@ -1076,7 +1076,6 @@ AFRAME.registerComponent("xylabel", {
             this._textWidth = textWidth;
             let texture = this._texture = new THREE.CanvasTexture(canvas);
             texture.anisotropy = 4;
-            texture.alphaTest = .2;
             texture.repeat.x = textWidth / canvasWidth;
             let meshH = Math.min(w / textWidth * canvasHeight, h);
             let mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, meshH), new THREE.MeshBasicMaterial({
@@ -1517,10 +1516,6 @@ AFRAME.registerComponent("xywindow", {
         el.addEventListener("xyresize", ev => {
             this.update({});
         });
-        this.system.registerWindow(this);
-    },
-    remove() {
-        this.system.unregisterWindow(this);
     },
     update(oldData) {
         let el = this.el;
@@ -1553,16 +1548,6 @@ AFRAME.registerComponent("xywindow", {
         if (background) {
             background.object3D.scale.set(width + .1, height + .7, 1);
         }
-    }
-});
-
-AFRAME.registerSystem("xywindow", {
-    windows: [],
-    registerWindow(window) {
-        this.windows.push(window);
-    },
-    unregisterWindow(window) {
-        this.windows = this.windows.filter(w => w != window);
     }
 });
 
