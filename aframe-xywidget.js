@@ -154,7 +154,6 @@ AFRAME.registerComponent('xylabel', {
             this._textWidth = textWidth;
             let texture = this._texture = new THREE.CanvasTexture(canvas);
             texture.anisotropy = 4;
-            texture.alphaTest = 0.2;
             texture.repeat.x = textWidth / canvasWidth;
             let meshH = Math.min(w / textWidth * canvasHeight, h);
             let mesh = new THREE.Mesh(
@@ -187,10 +186,10 @@ AFRAME.registerComponent('xylabel', {
     },
     _removeObject3d() {
         let el = this.el;
-        let labelObj = el.getObject3D('xylabel');
+        let labelObj = /** @type {THREE.Mesh} */ (el.getObject3D('xylabel'));
         if (labelObj) {
-            labelObj.material.map.dispose();
-            labelObj.material.dispose();
+            /** @type {THREE.MeshBasicMaterial} */ (labelObj.material).map.dispose();
+            /** @type {THREE.MeshBasicMaterial} */ (labelObj.material).dispose();
             labelObj.geometry.dispose();
             el.removeObject3D('xylabel');
             this._canvas = null;
@@ -235,7 +234,7 @@ AFRAME.registerComponent('xytoggle', {
         value: { default: false }
     },
     init() {
-        let el = this.el;
+        let el = /** @type {AFRAME.AEntity & {value: boolean}} */ (this.el);
         Object.defineProperty(el, 'value', {
             get: () => this.data.value,
             set: (v) => el.setAttribute('xytoggle', 'value', v)
@@ -248,7 +247,7 @@ AFRAME.registerComponent('xytoggle', {
         el.addEventListener('xyresize', (ev) => this.update());
     },
     update() {
-        let el = this.el;
+        let el = /** @type {AFRAME.AEntity & {value: boolean}} */ (this.el);
         let xyrect = el.components.xyrect;
         let r = xyrect.height / 2;
         let v = el.value;
@@ -545,10 +544,6 @@ AFRAME.registerComponent('xywindow', {
         el.addEventListener('xyresize', (ev) => {
             this.update({});
         });
-        this.system.registerWindow(this);
-    },
-    remove() {
-        this.system.unregisterWindow(this);
     },
     update(oldData) {
         let el = this.el;
@@ -574,16 +569,6 @@ AFRAME.registerComponent('xywindow', {
         if (background) {
             background.object3D.scale.set(width + 0.1, height + 0.7, 1);
         }
-    }
-});
-
-AFRAME.registerSystem('xywindow', {
-    windows: [],
-    registerWindow(window) {
-        this.windows.push(window);
-    },
-    unregisterWindow(window) {
-        this.windows = this.windows.filter(w => w != window);
     }
 });
 
@@ -759,7 +744,7 @@ AFRAME.registerComponent('xyscroll', {
             if (item === this._scrollBar || (item.getAttribute('xyitem') || {}).fixed) {
                 continue;
             }
-            return item;
+            return /** @type {AFRAME.AEntity} */ (item);
         }
     },
     _initScrollBar(el, w) {
@@ -890,6 +875,7 @@ AFRAME.registerComponent('xylist', {
         el.setAttribute('xyrect', 'pivot', { x: 0, y: 1 });
         el.addEventListener('xyviewport', ev => this.setViewport(ev.detail));
         el.addEventListener('click', (ev) => {
+            // @ts-ignore
             for (let p of (ev.path || ev.composedPath())) {
                 let index = p.dataset.listPosition;
                 if (index != null && index >= 0) {
