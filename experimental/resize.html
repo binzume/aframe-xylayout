@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Resizable window</title>
+  <script id='script-aframe' src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script id='script-xylayout' src="https://binzume.github.io/aframe-xylayout/dist/xylayout-all.min.js"></script>
+  <script id='script-xyresize' src="xyresize.js"></script>
+</head>
+
+<body style="background-color: black; color:white;">
+  <a-scene cursor="rayOrigin: mouse; fuse:false" raycaster="objects:.collidable">
+
+    <a-xywindow xyresize scale='0.2 0.2 0.2' title="Resizable window" width="6" height="3" position="0 1.5 -1" xywindow="background:true" xycontainer="direction:column;alignItems:center">
+    </a-xywindow>
+
+    <a-entity id="camera-rig" position-controls="arrowkeys:rotation;wasdkeys:translation">
+      <a-camera position="0 1.5 0" look-controls="enabled:false"></a-camera>
+      <a-entity laser-controls="hand: right" raycaster="far:Infinity;objects:.collidable"></a-entity>
+      <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
+    </a-entity>
+
+  </a-scene>
+</body>
+
+</html>
