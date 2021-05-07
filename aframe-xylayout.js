@@ -200,7 +200,7 @@ AFRAME.registerComponent('xyitem', {
     }
 });
 
-AFRAME.registerComponent('xyrect', {
+AFRAME.registerComponent('xyrect', /** @type {import("aframe").ComponentDefinition<Partial<{width: number, height: number}>>} */({
     schema: {
         width: { default: -1 }, // -1 : auto
         height: { default: -1 },
@@ -216,7 +216,7 @@ AFRAME.registerComponent('xyrect', {
             el.emit('xyresize', { xyrect: this }, false);
         }
     }
-});
+}));
 
 AFRAME.registerPrimitive('a-xycontainer', {
     defaultComponents: {
