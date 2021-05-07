@@ -637,13 +637,12 @@ AFRAME.registerComponent("xycontainer", {
         }
     },
     init() {
-        this.el.addEventListener("xyresize", ev => this.layout());
-        this.layout();
+        this.el.addEventListener("xyresize", ev => this.update());
     },
-    layout() {
+    update() {
         let data = this.data;
-        let direction = data && data.direction;
-        if (!direction || direction == "none") {
+        let direction = data.direction;
+        if (direction == "none") {
             return;
         }
         let containerRect = this.el.components.xyrect, children = this.el.children;
@@ -679,37 +678,32 @@ AFRAME.registerComponent("xycontainer", {
                 continue;
             }
             let rect = el.components.xyrect || el.getAttribute("geometry") || {
-                width: (el.getAttribute("width") || undefined) * 1,
-                height: (el.getAttribute("height") || undefined) * 1
+                width: (el.getAttribute("width") || NaN) * 1,
+                height: (el.getAttribute("height") || NaN) * 1
             };
             let childScale = el.getAttribute("scale") || {
                 x: 1,
                 y: 1
             };
+            let scale = xyToMainCross(childScale.x, childScale.y);
             let pivot = rect.data ? rect.data.pivot : {
                 x: .5,
                 y: .5
             };
-            let itemData = {
-                el: el,
-                xyitem: xyitem,
-                size: xyToMainCross(rect.width, rect.height),
-                pivot: xyToMainCross(pivot.x, pivot.y),
-                scale: xyToMainCross(childScale.x, childScale.y)
-            };
-            if (itemData.size[0] == null || isNaN(itemData.size[0])) {
+            let size = xyToMainCross(rect.width, rect.height);
+            if (size[0] == null || isNaN(size[0])) {
                 continue;
             }
-            let sz = itemData.size[0] * itemData.scale[0];
+            let sz = size[0] * scale[0];
             let contentSize = sizeSum + sz + spacing * targets.length;
             if (data.wrap == "wrap" && sizeSum > 0 && contentSize > containerSize[0]) {
                 newLine();
             }
-            targets.push(itemData);
+            targets.push([ el, xyitem, size, xyToMainCross(pivot.x, pivot.y), scale ]);
             sizeSum += sz;
             growSum += xyitem ? xyitem.grow : 1;
             shrinkSum += xyitem ? xyitem.shrink : 1;
-            crossSize = itemData.size[1] > crossSize ? itemData.size[1] : crossSize;
+            crossSize = size[1] > crossSize ? size[1] : crossSize;
         }
         if (targets.length > 0) {
             newLine();
@@ -760,12 +754,10 @@ AFRAME.registerComponent("xycontainer", {
             spacing = (containerSize0 - sizeSum) / numTarget;
             p += spacing / 2;
         }
-        for (let itemData of targets) {
-            let el = itemData.el;
-            let xyitem = itemData.xyitem;
-            let [pivot0, pivot1] = itemData.pivot;
-            let [scale0, scale1] = itemData.scale;
-            let [size0, size1] = itemData.size;
+        for (let [el, xyitem, size, pivot, scale] of targets) {
+            let [pivot0, pivot1] = pivot;
+            let [scale0, scale1] = scale;
+            let [size0, size1] = size;
             let align = xyitem && xyitem.align || alignItems;
             let stretch = (xyitem ? stretchFactor > 0 ? xyitem.grow : xyitem.shrink : 1) * stretchFactor;
             let szMain = size0 * scale0 + stretch;
@@ -817,10 +809,10 @@ AFRAME.registerComponent("xyitem", {
         }
     },
     update(oldData) {
-        if (oldData.align !== undefined) {
+        if (oldData.align) {
             let xycontainer = this.el.parentNode.components.xycontainer;
             if (xycontainer) {
-                xycontainer.layout();
+                xycontainer.update();
             }
         }
     }
@@ -840,24 +832,15 @@ AFRAME.registerComponent("xyrect", {
                 x: .5,
                 y: .5
             }
-        },
-        updateGeometry: {
-            default: false
         }
     },
     update(oldData) {
         let el = this.el;
-        let {width: width, height: height, updateGeometry: updateGeometry} = this.data;
+        let {width: width, height: height} = this.data;
         let geometry = el.getAttribute("geometry") || {};
         this.width = width < 0 ? (el.getAttribute("width") || geometry.width || 0) * 1 : width;
         this.height = height < 0 ? (el.getAttribute("height") || geometry.height || 0) * 1 : height;
         if (oldData.width !== undefined) {
-            if (updateGeometry) {
-                el.setAttribute("geometry", {
-                    width: width,
-                    height: height
-                });
-            }
             el.emit("xyresize", {
                 xyrect: this
             }, false);
@@ -936,6 +919,13 @@ const XYTheme = {
                         hapticActuators[0].pulse(intensity, getParam("hoverHapticMs"));
                     } else {}
                 }
+            });
+            buttonEl.addEventListener("xyresize", ev => {
+                let r = ev.detail.xyrect;
+                buttonEl.setAttribute("geometry", {
+                    width: r.width,
+                    height: r.height
+                });
             });
             buttonEl.addEventListener("mouseleave", ev => {
                 buttonEl.setAttribute("material", {
@@ -1498,8 +1488,8 @@ AFRAME.registerComponent("xywindow", {
                 }
             });
         }
-        let dragButton = this._dragButton = theme.createButton(1, .5, controls, windowStyle.titleBar, true);
-        dragButton.setAttribute("xy-drag-control", {
+        let titleBar = this._titleBar = theme.createButton(1, .5, controls, windowStyle.titleBar, true);
+        titleBar.setAttribute("xy-drag-control", {
             target: el,
             autoRotate: true
         });
@@ -1521,7 +1511,7 @@ AFRAME.registerComponent("xywindow", {
         let el = this.el;
         let data = this.data;
         let {width: width, height: height} = el.components.xyrect;
-        let dragButton = this._dragButton;
+        let titleBar = this._titleBar;
         let background = this._background;
         let buttonsWidth = 0;
         let tiyleY = height / 2 + .3;
@@ -1531,20 +1521,20 @@ AFRAME.registerComponent("xywindow", {
         }
         if (data.title != oldData.title) {
             let titleW = width - buttonsWidth - .1;
-            dragButton.setAttribute("xyrect", {
+            titleBar.setAttribute("xyrect", {
                 width: titleW,
                 height: .45
             });
-            dragButton.setAttribute("xylabel", {
+            titleBar.setAttribute("xylabel", {
                 value: data.title,
                 wrapCount: Math.max(10, titleW / .2),
                 xOffset: .1
             });
         }
-        dragButton.setAttribute("geometry", {
+        titleBar.setAttribute("geometry", {
             width: width - buttonsWidth
         });
-        dragButton.object3D.position.set(-buttonsWidth / 2, tiyleY, 0);
+        titleBar.object3D.position.set(-buttonsWidth / 2, tiyleY, 0);
         if (background) {
             background.object3D.scale.set(width + .1, height + .7, 1);
         }
@@ -1661,6 +1651,8 @@ AFRAME.registerComponent("xyclipping", {
         this._clippingPlanes = [];
         this._currentMatrix = null;
         this._raycastOverrides = {};
+        this.update = this.update.bind(this);
+        this.el.addEventListener("xyresize", this.update);
     },
     update() {
         let data = this.data;
@@ -1674,6 +1666,7 @@ AFRAME.registerComponent("xyclipping", {
         this._updateMatrix();
     },
     remove() {
+        this.el.removeEventListener("xyresize", this.update);
         this._clippingPlanes.splice(0);
         for (let [obj, raycast] of Object.values(this._raycastOverrides)) {
             obj.raycast = raycast;
@@ -2001,8 +1994,7 @@ AFRAME.registerPrimitive("a-xybutton", {
     defaultComponents: {
         xyrect: {
             width: 2,
-            height: .5,
-            updateGeometry: true
+            height: .5
         },
         xylabel: {
             align: "center"
@@ -2039,8 +2031,7 @@ AFRAME.registerPrimitive("a-xyselect", {
     defaultComponents: {
         xyrect: {
             width: 2,
-            height: .5,
-            updateGeometry: true
+            height: .5
         },
         xyselect: {}
     },
