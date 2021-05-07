@@ -9,8 +9,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dist-concat": "node_modules/.bin/uglifyjs -b -o dist/xylayout-all.js -- aframe-*.js",
-    "dist-min": "node_modules/.bin/uglifyjs --compress pure_getters=true --mangle --mangle-props regex=/^_/ --source-map -o dist/xylayout-all.min.js -- aframe-*.js",
+    "dist-concat": "npx uglifyjs -b -o dist/xylayout-all.js -- aframe-*.js",
+    "dist-min": "npx uglifyjs --compress pure_getters=true --mangle --mangle-props regex=/^_/ --source-map -o dist/xylayout-all.min.js -- aframe-*.js",
     "dist": "npm run dist-min && npm run dist-concat && ls -la dist/*.js"
   },
   "repository": {

@@ -45,7 +45,6 @@ AFRAME.registerComponent('xyresize', {
 		resizerEl.setAttribute('xydraggable', { base: el });
 		resizerEl.addEventListener('xy-drag', ev => {
 			resizerEl.setAttribute('position', { x: ev.detail.point.x, y: ev.detail.point.y, z: 0.01 });
-			// console.log(ev.detail.pointDelta);
 		});
 		resizerEl.addEventListener('xy-dragend', ev => {
 			let w = Math.max(ev.detail.point.x + this._rect.width / 2, data.minWidth);

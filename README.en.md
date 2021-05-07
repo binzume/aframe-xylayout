@@ -102,7 +102,7 @@ The properties of this component take precedence over the parameters specified i
 
 ### xyrect
 
-Components that provide element sizes and pivots for `xycontainer`.
+A component that provide element sizes and pivots for `xycontainer`.
 By default, xycontainer uses the width and height attributes of the element. 
 If width and height do not represent the actual size of the object (e.g. `a-sphere`), we need to be specified in this component.
 
@@ -242,7 +242,7 @@ Intended to be used as a child element of xyscroll.
 | ---- | ------------ | ---- |
 | clickitem | {index: int} | click item event |
 
-#### Method:
+#### Methods:
 
 Needs to be initialized by `xylist.setAdapter()` and `xylist.setContents()`.
 See [list example](https://binzume.github.io/aframe-xylayout/examples/list.html).
