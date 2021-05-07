@@ -7,6 +7,7 @@
     <title>UI Components examples</title>
     <script src="https://aframe.io/releases/1.1.0/aframe.min.js"></script>
     <script src="../dist/xylayout-all.min.js"></script>
+    <script src="xylist-custom-layout.js"></script>
 </head>
 
 <body style="background-color: black; color:white;">
@@ -19,11 +20,10 @@
             <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
         </a-entity>
 
-        <a-xywindow position="0 0 -2" width="3" height="20" title="Custom Layout">
-            <a-xyscroll width=3 height=20>
-                <a-entity id="listview" xylist=""></a-entity>
+        <a-xywindow position="0 1.5 -1" width="1" height="10" title="Custom Layout">
+            <a-xyscroll width=1 height=10>
+                <a-entity id="listview" xylist="" xylist-spriral-layout="itemWidth:2; itemHeight:2; radius:10"></a-entity>
             </a-xyscroll>
-
         </a-xywindow>
 
     </a-scene>
@@ -36,38 +36,13 @@
             });
 
             let list = listEl.components.xylist;
-            let itemWidth = 4, itemHeight = 4, cols = 24;
-            list.setLayout({
-                size(itemCount) {
-                    return { width: 0.1, height: itemHeight * Math.ceil(itemCount / cols) };
-                },
-                *targets(viewport) {
-                    let position = Math.floor((-viewport[0]) / itemHeight - 1) * cols;
-                    let end = Math.ceil((-viewport[1]) / itemHeight) * cols;
-                    while (position < end) {
-                        yield position++;
-                    }
-                },
-                layout(el, position) {
-                    let t = (position % cols) / cols * Math.PI * 2, y = - (position / cols) * itemHeight;
-                    let x = Math.sin(t) * (itemWidth * cols) / Math.PI / 2;
-                    let z = Math.cos(t) * (itemWidth * cols) / Math.PI / 2;
-                    let xyrect = el.components.xyrect;
-                    let pivot = xyrect.data.pivot;
-                    el.setAttribute("position", { x: x, y: y - pivot.y * xyrect.height, z: z });
-                    el.setAttribute("rotation", { x: 0, y: t * 180 / Math.PI, z: 0 });
-                }
-            });
             list.setAdapter({
                 create(parent) {
-                    let el = document.createElement('a-box');
-                    el.setAttribute("xyrect", {});
-                    el.setAttribute("width", itemWidth * 0.9);
-                    el.setAttribute("height", itemHeight * 0.9);
-                    el.setAttribute("depth", 0.1);
-                    return el;
+                    return document.createElement('a-box');
                 },
                 bind(position, el, data) {
+                    let rect = el.components.xyrect;
+                    el.setAttribute("geometry", {width: rect.width * 0.9, height: rect.height * 0.9, depth: 0.1});
                     el.setAttribute("color", ["red", "blue", "green", "yellow", "cyan"][position % 5]);
                 }
             });
