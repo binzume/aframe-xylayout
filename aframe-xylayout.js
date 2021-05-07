@@ -1,4 +1,3 @@
-/// <reference path="node_modules/@types/aframe/index.d.ts" />
 "use strict";
 
 AFRAME.registerComponent('xycontainer', {
@@ -14,16 +13,15 @@ AFRAME.registerComponent('xycontainer', {
         alignContent: { default: "", oneOf: ['', 'none', 'start', 'end', 'center', 'stretch'] }
     },
     init() {
-        this.el.addEventListener('xyresize', (ev) => this.layout());
-        this.layout();
+        this.el.addEventListener('xyresize', (ev) => this.update());
     },
-    layout() {
+    update() {
         let data = this.data;
-        let direction = data && data.direction;
-        if (!direction || direction == "none") {
+        let direction = data.direction;
+        if (direction == "none") {
             return;
         }
-        let containerRect = this.el.components.xyrect, children = this.el.children;
+        let containerRect = this.el.components.xyrect, children = /** @type {Iterable<AFRAME.AEntity>} */ (this.el.children);
         let isVertical = direction == "vertical" || direction == "column";
         let padding = data.padding;
         let spacing = data.spacing;
@@ -37,6 +35,7 @@ AFRAME.registerComponent('xycontainer', {
         let mainSize = 0;
         let crossSizeSum = 0;
         let lines = [];
+        /** @type {[el:AFRAME.AEntity, xyitem: any, size: number[], pivot: number[], scale:number[]][]} */
         let targets = [];
         let sizeSum = 0;
         let growSum = 0;
@@ -58,31 +57,32 @@ AFRAME.registerComponent('xycontainer', {
                 continue;
             }
             let rect = el.components.xyrect || el.getAttribute("geometry") || {
-                width: (el.getAttribute("width") || undefined) * 1,
-                height: (el.getAttribute("height") || undefined) * 1
+                width: (el.getAttribute("width") || NaN) * 1,
+                height: (el.getAttribute("height") || NaN) * 1
             };
-            let childScale = el.getAttribute("scale") || { x: 1, y: 1 };
+            let childScale = /** @type {{x:number, y:number}} */ (el.getAttribute("scale") || { x: 1, y: 1 });
+            let scale = xyToMainCross(childScale.x, childScale.y);
             let pivot = rect.data ? rect.data.pivot : { x: 0.5, y: 0.5 };
-            let itemData = {
-                el: el,
-                xyitem: xyitem,
-                size: xyToMainCross(rect.width, rect.height),
-                pivot: xyToMainCross(pivot.x, pivot.y),
-                scale: xyToMainCross(childScale.x, childScale.y)
-            };
-            if (itemData.size[0] == null || isNaN(itemData.size[0])) {
+            let size = xyToMainCross(rect.width, rect.height);
+            if (size[0] == null || isNaN(size[0])) {
                 continue;
             }
-            let sz = itemData.size[0] * itemData.scale[0];
+            let sz = size[0] * scale[0];
             let contentSize = sizeSum + sz + spacing * targets.length;
             if (data.wrap == "wrap" && sizeSum > 0 && contentSize > containerSize[0]) {
                 newLine();
             }
-            targets.push(itemData);
+            targets.push([
+                el,
+                xyitem,
+                size,
+                xyToMainCross(pivot.x, pivot.y),
+                scale,
+            ]);
             sizeSum += sz;
             growSum += xyitem ? xyitem.grow : 1;
             shrinkSum += xyitem ? xyitem.shrink : 1;
-            crossSize = itemData.size[1] > crossSize ? itemData.size[1] : crossSize;
+            crossSize = size[1] > crossSize ? size[1] : crossSize;
         }
         if (targets.length > 0) {
             newLine();
@@ -115,7 +115,7 @@ AFRAME.registerComponent('xycontainer', {
         }
     },
     /**
-     * @param {{el:import("aframe").Entity, xyitem: any, size: number[], pivot: number[], scale:number[]}[]} targets
+     * @param {[el:import("aframe").Entity, xyitem: any, size: number[], pivot: number[], scale:number[]][]} targets
      * @param {number} sizeSum
      * @param {number} growSum
      * @param {number} shrinkSum
@@ -148,12 +148,10 @@ AFRAME.registerComponent('xycontainer', {
             p += spacing / 2;
         }
 
-        for (let itemData of targets) {
-            let el = itemData.el;
-            let xyitem = itemData.xyitem;
-            let [pivot0, pivot1] = itemData.pivot;
-            let [scale0, scale1] = itemData.scale;
-            let [size0, size1] = itemData.size;
+        for (let [el, xyitem, size, pivot, scale] of targets) {
+            let [pivot0, pivot1] = pivot;
+            let [scale0, scale1] = scale;
+            let [size0, size1] = size;
             let align = (xyitem && xyitem.align) || alignItems;
             let stretch = (xyitem ? (stretchFactor > 0 ? xyitem.grow : xyitem.shrink) : 1) * stretchFactor;
             let szMain = size0 * scale0 + stretch;
@@ -193,10 +191,10 @@ AFRAME.registerComponent('xyitem', {
         fixed: { default: false }
     },
     update(oldData) {
-        if (oldData.align !== undefined) {
-            let xycontainer = this.el.parentNode.components.xycontainer;
+        if (oldData.align) {
+            let xycontainer = /** @type {AFRAME.AEntity} */ (this.el.parentNode).components.xycontainer;
             if (xycontainer) {
-                xycontainer.layout();
+                xycontainer.update();
             }
         }
     }
@@ -207,18 +205,14 @@ AFRAME.registerComponent('xyrect', {
         width: { default: -1 }, // -1 : auto
         height: { default: -1 },
         pivot: { type: 'vec2', default: { x: 0.5, y: 0.5 } },
-        updateGeometry: { default: false },
     },
     update(oldData) {
         let el = this.el;
-        let { width, height, updateGeometry } = this.data;
+        let { width, height } = this.data;
         let geometry = el.getAttribute("geometry") || {};
         this.width = width < 0 ? (el.getAttribute("width") || geometry.width || 0) * 1 : width;
         this.height = height < 0 ? (el.getAttribute("height") || geometry.height || 0) * 1 : height;
         if (oldData.width !== undefined) {
-            if (updateGeometry) {
-                el.setAttribute("geometry", { width: width, height: height });
-            }
             el.emit('xyresize', { xyrect: this }, false);
         }
     }

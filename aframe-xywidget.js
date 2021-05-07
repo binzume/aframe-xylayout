@@ -42,6 +42,10 @@ const XYTheme = {
                     }
                 }
             });
+            buttonEl.addEventListener('xyresize', (ev) => {
+                let r = ev.detail.xyrect;
+                buttonEl.setAttribute("geometry", { width: r.width, height: r.height });
+            });
             buttonEl.addEventListener('mouseleave', ev => {
                 buttonEl.setAttribute('material', { color: getParam('color') });
             });
@@ -527,8 +531,8 @@ AFRAME.registerComponent('xywindow', {
             });
         }
 
-        let dragButton = this._dragButton = theme.createButton(1, 0.5, controls, windowStyle.titleBar, true);
-        dragButton.setAttribute('xy-drag-control', { target: el, autoRotate: true });
+        let titleBar = this._titleBar = theme.createButton(1, 0.5, controls, windowStyle.titleBar, true);
+        titleBar.setAttribute('xy-drag-control', { target: el, autoRotate: true });
         this._buttons = [];
 
         if (this.data.closable) {
@@ -549,7 +553,7 @@ AFRAME.registerComponent('xywindow', {
         let el = this.el;
         let data = this.data;
         let { width, height } = el.components.xyrect;
-        let dragButton = this._dragButton;
+        let titleBar = this._titleBar;
         let background = this._background;
         let buttonsWidth = 0;
         let tiyleY = height / 2 + 0.3;
@@ -559,13 +563,13 @@ AFRAME.registerComponent('xywindow', {
         }
         if (data.title != oldData.title) {
             let titleW = width - buttonsWidth - 0.1;
-            dragButton.setAttribute('xyrect', { width: titleW, height: 0.45 });
-            dragButton.setAttribute('xylabel', {
+            titleBar.setAttribute('xyrect', { width: titleW, height: 0.45 });
+            titleBar.setAttribute('xylabel', {
                 value: data.title, wrapCount: Math.max(10, titleW / 0.2), xOffset: 0.1
             });
         }
-        dragButton.setAttribute('geometry', { width: width - buttonsWidth });
-        dragButton.object3D.position.set(-buttonsWidth / 2, tiyleY, 0);
+        titleBar.setAttribute('geometry', { width: width - buttonsWidth });
+        titleBar.object3D.position.set(-buttonsWidth / 2, tiyleY, 0);
         if (background) {
             background.object3D.scale.set(width + 0.1, height + 0.7, 1);
         }
@@ -652,6 +656,8 @@ AFRAME.registerComponent('xyclipping', {
         this._clippingPlanes = [];
         this._currentMatrix = null;
         this._raycastOverrides = {};
+        this.update = this.update.bind(this);
+        this.el.addEventListener('xyresize', this.update);
     },
     update() {
         let data = this.data;
@@ -665,6 +671,7 @@ AFRAME.registerComponent('xyclipping', {
         this._updateMatrix();
     },
     remove() {
+        this.el.removeEventListener('xyresize', this.update);
         this._clippingPlanes.splice(0);
         for (let [obj, raycast] of Object.values(this._raycastOverrides)) {
             obj.raycast = raycast;
@@ -964,7 +971,7 @@ AFRAME.registerPrimitive('a-xylabel', {
 
 AFRAME.registerPrimitive('a-xybutton', {
     defaultComponents: {
-        xyrect: { width: 2, height: 0.5, updateGeometry: true },
+        xyrect: { width: 2, height: 0.5 },
         xylabel: { align: 'center' },
         xybutton: {}
     },
@@ -993,7 +1000,7 @@ AFRAME.registerPrimitive('a-xytoggle', {
 
 AFRAME.registerPrimitive('a-xyselect', {
     defaultComponents: {
-        xyrect: { width: 2, height: 0.5, updateGeometry: true },
+        xyrect: { width: 2, height: 0.5 },
         xyselect: {}
     },
     mappings: {
