@@ -513,8 +513,9 @@ AFRAME.registerComponent('xywindow', {
         let theme = XYTheme.get(el);
         let windowStyle = theme.window;
         let controls = this.controls = el.appendChild(document.createElement('a-entity'));
+        let controlsObj = controls.object3D;
         controls.setAttribute('xyitem', { fixed: true });
-        controls.object3D.position.set(0, 0, 0.02);
+        controlsObj.position.set(0, 0, 0.02);
         // if (windowStyle.defaultScale && !el.hasAttribute('scale')) { el.setAttribute('scale', windowStyle.defaultScale); }
 
         if (this.data.background) {
@@ -525,8 +526,10 @@ AFRAME.registerComponent('xywindow', {
             });
             background.object3D.position.set(0, 0.25, -0.04);
             el.addEventListener('object3dset', ev => {
-                if (ev.detail.object.el == background) {
-                    el.object3D.children.unshift(el.object3D.children.pop()); // Move to first.
+                let children = el.object3D.children;
+                let i = children.indexOf(controlsObj);
+                if (i > 0) {
+                    children.unshift(...children.splice(i, 1));
                 }
             });
         }
@@ -698,11 +701,11 @@ AFRAME.registerComponent('xyclipping', {
             if (obj.material && obj.material.clippingPlanes !== undefined) {
                 obj.material.clippingPlanes = this._clippingPlanes;
                 if (!this._raycastOverrides[obj.uuid]) {
-                    this._raycastOverrides[obj.uuid] = [obj, obj.raycast];
-                    let orgRaycast = obj.raycast.bind(obj);
+                    let raycastFn = obj.raycast;
+                    this._raycastOverrides[obj.uuid] = [obj, raycastFn];
                     obj.raycast = (r, intersects) => {
                         let len = intersects.length;
-                        orgRaycast(r, intersects);
+                        raycastFn.apply(obj, [r, intersects]);
                         let added = intersects[len];
                         if (added && this._clippingPlanes.some(plane => plane.distanceToPoint(added.point) < 0)) {
                             intersects.pop();
@@ -859,8 +862,8 @@ AFRAME.registerComponent('xylist', {
             size(itemCount, list) {
                 if (data.itemHeight <= 0) {
                     let el = list._adapter.create();
-                    data.itemHeight = el.getAttribute('height') * 1;
-                    data.itemWidth = el.getAttribute('width') * 1;
+                    data.itemHeight = +el.getAttribute('height');
+                    data.itemWidth = +el.getAttribute('width');
                 }
                 return { width: data.itemWidth, height: data.itemHeight * itemCount };
             },
