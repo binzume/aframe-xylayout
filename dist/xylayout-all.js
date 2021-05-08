@@ -678,8 +678,8 @@ AFRAME.registerComponent("xycontainer", {
                 continue;
             }
             let rect = el.components.xyrect || el.getAttribute("geometry") || {
-                width: (el.getAttribute("width") || NaN) * 1,
-                height: (el.getAttribute("height") || NaN) * 1
+                width: +(el.getAttribute("width") || NaN),
+                height: +(el.getAttribute("height") || NaN)
             };
             let childScale = el.getAttribute("scale") || {
                 x: 1,
@@ -838,8 +838,8 @@ AFRAME.registerComponent("xyrect", {
         let el = this.el;
         let {width: width, height: height} = this.data;
         let geometry = el.getAttribute("geometry") || {};
-        this.width = width < 0 ? (el.getAttribute("width") || geometry.width || 0) * 1 : width;
-        this.height = height < 0 ? (el.getAttribute("height") || geometry.height || 0) * 1 : height;
+        this.width = width < 0 ? +(el.getAttribute("width") || geometry.width || 0) : width;
+        this.height = height < 0 ? +(el.getAttribute("height") || geometry.height || 0) : height;
         if (oldData.width !== undefined) {
             el.emit("xyresize", {
                 xyrect: this
@@ -1469,10 +1469,11 @@ AFRAME.registerComponent("xywindow", {
         let theme = XYTheme.get(el);
         let windowStyle = theme.window;
         let controls = this.controls = el.appendChild(document.createElement("a-entity"));
+        let controlsObj = controls.object3D;
         controls.setAttribute("xyitem", {
             fixed: true
         });
-        controls.object3D.position.set(0, 0, .02);
+        controlsObj.position.set(0, 0, .02);
         if (this.data.background) {
             let background = this._background = controls.appendChild(document.createElement("a-plane"));
             background.setAttribute("material", {
@@ -1483,8 +1484,10 @@ AFRAME.registerComponent("xywindow", {
             });
             background.object3D.position.set(0, .25, -.04);
             el.addEventListener("object3dset", ev => {
-                if (ev.detail.object.el == background) {
-                    el.object3D.children.unshift(el.object3D.children.pop());
+                let children = el.object3D.children;
+                let i = children.indexOf(controlsObj);
+                if (i > 0) {
+                    children.unshift(...children.splice(i, 1));
                 }
             });
         }
@@ -1691,11 +1694,11 @@ AFRAME.registerComponent("xyclipping", {
             if (obj.material && obj.material.clippingPlanes !== undefined) {
                 obj.material.clippingPlanes = this._clippingPlanes;
                 if (!this._raycastOverrides[obj.uuid]) {
-                    this._raycastOverrides[obj.uuid] = [ obj, obj.raycast ];
-                    let orgRaycast = obj.raycast.bind(obj);
+                    let raycastFn = obj.raycast;
+                    this._raycastOverrides[obj.uuid] = [ obj, raycastFn ];
                     obj.raycast = ((r, intersects) => {
                         let len = intersects.length;
-                        orgRaycast(r, intersects);
+                        raycastFn.apply(obj, [ r, intersects ]);
                         let added = intersects[len];
                         if (added && this._clippingPlanes.some(plane => plane.distanceToPoint(added.point) < 0)) {
                             intersects.pop();
@@ -1865,8 +1868,8 @@ AFRAME.registerComponent("xylist", {
             size(itemCount, list) {
                 if (data.itemHeight <= 0) {
                     let el = list._adapter.create();
-                    data.itemHeight = el.getAttribute("height") * 1;
-                    data.itemWidth = el.getAttribute("width") * 1;
+                    data.itemHeight = +el.getAttribute("height");
+                    data.itemWidth = +el.getAttribute("width");
                 }
                 return {
                     width: data.itemWidth,
