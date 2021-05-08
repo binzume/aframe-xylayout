@@ -28,9 +28,9 @@ AFRAME.registerComponent('xyresize', {
 	},
 	init() {
 		let el = this.el, data = this.data;
-		this._rect = el.components.xyrect;
 		let resizerEl = this._resizerEl = el.appendChild(document.createElement('a-entity'));
 
+		resizerEl.setAttribute('xyitem', { fixed: true });
 		resizerEl.setAttribute('material', { shader: "flat", wireframe: true, wireframeLinewidth: data.lineWidth, color: data.color });
 		resizerEl.setAttribute('geometry', { primitive: 'xy-resize-corner' });
 
@@ -41,16 +41,16 @@ AFRAME.registerComponent('xyresize', {
 		resizerEl.addEventListener('mouseleave', ev => {
 			resizerEl.setAttribute('visible', data.visibleAlways);
 		});
-
 		resizerEl.setAttribute('xydraggable', { base: el });
 		resizerEl.addEventListener('xy-drag', ev => {
 			resizerEl.setAttribute('position', { x: ev.detail.point.x, y: ev.detail.point.y, z: 0.01 });
 		});
 		resizerEl.addEventListener('xy-dragend', ev => {
-			let w = Math.max(ev.detail.point.x + this._rect.width / 2, data.minWidth);
-			let h = Math.max(-ev.detail.point.y + this._rect.height / 2, data.minHeight);
-			let dw = w - this._rect.width;
-			let dh = h - this._rect.height;
+			let rect = el.components.xyrect;
+			let w = Math.max(ev.detail.point.x + rect.width / 2, data.minWidth);
+			let h = Math.max(-ev.detail.point.y + rect.height / 2, data.minHeight);
+			let dw = w - rect.width;
+			let dh = h - rect.height;
 			el.setAttribute('xyrect', { width: w, height: h });
 			el.object3D.position.add(new THREE.Vector3(dw / 2, -dh / 2, 0).multiply(el.object3D.scale));
 		});
@@ -63,8 +63,8 @@ AFRAME.registerComponent('xyresize', {
 	},
 	_onResized() {
 		let d = 0.1;
-		let r = this._rect;
-		this._resizerEl.setAttribute('position', { x: r.width / 2 + d, y: -r.height / 2 - d, z: 0.01 });
+		let rect = this.el.components.xyrect;
+		this._resizerEl.setAttribute('position', { x: rect.width / 2 + d, y: -rect.height / 2 - d, z: 0.01 });
 	},
 	remove() {
 		this.el.removeEventListener('xyresize', this._onResized);

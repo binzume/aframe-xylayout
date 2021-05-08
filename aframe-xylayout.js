@@ -57,8 +57,8 @@ AFRAME.registerComponent('xycontainer', {
                 continue;
             }
             let rect = el.components.xyrect || el.getAttribute("geometry") || {
-                width: (el.getAttribute("width") || NaN) * 1,
-                height: (el.getAttribute("height") || NaN) * 1
+                width: +(el.getAttribute("width") || NaN),
+                height: +(el.getAttribute("height") || NaN)
             };
             let childScale = /** @type {{x:number, y:number}} */ (el.getAttribute("scale") || { x: 1, y: 1 });
             let scale = xyToMainCross(childScale.x, childScale.y);
@@ -210,8 +210,8 @@ AFRAME.registerComponent('xyrect', /** @type {import("aframe").ComponentDefiniti
         let el = this.el;
         let { width, height } = this.data;
         let geometry = el.getAttribute("geometry") || {};
-        this.width = width < 0 ? (el.getAttribute("width") || geometry.width || 0) * 1 : width;
-        this.height = height < 0 ? (el.getAttribute("height") || geometry.height || 0) * 1 : height;
+        this.width = width < 0 ? +(el.getAttribute("width") || geometry.width || 0) : width;
+        this.height = height < 0 ? +(el.getAttribute("height") || geometry.height || 0) : height;
         if (oldData.width !== undefined) {
             el.emit('xyresize', { xyrect: this }, false);
         }
