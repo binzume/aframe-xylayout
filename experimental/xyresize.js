@@ -61,7 +61,6 @@ AFRAME.registerComponent('xyresize', {
 			let w = Math.max(ev.detail.point.x * 2, data.minWidth);
 			let h = Math.max(-ev.detail.point.y * 2, data.minHeight);
 			rectObj.scale.set(w, h, 1);
-			resizerEl.setAttribute('position', { x: ev.detail.point.x, y: ev.detail.point.y, z: 0.01 });
 		});
 		resizerEl.addEventListener('xy-dragend', ev => {
 			if (rectObj) {
