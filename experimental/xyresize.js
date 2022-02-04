@@ -26,9 +26,13 @@ AFRAME.registerComponent('xyresize', {
 		lineWidth: { default: 3 },
 		visibleAlways: { default: false },
 	},
+	/** @type {import("aframe").Entity} */
+	_resizerEl: null,
 	init() {
 		let el = this.el, data = this.data;
 		let resizerEl = this._resizerEl = el.appendChild(document.createElement('a-entity'));
+		/** @type {THREE.LineLoop} */
+		let rectObj = null;
 
 		resizerEl.setAttribute('xyitem', { fixed: true });
 		resizerEl.setAttribute('material', { shader: "flat", wireframe: true, wireframeLinewidth: data.lineWidth, color: data.color });
@@ -42,10 +46,6 @@ AFRAME.registerComponent('xyresize', {
 			resizerEl.setAttribute('visible', data.visibleAlways);
 		});
 		resizerEl.setAttribute('xydraggable', { base: el });
-		/**
-		 * @type {THREE.LineLoop}
-		 */
-		let rectObj = null;
 		resizerEl.addEventListener('xy-drag', ev => {
 			if (!rectObj) {
 				const material = new THREE.LineBasicMaterial({ color: 0x8888ff });
@@ -58,8 +58,8 @@ AFRAME.registerComponent('xyresize', {
 				rectObj = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points), material);
 				el.setObject3D('resizing', rectObj);
 			}
-			let w = Math.max(ev.detail.point.x * 2, data.minWidth);
-			let h = Math.max(-ev.detail.point.y * 2, data.minHeight);
+			let w = Math.max(Math.abs(ev.detail.point.x) * 2, data.minWidth);
+			let h = Math.max(Math.abs(ev.detail.point.y) * 2, data.minHeight);
 			rectObj.scale.set(w, h, 1);
 		});
 		resizerEl.addEventListener('xy-dragend', ev => {
@@ -71,8 +71,8 @@ AFRAME.registerComponent('xyresize', {
 				}
 			}
 			rectObj = null;
-			let w = Math.max(ev.detail.point.x * 2, data.minWidth);
-			let h = Math.max(-ev.detail.point.y * 2, data.minHeight);
+			let w = Math.max(Math.abs(ev.detail.point.x) * 2, data.minWidth);
+			let h = Math.max(Math.abs(ev.detail.point.y) * 2, data.minHeight);
 			el.setAttribute('xyrect', { width: w, height: h });
 		});
 
