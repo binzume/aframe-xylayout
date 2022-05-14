@@ -34,24 +34,6 @@ AFRAME.registerComponent('xyinput', {
         updateGeometory();
         el.setAttribute('tabindex', 0);
         el.addEventListener('xyresize', updateGeometory);
-        el.addEventListener('click', ev => {
-            el.focus();
-            el.emit('xykeyboard-request', data.type);
-            let intersection = ev.detail.intersection;
-            if (intersection) {
-                let v = intersection.uv.x;
-                let min = 0, max = this.el.value.length, p = 0;
-                while (max > min) {
-                    p = min + ((max - min + 1) / 2 | 0);
-                    if (this._caretpos(p) < v) {
-                        min = p;
-                    } else {
-                        max = p - 1;
-                    }
-                }
-                this._updateCursor(min);
-            }
-        });
         let oncopy = (ev) => {
             ev.clipboardData.setData('text/plain', el.value);
             ev.preventDefault();
@@ -60,38 +42,59 @@ AFRAME.registerComponent('xyinput', {
             insertString(ev.clipboardData.getData('text/plain'));
             ev.preventDefault();
         };
-        el.addEventListener('focus', (ev) => {
-            this._updateCursor(this.cursor);
-            window.addEventListener('copy', oncopy);
-            window.addEventListener('paste', onpaste);
-        });
-        el.addEventListener('blur', (ev) => {
-            this._updateCursor(this.cursor);
-            window.removeEventListener('copy', oncopy);
-            window.removeEventListener('paste', onpaste);
-        });
-        el.addEventListener('keypress', (ev) => {
-            if (ev.code != 'Enter') {
-                insertString(ev.key);
+        let self = this;
+        this.events = {
+            click(ev) {
+                el.focus();
+                el.emit('xykeyboard-request', data.type);
+                let intersection = ev.detail.intersection;
+                if (intersection) {
+                    let v = intersection.uv.x;
+                    let min = 0, max = el.value.length, p = 0;
+                    while (max > min) {
+                        p = min + ((max - min + 1) / 2 | 0);
+                        if (self._caretpos(p) < v) {
+                            min = p;
+                        } else {
+                            max = p - 1;
+                        }
+                    }
+                    self._updateCursor(min);
+                }
+            },
+            focus(ev) {
+                self._updateCursor(self.cursor);
+                window.addEventListener('copy', oncopy);
+                window.addEventListener('paste', onpaste);
+            },
+            blur(ev) {
+                self._updateCursor(self.cursor);
+                window.removeEventListener('copy', oncopy);
+                window.removeEventListener('paste', onpaste);
+            },
+            keypress(ev) {
+                if (ev.code != 'Enter') {
+                    insertString(ev.key);
+                }
+            },
+            keydown(ev) {
+                let pos = self.cursor, s = el.value;
+                if (ev.code == 'ArrowLeft') {
+                    if (pos > 0) {
+                        self._updateCursor(pos - 1);
+                    }
+                } else if (ev.code == 'ArrowRight') {
+                    if (pos < s.length) {
+                        self._updateCursor(pos + 1);
+                    }
+                } else if (ev.code == 'Backspace') {
+                    if (pos > 0) {
+                        self.cursor--;
+                        el.value = s.slice(0, pos - 1) + s.slice(pos);
+                    }
+                }
             }
-        });
-        el.addEventListener('keydown', (ev) => {
-            let pos = this.cursor, s = el.value;
-            if (ev.code == 'ArrowLeft') {
-                if (pos > 0) {
-                    this._updateCursor(pos - 1);
-                }
-            } else if (ev.code == 'ArrowRight') {
-                if (pos < s.length) {
-                    this._updateCursor(pos + 1);
-                }
-            } else if (ev.code == 'Backspace') {
-                if (pos > 0) {
-                    this.cursor--;
-                    el.value = s.slice(0, pos - 1) + s.slice(pos);
-                }
-            }
-        });
+        };
     },
     update(oldData) {
         let el = this.el, data = this.data;
@@ -344,9 +347,13 @@ AFRAME.registerComponent('xykeyboard', {
                             key: ks ? ks[this._keyidx] || ks[0] : key.code,
                             code: key.code || key[0].toUpperCase()
                         };
-                        this._target.dispatchEvent(new KeyboardEvent('keydown', eventdata));
+                        let emit = (name, eventdata) => {
+                            this._target.dispatchEvent(new KeyboardEvent(name, eventdata));
+                        };
+                        emit('keydown', eventdata);
+                        emit('keyup', eventdata);
                         if (ks) {
-                            this._target.dispatchEvent(new KeyboardEvent('keypress', eventdata));
+                            emit('keypress', eventdata);
                         }
                     });
                 }
