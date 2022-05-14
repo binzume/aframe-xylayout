@@ -43,24 +43,6 @@ AFRAME.registerComponent("xyinput", {
         updateGeometory();
         el.setAttribute("tabindex", 0);
         el.addEventListener("xyresize", updateGeometory);
-        el.addEventListener("click", ev => {
-            el.focus();
-            el.emit("xykeyboard-request", data.type);
-            let intersection = ev.detail.intersection;
-            if (intersection) {
-                let v = intersection.uv.x;
-                let min = 0, max = this.el.value.length, p = 0;
-                while (max > min) {
-                    p = min + ((max - min + 1) / 2 | 0);
-                    if (this._caretpos(p) < v) {
-                        min = p;
-                    } else {
-                        max = p - 1;
-                    }
-                }
-                this._updateCursor(min);
-            }
-        });
         let oncopy = ev => {
             ev.clipboardData.setData("text/plain", el.value);
             ev.preventDefault();
@@ -69,38 +51,59 @@ AFRAME.registerComponent("xyinput", {
             insertString(ev.clipboardData.getData("text/plain"));
             ev.preventDefault();
         };
-        el.addEventListener("focus", ev => {
-            this._updateCursor(this.cursor);
-            window.addEventListener("copy", oncopy);
-            window.addEventListener("paste", onpaste);
-        });
-        el.addEventListener("blur", ev => {
-            this._updateCursor(this.cursor);
-            window.removeEventListener("copy", oncopy);
-            window.removeEventListener("paste", onpaste);
-        });
-        el.addEventListener("keypress", ev => {
-            if (ev.code != "Enter") {
-                insertString(ev.key);
+        let self = this;
+        this.events = {
+            click(ev) {
+                el.focus();
+                el.emit("xykeyboard-request", data.type);
+                let intersection = ev.detail.intersection;
+                if (intersection) {
+                    let v = intersection.uv.x;
+                    let min = 0, max = el.value.length, p = 0;
+                    while (max > min) {
+                        p = min + ((max - min + 1) / 2 | 0);
+                        if (self._caretpos(p) < v) {
+                            min = p;
+                        } else {
+                            max = p - 1;
+                        }
+                    }
+                    self._updateCursor(min);
+                }
+            },
+            focus(ev) {
+                self._updateCursor(self.cursor);
+                window.addEventListener("copy", oncopy);
+                window.addEventListener("paste", onpaste);
+            },
+            blur(ev) {
+                self._updateCursor(self.cursor);
+                window.removeEventListener("copy", oncopy);
+                window.removeEventListener("paste", onpaste);
+            },
+            keypress(ev) {
+                if (ev.code != "Enter") {
+                    insertString(ev.key);
+                }
+            },
+            keydown(ev) {
+                let pos = self.cursor, s = el.value;
+                if (ev.code == "ArrowLeft") {
+                    if (pos > 0) {
+                        self._updateCursor(pos - 1);
+                    }
+                } else if (ev.code == "ArrowRight") {
+                    if (pos < s.length) {
+                        self._updateCursor(pos + 1);
+                    }
+                } else if (ev.code == "Backspace") {
+                    if (pos > 0) {
+                        self.cursor--;
+                        el.value = s.slice(0, pos - 1) + s.slice(pos);
+                    }
+                }
             }
-        });
-        el.addEventListener("keydown", ev => {
-            let pos = this.cursor, s = el.value;
-            if (ev.code == "ArrowLeft") {
-                if (pos > 0) {
-                    this._updateCursor(pos - 1);
-                }
-            } else if (ev.code == "ArrowRight") {
-                if (pos < s.length) {
-                    this._updateCursor(pos + 1);
-                }
-            } else if (ev.code == "Backspace") {
-                if (pos > 0) {
-                    this.cursor--;
-                    el.value = s.slice(0, pos - 1) + s.slice(pos);
-                }
-            }
-        });
+        };
     },
     update(oldData) {
         let el = this.el, data = this.data;
@@ -505,9 +508,13 @@ AFRAME.registerComponent("xykeyboard", {
                             key: ks ? ks[this._keyidx] || ks[0] : key.code,
                             code: key.code || key[0].toUpperCase()
                         };
-                        this._target.dispatchEvent(new KeyboardEvent("keydown", eventdata));
+                        let emit = (name, eventdata) => {
+                            this._target.dispatchEvent(new KeyboardEvent(name, eventdata));
+                        };
+                        emit("keydown", eventdata);
+                        emit("keyup", eventdata);
                         if (ks) {
-                            this._target.dispatchEvent(new KeyboardEvent("keypress", eventdata));
+                            emit("keypress", eventdata);
                         }
                     });
                 }
@@ -1152,6 +1159,18 @@ AFRAME.registerComponent("xytoggle", {
             default: false
         }
     },
+    events: {
+        xyresize(ev) {
+            this.update();
+        },
+        click(ev) {
+            let el = this.el;
+            el.value = !el.value;
+            el.emit("change", {
+                value: el.value
+            }, false);
+        }
+    },
     init() {
         let el = this.el;
         Object.defineProperty(el, "value", {
@@ -1159,13 +1178,6 @@ AFRAME.registerComponent("xytoggle", {
             set: v => el.setAttribute("xytoggle", "value", v)
         });
         this._thumb = el.appendChild(document.createElement("a-circle"));
-        el.addEventListener("click", ev => {
-            el.value = !el.value;
-            el.emit("change", {
-                value: el.value
-            }, false);
-        });
-        el.addEventListener("xyresize", ev => this.update());
     },
     update() {
         let el = this.el;
@@ -1205,16 +1217,21 @@ AFRAME.registerComponent("xyselect", {
             default: 0
         }
     },
-    init() {
-        let el = this.el;
-        el.addEventListener("click", ev => {
+    events: {
+        click(ev) {
             let data = this.data;
             if (data.toggle) {
                 this.select((data.select + 1) % data.values.length);
             } else {
                 this._listEl ? this.hide() : this.show();
             }
-        });
+        },
+        xyresize(ev) {
+            this.data.toggle || this.update();
+        }
+    },
+    init() {
+        let el = this.el;
         if (this.data.toggle) {
             el.setAttribute("xylabel", "align", "center");
         } else {
@@ -1236,7 +1253,6 @@ AFRAME.registerComponent("xyselect", {
                     z: 0
                 }
             });
-            el.addEventListener("xyresize", ev => this.update());
         }
     },
     update() {
@@ -1464,6 +1480,11 @@ AFRAME.registerComponent("xywindow", {
             default: false
         }
     },
+    events: {
+        xyresize(ev) {
+            this.update({});
+        }
+    },
     init() {
         let el = this.el;
         let theme = XYTheme.get(el);
@@ -1506,9 +1527,6 @@ AFRAME.registerComponent("xywindow", {
             closeButton.addEventListener("click", ev => el.parentNode.removeChild(el));
             this._buttons.push(closeButton);
         }
-        el.addEventListener("xyresize", ev => {
-            this.update({});
-        });
     },
     update(oldData) {
         let el = this.el;
@@ -1648,14 +1666,17 @@ AFRAME.registerComponent("xyclipping", {
             default: false
         }
     },
+    events: {
+        xyresize(ev) {
+            this.update();
+        }
+    },
     init() {
         this.el.sceneEl.renderer.localClippingEnabled = true;
         this._clippingPlanesLocal = [];
         this._clippingPlanes = [];
         this._currentMatrix = null;
         this._raycastOverrides = {};
-        this.update = this.update.bind(this);
-        this.el.addEventListener("xyresize", this.update);
     },
     update() {
         let data = this.data;
@@ -1669,7 +1690,6 @@ AFRAME.registerComponent("xyclipping", {
         this._updateMatrix();
     },
     remove() {
-        this.el.removeEventListener("xyresize", this.update);
         this._clippingPlanes.splice(0);
         for (let [obj, raycast] of Object.values(this._raycastOverrides)) {
             obj.raycast = raycast;
@@ -1856,6 +1876,20 @@ AFRAME.registerComponent("xylist", {
             default: -1
         }
     },
+    events: {
+        click(ev) {
+            for (let p of ev.path || ev.composedPath()) {
+                let index = p.dataset.listPosition;
+                if (index != null && index >= 0) {
+                    this.el.emit("clickitem", {
+                        index: index,
+                        ev: ev
+                    }, false);
+                    break;
+                }
+            }
+        }
+    },
     init() {
         let el = this.el;
         let data = this.data;
@@ -1903,18 +1937,6 @@ AFRAME.registerComponent("xylist", {
             y: 1
         });
         el.addEventListener("xyviewport", ev => this.setViewport(ev.detail));
-        el.addEventListener("click", ev => {
-            for (let p of ev.path || ev.composedPath()) {
-                let index = p.dataset.listPosition;
-                if (index != null && index >= 0) {
-                    el.emit("clickitem", {
-                        index: index,
-                        ev: ev
-                    }, false);
-                    break;
-                }
-            }
-        });
         this.setViewport([ 0, 0 ]);
     },
     setLayout(layout) {
