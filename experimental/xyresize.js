@@ -48,7 +48,7 @@ AFRAME.registerComponent('xyresize', {
 		resizerEl.setAttribute('xydraggable', { base: el });
 		resizerEl.addEventListener('xy-drag', ev => {
 			if (!rectObj) {
-				const material = new THREE.LineBasicMaterial({ color: 0x8888ff });
+				const material = new THREE.LineBasicMaterial({ color: 0x8888ff, depthTest: false });
 				const points = [
 					new THREE.Vector3(-0.5, -0.5, 0),
 					new THREE.Vector3(-0.5, 0.5, 0),
