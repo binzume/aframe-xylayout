@@ -1160,9 +1160,6 @@ AFRAME.registerComponent("xytoggle", {
         }
     },
     events: {
-        xyresize(ev) {
-            this.update();
-        },
         click(ev) {
             let el = this.el;
             el.value = !el.value;
@@ -1178,6 +1175,7 @@ AFRAME.registerComponent("xytoggle", {
             set: v => el.setAttribute("xytoggle", "value", v)
         });
         this._thumb = el.appendChild(document.createElement("a-circle"));
+        el.addEventListener("xyresize", ev => this.update());
     },
     update() {
         let el = this.el;
@@ -1225,9 +1223,6 @@ AFRAME.registerComponent("xyselect", {
             } else {
                 this._listEl ? this.hide() : this.show();
             }
-        },
-        xyresize(ev) {
-            this.data.toggle || this.update();
         }
     },
     init() {
@@ -1253,6 +1248,7 @@ AFRAME.registerComponent("xyselect", {
                     z: 0
                 }
             });
+            el.addEventListener("xyresize", ev => this.update());
         }
     },
     update() {
@@ -1480,11 +1476,6 @@ AFRAME.registerComponent("xywindow", {
             default: false
         }
     },
-    events: {
-        xyresize(ev) {
-            this.update({});
-        }
-    },
     init() {
         let el = this.el;
         let theme = XYTheme.get(el);
@@ -1527,6 +1518,9 @@ AFRAME.registerComponent("xywindow", {
             closeButton.addEventListener("click", ev => el.parentNode.removeChild(el));
             this._buttons.push(closeButton);
         }
+        el.addEventListener("xyresize", ev => {
+            this.update({});
+        });
     },
     update(oldData) {
         let el = this.el;
@@ -1666,17 +1660,14 @@ AFRAME.registerComponent("xyclipping", {
             default: false
         }
     },
-    events: {
-        xyresize(ev) {
-            this.update();
-        }
-    },
     init() {
         this.el.sceneEl.renderer.localClippingEnabled = true;
         this._clippingPlanesLocal = [];
         this._clippingPlanes = [];
         this._currentMatrix = null;
         this._raycastOverrides = {};
+        this.update = this.update.bind(this);
+        this.el.addEventListener("xyresize", this.update);
     },
     update() {
         let data = this.data;
@@ -1690,6 +1681,7 @@ AFRAME.registerComponent("xyclipping", {
         this._updateMatrix();
     },
     remove() {
+        this.el.removeEventListener("xyresize", this.update);
         this._clippingPlanes.splice(0);
         for (let [obj, raycast] of Object.values(this._raycastOverrides)) {
             obj.raycast = raycast;
@@ -1945,13 +1937,17 @@ AFRAME.registerComponent("xylist", {
     setAdapter(adapter) {
         this._adapter = adapter;
     },
-    setContents(data, count) {
-        this._userData = data;
-        this._itemCount = count != null ? count : data.length;
-        this.el.setAttribute("xyrect", this._layout.size(this._itemCount, this));
-        for (let el of Object.values(this._elements)) {
-            el.dataset.listPosition = -1;
+    setContents(data, count, invalidateView = true) {
+        if (invalidateView) {
+            for (let el of Object.values(this._elements)) {
+                el.dataset.listPosition = -1;
+                el.setAttribute("position", "y", 999);
+            }
         }
+        this._userData = data;
+        count = count != null ? count : data.length;
+        this._itemCount = count;
+        this.el.setAttribute("xyrect", this._layout.size(count, this));
         this._refresh();
     },
     setViewport(vp) {
