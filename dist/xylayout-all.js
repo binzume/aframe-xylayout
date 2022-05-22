@@ -1039,10 +1039,13 @@ AFRAME.registerComponent("xylabel", {
             delete textData["resolution"];
             delete textData["renderingMode"];
             el.setAttribute("text", textData);
-            let textObj = el.getObject3D("text");
-            if (textObj) {
-                textObj.raycast = (() => {});
-            }
+            setTimeout(() => {
+                let textObj = el.getObject3D("text");
+                if (textObj) {
+                    console.log("disale text raycast");
+                    textObj.raycast = (() => {});
+                }
+            }, 0);
             this._removeObject3d();
             return;
         }
