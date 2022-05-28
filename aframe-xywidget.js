@@ -124,7 +124,6 @@ AFRAME.registerComponent('xylabel', {
             setTimeout(() => {
                 let textObj = el.getObject3D('text');
                 if (textObj) {
-                    console.log('disale text raycast');
                     textObj.raycast = () => { }; // disable raycast
                 }
             }, 0);
