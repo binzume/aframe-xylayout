@@ -644,7 +644,9 @@ AFRAME.registerComponent("xycontainer", {
         }
     },
     init() {
-        this.el.addEventListener("xyresize", ev => this.update());
+        for (let e of [ "child-attached", "child-detached", "xyresize" ]) {
+            this.el.addEventListener(e, ev => ev.target == this.el && setTimeout(() => this.update()));
+        }
     },
     update() {
         let data = this.data;
@@ -652,19 +654,20 @@ AFRAME.registerComponent("xycontainer", {
         if (direction == "none") {
             return;
         }
-        let containerRect = this.el.components.xyrect, children = this.el.children;
+        let containerRect = this.el.components.xyrect;
+        let children = this.el.children;
         let isVertical = direction == "vertical" || direction == "column";
         let padding = data.padding;
         let spacing = data.spacing;
         let mainDir = data.reverse != isVertical ? -1 : 1;
-        let xymat = isVertical ? [ 0, 1, mainDir, 0 ] : [ mainDir, 0, 0, -1 ];
-        let xyToMainCross = isVertical ? (x, y) => [ y, x ] : (x, y) => [ x, y ];
-        let containerSize = xyToMainCross(containerRect.width - padding * 2, containerRect.height - padding * 2);
-        let attrNames = xyToMainCross("width", "height");
+        let toXY = (m, c) => isVertical ? [ c, m * mainDir ] : [ m * mainDir, -c ];
+        let xyToMainCross = (x, y) => isVertical ? [ y, x ] : [ x, y ];
+        let [containerSizeM, containerSizeC] = xyToMainCross(containerRect.width - padding * 2, containerRect.height - padding * 2);
+        let [attrNameM, attrNameC] = xyToMainCross("width", "height");
         let mainSize = 0;
         let crossSizeSum = 0;
-        let lines = [];
         let targets = [];
+        let lines = [];
         let sizeSum = 0;
         let growSum = 0;
         let shrinkSum = 0;
@@ -692,62 +695,60 @@ AFRAME.registerComponent("xycontainer", {
                 x: 1,
                 y: 1
             };
-            let scale = xyToMainCross(childScale.x, childScale.y);
+            let size = xyToMainCross(rect.width * childScale.x, rect.height * childScale.y);
+            let [sizeM, sizeC] = size;
+            if (sizeM == null || isNaN(sizeM)) {
+                continue;
+            }
             let pivot = rect.data ? rect.data.pivot : {
                 x: .5,
                 y: .5
             };
-            let size = xyToMainCross(rect.width, rect.height);
-            if (size[0] == null || isNaN(size[0])) {
-                continue;
-            }
-            let sz = size[0] * scale[0];
-            let contentSize = sizeSum + sz + spacing * targets.length;
-            if (data.wrap == "wrap" && sizeSum > 0 && contentSize > containerSize[0]) {
+            let contentSize = sizeSum + sizeM + spacing * targets.length;
+            if (data.wrap == "wrap" && sizeSum > 0 && contentSize > containerSizeM) {
                 newLine();
             }
-            targets.push([ el, xyitem, size, xyToMainCross(pivot.x, pivot.y), scale ]);
-            sizeSum += sz;
+            targets.push([ el, xyitem, size, xyToMainCross(pivot.x, pivot.y), xyToMainCross(childScale.x, childScale.y) ]);
+            sizeSum += sizeM;
             growSum += xyitem ? xyitem.grow : 1;
             shrinkSum += xyitem ? xyitem.shrink : 1;
-            crossSize = size[1] > crossSize ? size[1] : crossSize;
+            crossSize = sizeC > crossSize ? sizeC : crossSize;
         }
         if (targets.length > 0) {
             newLine();
         }
         crossSizeSum += spacing * (lines.length - 1);
-        if (containerRect.data[attrNames[0]] == -1) {
-            containerSize[0] = mainSize;
-            containerRect[attrNames[0]] = mainSize + padding * 2;
+        if (containerRect.data[attrNameM] == -1) {
+            containerSizeM = mainSize;
+            containerRect[attrNameM] = mainSize + padding * 2;
         }
-        if (containerRect.data[attrNames[1]] == -1) {
-            containerSize[1] = crossSizeSum;
-            containerRect[attrNames[1]] = crossSizeSum + padding * 2;
+        if (containerRect.data[attrNameC] == -1) {
+            containerSizeC = crossSizeSum;
+            containerRect[attrNameC] = crossSizeSum + padding * 2;
         }
-        let crossOffset = -containerSize[1] / 2;
-        let mainOffset = -containerSize[0] / 2;
+        let crossOffset = -containerSizeC / 2;
         let crossStretch = 0;
         let alignContent = data.alignContent || data.alignItems;
         if (alignContent == "end") {
-            crossOffset += containerSize[1] - crossSizeSum;
+            crossOffset += containerSizeC - crossSizeSum;
         } else if (alignContent == "center") {
-            crossOffset += (containerSize[1] - crossSizeSum) / 2;
+            crossOffset += (containerSizeC - crossSizeSum) / 2;
         } else if (alignContent == "stretch" || alignContent == "none") {
-            crossStretch = (containerSize[1] - crossSizeSum) / lines.length;
+            crossStretch = (containerSizeC - crossSizeSum) / lines.length;
         }
         for (let [targets, sizeSum, growSum, shrinkSum, crossSize] of lines) {
-            this._layoutLine(targets, sizeSum, growSum, shrinkSum, mainOffset, crossOffset, containerSize[0], crossSize + crossStretch, xymat, attrNames);
+            this._layoutLine(targets, sizeSum, growSum, shrinkSum, -containerSizeM / 2, crossOffset, containerSizeM, crossSize + crossStretch, attrNameM, attrNameC, toXY);
             crossOffset += crossSize + crossStretch + spacing;
         }
     },
-    _layoutLine(targets, sizeSum, growSum, shrinkSum, p, crossOffset, containerSize0, containerSize1, xymat, attrNames) {
+    _layoutLine(targets, sizeSum, growSum, shrinkSum, offset0, offset1, containerSize0, containerSize1, attrName0, attrName1, toXY) {
         let {justifyItems: justifyItems, alignItems: alignItems, spacing: spacing, wrap: wrap} = this.data;
         let stretchFactor = 0;
         let numTarget = targets.length;
         if (justifyItems === "center") {
-            p += (containerSize0 - sizeSum - spacing * numTarget) / 2;
+            offset0 += (containerSize0 - sizeSum - spacing * numTarget) / 2;
         } else if (justifyItems === "end") {
-            p += containerSize0 - sizeSum - spacing * numTarget;
+            offset0 += containerSize0 - sizeSum - spacing * numTarget;
         } else if (justifyItems === "stretch") {
             stretchFactor = containerSize0 - sizeSum - spacing * (numTarget - 1);
             if (stretchFactor > 0) {
@@ -759,42 +760,36 @@ AFRAME.registerComponent("xycontainer", {
             spacing = (containerSize0 - sizeSum) / (numTarget - 1);
         } else if (justifyItems === "space-around") {
             spacing = (containerSize0 - sizeSum) / numTarget;
-            p += spacing / 2;
+            offset0 += spacing / 2;
         }
-        for (let [el, xyitem, size, pivot, scale] of targets) {
-            let [pivot0, pivot1] = pivot;
-            let [scale0, scale1] = scale;
-            let [size0, size1] = size;
+        for (let [el, xyitem, [size0, size1], [pivot0, pivot1], [scale0, scale1]] of targets) {
             let align = xyitem && xyitem.align || alignItems;
             let stretch = (xyitem ? stretchFactor > 0 ? xyitem.grow : xyitem.shrink : 1) * stretchFactor;
-            let szMain = size0 * scale0 + stretch;
-            let posMain = p + pivot0 * szMain;
-            let posCross = crossOffset + containerSize1 / 2;
+            let posCross = offset1 + containerSize1 / 2;
             let pos = el.getAttribute("position") || {
                 x: 0,
-                y: 0,
-                z: 0
+                y: 0
             };
             if (scale0 > 0 && stretch != 0) {
-                el.setAttribute(attrNames[0], size0 + stretch / scale0);
+                size0 += stretch;
+                el.setAttribute(attrName0, size0 / scale0);
             }
             if (scale1 > 0 && align === "stretch") {
                 size1 = containerSize1;
-                el.setAttribute(attrNames[1], size1 / scale1);
+                el.setAttribute(attrName1, size1 / scale1);
             }
             if (align === "start" || align === "stretch") {
-                posCross = crossOffset + pivot1 * size1;
+                posCross = offset1 + pivot1 * size1;
             } else if (align === "end") {
-                posCross = crossOffset + containerSize1 - (1 - pivot1) * size1;
+                posCross = offset1 + containerSize1 - (1 - pivot1) * size1;
             } else if (align === "center") {
                 posCross += (pivot1 - .5) * size1;
             } else if (align === "none" && wrap != "wrap") {
-                posCross += xymat[1] * pos.x + xymat[3] * pos.y;
+                posCross = attrName1 == "width" ? pos.x : -pos.y;
             }
-            pos.x = xymat[0] * posMain + xymat[1] * posCross;
-            pos.y = xymat[2] * posMain + xymat[3] * posCross;
+            [pos.x, pos.y] = toXY(offset0 + size0 * pivot0, posCross);
             el.setAttribute("position", pos);
-            p += szMain + spacing;
+            offset0 += size0 + spacing;
         }
     }
 });
@@ -1042,7 +1037,6 @@ AFRAME.registerComponent("xylabel", {
             setTimeout(() => {
                 let textObj = el.getObject3D("text");
                 if (textObj) {
-                    console.log("disale text raycast");
                     textObj.raycast = (() => {});
                 }
             }, 0);
