@@ -13,7 +13,9 @@ AFRAME.registerComponent('xycontainer', {
         alignContent: { default: "", oneOf: ['', 'none', 'start', 'end', 'center', 'stretch'] }
     },
     init() {
-        this.el.addEventListener('xyresize', (ev) => this.update());
+        for (let e of ['child-attached', 'child-detached', 'xyresize']) {
+            this.el.addEventListener(e, (ev) => ev.target == this.el && setTimeout(()=>this.update()));
+        }
     },
     update() {
         let data = this.data;
@@ -27,9 +29,10 @@ AFRAME.registerComponent('xycontainer', {
         let padding = data.padding;
         let spacing = data.spacing;
         let mainDir = (data.reverse != isVertical) ? -1 : 1;
-        let xymat = isVertical ? [0, 1, mainDir, 0] : [mainDir, 0, 0, -1]; // [main,corss] to [x,y]
+        /** @type {(m: number, c: number) =>[number, number]} */
+        let toXY = (m, c) => isVertical ? [c, m * mainDir] : [m * mainDir, -c];
         /** @type {<X,Y>(x: X, y: Y) =>[X|Y,X|Y]} */
-        let xyToMainCross = isVertical ? (x, y) => [y, x] : (x, y) => [x, y];
+        let xyToMainCross = (x, y) => isVertical ? [y, x] : [x, y];
         let [containerSizeM, containerSizeC] = xyToMainCross(containerRect.width - padding * 2, containerRect.height - padding * 2);
         let [attrNameM, attrNameC] = xyToMainCross("width", "height");
 
@@ -64,15 +67,13 @@ AFRAME.registerComponent('xycontainer', {
                 height: +(el.getAttribute("height") || NaN)
             };
             let childScale = /** @type {{x:number, y:number}} */ (el.getAttribute("scale") || { x: 1, y: 1 });
-            let scale = xyToMainCross(childScale.x, childScale.y);
-            let pivot = rect.data ? rect.data.pivot : { x: 0.5, y: 0.5 };
-            let size = xyToMainCross(rect.width, rect.height);
+            let size = xyToMainCross(rect.width * childScale.x, rect.height * childScale.y);
             let [sizeM, sizeC] = size;
             if (sizeM == null || isNaN(sizeM)) {
                 continue;
             }
-            let sz = sizeM * scale[0];
-            let contentSize = sizeSum + sz + spacing * targets.length;
+            let pivot = rect.data ? rect.data.pivot : { x: 0.5, y: 0.5 };
+            let contentSize = sizeSum + sizeM + spacing * targets.length;
             if (data.wrap == "wrap" && sizeSum > 0 && contentSize > containerSizeM) {
                 newLine();
             }
@@ -81,9 +82,9 @@ AFRAME.registerComponent('xycontainer', {
                 xyitem,
                 size,
                 xyToMainCross(pivot.x, pivot.y),
-                scale,
+                xyToMainCross(childScale.x, childScale.y),
             ]);
-            sizeSum += sz;
+            sizeSum += sizeM;
             growSum += xyitem ? xyitem.grow : 1;
             shrinkSum += xyitem ? xyitem.shrink : 1;
             crossSize = sizeC > crossSize ? sizeC : crossSize;
@@ -102,7 +103,6 @@ AFRAME.registerComponent('xycontainer', {
             containerRect[attrNameC] = crossSizeSum + padding * 2;
         }
         let crossOffset = - containerSizeC / 2;
-        let mainOffset = - containerSizeM / 2;
         let crossStretch = 0;
         let alignContent = data.alignContent || data.alignItems;
         if (alignContent == "end") {
@@ -113,8 +113,8 @@ AFRAME.registerComponent('xycontainer', {
             crossStretch = (containerSizeC - crossSizeSum) / lines.length;
         }
         for (let [targets, sizeSum, growSum, shrinkSum, crossSize] of lines) {
-            this._layoutLine(targets, sizeSum, growSum, shrinkSum, mainOffset, crossOffset,
-                containerSizeM, crossSize + crossStretch, attrNameM, attrNameC, xymat);
+            this._layoutLine(targets, sizeSum, growSum, shrinkSum, - containerSizeM / 2, crossOffset,
+                containerSizeM, crossSize + crossStretch, attrNameM, attrNameC, toXY);
             crossOffset += crossSize + crossStretch + spacing;
         }
     },
@@ -131,9 +131,9 @@ AFRAME.registerComponent('xycontainer', {
      * @param {number} containerSize1
      * @param {string} attrName0
      * @param {string} attrName1
-     * @param {number[]} xymat
+     * @param {(m: number, c: number) => [number, number]} toXY
      */
-    _layoutLine(targets, sizeSum, growSum, shrinkSum, offset0, offset1, containerSize0, containerSize1, attrName0, attrName1, xymat) {
+    _layoutLine(targets, sizeSum, growSum, shrinkSum, offset0, offset1, containerSize0, containerSize1, attrName0, attrName1, toXY) {
         let { justifyItems, alignItems, spacing, wrap } = this.data;
         let stretchFactor = 0;
         let numTarget = targets.length;
@@ -158,12 +158,11 @@ AFRAME.registerComponent('xycontainer', {
         for (let [el, xyitem, [size0, size1], [pivot0, pivot1], [scale0, scale1]] of targets) {
             let align = (xyitem && xyitem.align) || alignItems;
             let stretch = (xyitem ? (stretchFactor > 0 ? xyitem.grow : xyitem.shrink) : 1) * stretchFactor;
-            let szMain = size0 * scale0 + stretch;
-            let posMain = (offset0 + pivot0 * szMain);
             let posCross = offset1 + containerSize1 / 2; // center
-            let pos = el.getAttribute("position") || { x: 0, y: 0, z: 0 };
+            let pos = el.getAttribute("position") || { x: 0, y: 0 };
             if (scale0 > 0 && stretch != 0) {
-                el.setAttribute(attrName0, size0 + stretch / scale0);
+                size0 += stretch;
+                el.setAttribute(attrName0, size0 / scale0);
             }
             if (scale1 > 0 && align === "stretch") {
                 size1 = containerSize1;
@@ -177,12 +176,11 @@ AFRAME.registerComponent('xycontainer', {
                 posCross += (pivot1 - 0.5) * size1;
             } else if (align === "none" && wrap != 'wrap') {
                 // Keep original cross position if nowrap.
-                posCross += xymat[1] * pos.x + xymat[3] * pos.y;
+                posCross = attrName1 == 'width' ? pos.x : -pos.y;
             }
-            pos.x = xymat[0] * posMain + xymat[1] * posCross;
-            pos.y = xymat[2] * posMain + xymat[3] * posCross;
+            [pos.x, pos.y] = toXY(offset0 + size0 * pivot0, posCross);
             el.setAttribute("position", pos);
-            offset0 += szMain + spacing;
+            offset0 += size0 + spacing;
         }
     }
 });
