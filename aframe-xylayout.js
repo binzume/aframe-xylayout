@@ -23,7 +23,7 @@ AFRAME.registerComponent('xycontainer', {
         if (direction == "none") {
             return;
         }
-        let containerRect = this.el.components.xyrect;
+        let containerRect = this.el.components.xyrect.data? this.el.components.xyrect : {data: {height:-1, width:-1}}
         let children = /** @type {Iterable<AFRAME.AEntity>} */ (this.el.children);
         let isVertical = direction == "vertical" || direction == "column";
         let padding = data.padding;
