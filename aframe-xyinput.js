@@ -387,7 +387,7 @@ AFRAME.registerComponent('xykeyboard', {
 
         // Update position and rotation.
         let obj = el.object3D, position = obj.position;
-        let tr = new THREE.Matrix4().getInverse(obj.parent.matrixWorld).multiply(el.sceneEl.camera.matrixWorld);
+        let tr = obj.parent.matrixWorld.clone().invert().multiply(el.sceneEl.camera.matrixWorld);
         let orgY = position.y;
         position.set(0, 0, -data.distance).applyMatrix4(tr);
         position.y = orgY;

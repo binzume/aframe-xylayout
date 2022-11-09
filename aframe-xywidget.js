@@ -468,7 +468,7 @@ AFRAME.registerComponent('xy-drag-control', {
         let rot = new THREE.Quaternion();
         if (cursorEl.components['tracked-controls']) {
             if (ev.type != 'xy-dragstart') {
-                rot.copy(this._prevQ).inverse()
+                rot.copy(this._prevQ).invert()
                     .premultiply(cursorEl.object3D.getWorldQuaternion(this._prevQ));
             } else {
                 cursorEl.object3D.getWorldQuaternion(this._prevQ);
@@ -482,7 +482,7 @@ AFRAME.registerComponent('xy-drag-control', {
         let mat = new THREE.Matrix4().makeRotationFromQuaternion(rot)
             .multiply(tr.setPosition(origin0.clone().negate()))
             .premultiply(tr.setPosition(origin))
-            .premultiply(tr.getInverse(pm))
+            .premultiply(pm.clone().invert())
             .multiply(pm);
 
         // TODO: Remove applyMatrix() calls.
@@ -502,8 +502,8 @@ AFRAME.registerComponent('xy-drag-control', {
                 let c = targetObj.parent.worldToLocal(intersectPoint);
                 let tq = targetObj.quaternion.clone();
                 mat.lookAt(origin, targetPosition, new THREE.Vector3(0, 1, 0));
-                targetObj.quaternion.slerp(rot.setFromRotationMatrix(mat.premultiply(tr.getInverse(pm))), t * 0.1);
-                targetObj.position.sub(c).applyQuaternion(tq.inverse().premultiply(targetObj.quaternion)).add(c);
+                targetObj.quaternion.slerp(rot.setFromRotationMatrix(mat.premultiply(pm.clone().invert())), t * 0.1);
+                targetObj.position.sub(c).applyQuaternion(tq.invert().premultiply(targetObj.quaternion)).add(c);
             }
         }
     }
