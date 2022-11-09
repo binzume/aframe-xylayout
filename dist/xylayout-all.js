@@ -556,7 +556,7 @@ AFRAME.registerComponent("xykeyboard", {
         el.setAttribute("xy-drag-control", "draggable", ".xyinput-close");
         this._updateSymbols(0);
         let obj = el.object3D, position = obj.position;
-        let tr = new THREE.Matrix4().getInverse(obj.parent.matrixWorld).multiply(el.sceneEl.camera.matrixWorld);
+        let tr = obj.parent.matrixWorld.clone().invert().multiply(el.sceneEl.camera.matrixWorld);
         let orgY = position.y;
         position.set(0, 0, -data.distance).applyMatrix4(tr);
         position.y = orgY;
@@ -1430,7 +1430,7 @@ AFRAME.registerComponent("xy-drag-control", {
         let rot = new THREE.Quaternion();
         if (cursorEl.components["tracked-controls"]) {
             if (ev.type != "xy-dragstart") {
-                rot.copy(this._prevQ).inverse().premultiply(cursorEl.object3D.getWorldQuaternion(this._prevQ));
+                rot.copy(this._prevQ).invert().premultiply(cursorEl.object3D.getWorldQuaternion(this._prevQ));
             } else {
                 cursorEl.object3D.getWorldQuaternion(this._prevQ);
             }
@@ -1439,7 +1439,7 @@ AFRAME.registerComponent("xy-drag-control", {
         }
         let pm = targetObj.parent.matrixWorld;
         let tr = new THREE.Matrix4();
-        let mat = new THREE.Matrix4().makeRotationFromQuaternion(rot).multiply(tr.setPosition(origin0.clone().negate())).premultiply(tr.setPosition(origin)).premultiply(tr.getInverse(pm)).multiply(pm);
+        let mat = new THREE.Matrix4().makeRotationFromQuaternion(rot).multiply(tr.setPosition(origin0.clone().negate())).premultiply(tr.setPosition(origin)).premultiply(pm.clone().invert()).multiply(pm);
         targetObj.applyMatrix4 ? targetObj.applyMatrix4(mat) : targetObj.applyMatrix(mat);
         if (this.postProcess) {
             this.postProcess(targetObj, ev);
@@ -1454,8 +1454,8 @@ AFRAME.registerComponent("xy-drag-control", {
                 let c = targetObj.parent.worldToLocal(intersectPoint);
                 let tq = targetObj.quaternion.clone();
                 mat.lookAt(origin, targetPosition, new THREE.Vector3(0, 1, 0));
-                targetObj.quaternion.slerp(rot.setFromRotationMatrix(mat.premultiply(tr.getInverse(pm))), t * .1);
-                targetObj.position.sub(c).applyQuaternion(tq.inverse().premultiply(targetObj.quaternion)).add(c);
+                targetObj.quaternion.slerp(rot.setFromRotationMatrix(mat.premultiply(pm.clone().invert())), t * .1);
+                targetObj.position.sub(c).applyQuaternion(tq.invert().premultiply(targetObj.quaternion)).add(c);
             }
         }
     }
