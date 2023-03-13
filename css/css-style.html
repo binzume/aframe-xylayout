@@ -5,41 +5,11 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>UI Components examples</title>
+    <link rel="stylesheet" type="text/css" href="css-style.css" />
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="../aframe-xylayout.js"></script>
     <script src="../aframe-xywidget.js?"></script>
-    <script>
-        // this is experimental impl.
-        let theme = XYTheme.defaultTheme;
-        XYTheme.get = (el) => {
-            let t = Object.assign({}, theme);
-            let style = getComputedStyle(el);
-            if (el.tagName == 'A-XYBUTTON') {
-                t.button = Object.assign(t.button, {
-                    labelColor: style.color,
-                    color: style.backgroundColor,
-                });
-            } else if (el.tagName == 'A-XYWINDOW') {
-                t.window = Object.assign(t.window, {
-                    background: {color: style.backgroundColor},
-                });
-                t.button = Object.assign(t.button, {
-                    labelColor: style.color,
-                });
-            }
-            return t;
-        };
-    </script>
-    <style>
-        a-xybutton {
-            color: red;
-            background-color: #aaa;
-        }
-        a-xywindow {
-            color: blue;
-            background-color: white;
-        }
-    </style>
+    <script src="css-style.js"></script>
 </head>
 
 <body style="background-color: black; color:white;">
@@ -62,6 +32,7 @@
             <a-xycontainer direction="column" spacing="0.1" padding="0.2">
                 <a-xylabel value="ABC123漢字" width="2" height="0.5"></a-xylabel>
                 <a-xybutton label="Button"></a-xybutton>
+                <a-css-entity id="test-plane"></a-css-entity>
                 <a-xyselect values="abc,123,Foo,Bar" select="1"></a-xyselect>
                 <a-xytoggle value="true"></a-xytoggle>
                 <a-xyrange width="4" height="0.5" value="20"></a-xyrange>

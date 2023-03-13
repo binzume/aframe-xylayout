@@ -1,0 +1,51 @@
+a-scene {
+    overflow: hidden;
+}
+
+[css-style] {
+    --collider-class: 'collidable';
+    pointer-events: none;
+    display: none;
+}
+
+a-xybutton {
+    pointer-events: all;
+	box-sizing: border-box;
+    background-color: white;
+    color: red;
+    width: 10cm;
+    height: 5cm;
+}
+
+a-xybutton._hover{
+    background-color: red;
+    color: blue;
+}
+
+
+a-xylabel {
+    background-color: white;
+    color: red;
+}
+
+#test-plane {
+    --hover-alt-class: 'aa';
+    pointer-events: all;
+    background-color: red;
+    border-radius: 5mm;
+    border-top-left-radius: 0px;
+    background-image: url("../examples/ui.png");
+
+    border: 3px solid  green;
+
+    color: green;
+    width: 10cm;
+    height: 5cm;
+    text-align: center;
+    content: "ABC";
+}
+
+#test-plane.aa {
+    background-color: rgba(0,255,0,1);
+    color: yellow;
+}
