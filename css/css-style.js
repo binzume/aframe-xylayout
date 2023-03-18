@@ -129,6 +129,11 @@ AFRAME.registerComponent('css-style', {
 		let m = /^["'](.*)["']$/.exec(style.content);
 		if (m) {
 			this.el.setAttribute('xylabel', 'value', m[1]);
+		} else if (this.el.childNodes.length == 1) {
+			let n = this.el.childNodes[0];
+			if (n.nodeType == Node.TEXT_NODE) {
+				this.el.setAttribute('xylabel', 'value', n.textContent);
+			}
 		}
 		let c = this._parseColor(style.color);
 		if (c[3] > 0) {
@@ -206,6 +211,52 @@ AFRAME.registerComponent('css-style', {
 		return [0, 0, 0, 0];
 	}
 });
+
+
+AFRAME.registerComponent('css-container', {
+	/** @type {MutationObserver} */
+	_observer: null,
+	init() {
+		this._observer = new MutationObserver((mutationsList, _observer) => {
+			if (mutationsList.find(r => r.attributeName == 'class' || r.attributeName == 'style')) {
+				this._layout();
+			}
+		});
+		this._observer.observe(this.el, { attributes: true });
+	},
+	update() {
+		this._layout();
+	},
+	remove() {
+		this._observer.disconnect();
+	},
+	_layout() {
+		let style = getComputedStyle(this.el, null);
+		let w = this._parseSize(style.width), h = this._parseSize(style.height);
+		if (w > 0 || h > 0) {
+			this.el.setAttribute('xyrect', { width: w, height: h });
+		}
+		if (style.position == 'fixed') {
+			this.el.setAttribute('xyitem', { fixed: true });
+		}
+		this.el.setAttribute('xycontainer', {
+			wrap: style.flexWrap,
+			direction: style.flexDirection,
+			spacing: this._parseSize(style.columnGap),
+			alignContent: style.alignContent,
+			justifyItems: style.justifyItems,
+			alignItems: style.alignItems,
+		});
+	},
+	_parseSizePx(s) {
+		let m = /^\s*([\d\.]+)px\s*$/.exec(s);
+		return m ? parseFloat(m[1]) : 0;
+	},
+	_parseSize(s) {
+		return this._parseSizePx(s) * 2.54 / 96 / 10;
+	},
+});
+
 
 AFRAME.registerPrimitive('a-css-entity', {
 	defaultComponents: {
