@@ -126,14 +126,16 @@ AFRAME.registerComponent('css-style', {
 		}
 	},
 	_updateText(style) {
-		let m = /^["'](.*)["']$/.exec(style.content);
-		if (m) {
-			this.el.setAttribute('xylabel', 'value', m[1]);
-		} else if (this.el.childNodes.length == 1) {
-			let n = this.el.childNodes[0];
-			if (n.nodeType == Node.TEXT_NODE) {
-				this.el.setAttribute('xylabel', 'value', n.textContent);
-			}
+		let text = null;
+		if (this.el.childNodes.length == 1 && this.el.childNodes[0].nodeType == Node.TEXT_NODE) {
+			text = this.el.childNodes[0].textContent.trim();
+		}
+		if (!text) {
+			let m = /^["'](.*)["']$/.exec(style.content);
+			text = m ? m[1] : '';
+		}
+		if (text != null) {
+			this.el.setAttribute('xylabel', 'value', text);
 		}
 		let c = this._parseColor(style.color);
 		if (c[3] > 0) {
@@ -271,25 +273,11 @@ AFRAME.registerPrimitive('a-css-entity', {
 	if (!XYTheme) {
 		return;
 	}
-	function pareseColor(s) {
-		let m = /^((?:rgb|hsl)a?)\(([^\)]*)\)/.exec(s);
-		if (m && (m[1] == 'rgb' || m[1] == 'rgba')) {
-			let c = /^\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)\s*(?:[,/]\s*(\d*\.?\d+)\s*)?$/.exec(m[2]);
-			if (c) {
-				return [parseInt(c[1]), parseInt(c[2]), parseInt(c[3]), parseFloat(c[4] || "1")];
-			}
-		}
-		return [0, 0, 0, 0];
-	}
 	let orgget = XYTheme.get.bind(XYTheme);
 	XYTheme.get = (el) => {
-		let style = getComputedStyle(el);
-		let hasStyle = pareseColor(style.backgroundColor)[3] > 0;
-		if (!hasStyle) {
+		if (!el.hasAttribute('css-style')) {
 			return orgget(el);
 		}
-		el.setAttribute("css-style", "");
-
 		let t = Object.assign({}, XYTheme.defaultTheme);
 		t.createButton = (width, height, parentEl, params, hasLabel, buttonEl) => {
 			buttonEl = buttonEl || document.createElement('a-entity');

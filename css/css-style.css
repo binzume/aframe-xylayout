@@ -28,7 +28,7 @@ a-xylabel {
     color: red;
 }
 
-#test-plane {
+.test-button {
     --hover-alt-class: 'aa';
     pointer-events: all;
     background-color: red;
@@ -42,10 +42,9 @@ a-xylabel {
     width: 10cm;
     height: 5cm;
     text-align: center;
-    content: "ABC";
 }
 
-#test-plane.aa {
+.test-button.aa {
     background-color: rgba(0,255,0,1);
     color: yellow;
 }

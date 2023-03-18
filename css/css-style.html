@@ -4,7 +4,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>UI Components examples</title>
+    <title>CSS style examples</title>
     <link rel="stylesheet" type="text/css" href="css-style.css" />
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="../aframe-xylayout.js"></script>
@@ -32,12 +32,14 @@
                 <a-css-entity style="width:15cm;height:15cm;background-color: cyan;border-radius:3cm;"></a-css-entity>
                 <a-css-entity style="width:15cm;height:10cm;background-color: blue;color: yellow;">Hello,</a-css-entity>
                 <a-css-entity style="width:15cm;height:22cm;background-color: red;color: green;">world</a-css-entity>
-                <a-css-entity id="test-plane"  style="width:15cm;height:20cm">aaa</a-css-entity>
-                <a-css-entity id="test-plane"></a-css-entity>
-                <a-css-entity id="test-plane"></a-css-entity>
-                <a-css-entity id="test-plane"></a-css-entity>
-                <a-css-entity id="test-plane"></a-css-entity>
-                <a-css-entity id="test-plane"></a-css-entity>
+                <a-css-entity style="width:15cm;height:22cm;border:3px solid red;">...</a-css-entity>
+                <a-css-entity class="test-button" style="width:15cm;height:20cm">aaa</a-css-entity>
+                <a-css-entity class="test-button"></a-css-entity>
+                <a-css-entity class="test-button">  </a-css-entity>
+                <a-css-entity class="test-button"></a-css-entity>
+                <a-css-entity class="test-button" style="content:'ABC'"></a-css-entity>
+                <a-css-entity class="test-button" style="content:'ABC'">123</a-css-entity>
+                <a-xybutton css-style class="test-button">Button</a-xybutton>
         </a-xywindow>
 
     </a-scene>
