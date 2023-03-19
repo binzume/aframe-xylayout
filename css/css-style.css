@@ -2,31 +2,28 @@ a-scene {
     overflow: hidden;
 }
 
-[css-style] {
-    --collider-class: 'collidable';
+[css-style], a-css-entity, a-css-container {
     pointer-events: none;
     display: none;
+    --collider-class: 'collidable';
 }
 
-a-xybutton {
+
+.cssbutton {
     pointer-events: all;
-	box-sizing: border-box;
-    background-color: white;
-    color: red;
+    background-color: #222;
+    border-radius: 5mm;
+    border: 3px solid  #aaa;
+    color: #fff;
+    text-align: center;
     width: 10cm;
     height: 5cm;
 }
 
-a-xybutton._hover{
-    background-color: red;
-    color: blue;
+.cssbutton._hover {
+    background-color: #333;
 }
 
-
-a-xylabel {
-    background-color: white;
-    color: red;
-}
 
 .test-button {
     --hover-alt-class: 'aa';

@@ -15,8 +15,8 @@ AFRAME.registerGeometry('css-rounded-rect', {
 		shape.moveTo(-w, -h + data.radiusBL);
 		shape.lineTo(-w, h - data.radiusTL);
 		shape.quadraticCurveTo(-w, h, -w + data.radiusTL, h);
-		shape.lineTo(w - data.radiusBR, h);
-		shape.quadraticCurveTo(w, h, w, h - data.radiusBR);
+		shape.lineTo(w - data.radiusTR, h);
+		shape.quadraticCurveTo(w, h, w, h - data.radiusTR);
 		shape.lineTo(w, -h + data.radiusBR);
 		shape.quadraticCurveTo(w, -h, w - data.radiusBR, -h);
 		shape.lineTo(-w + data.radiusBL, -h);
@@ -112,6 +112,7 @@ AFRAME.registerComponent('css-style', {
 		this._updateText(style);
 		this._updateSize(style);
 		this.el.setAttribute('visible', style.visibility != 'hidden');
+		// if geom and not css-rounded>
 	},
 	/** @param {CSSStyleDeclaration} style */
 	_updateMaterial(style) {
@@ -141,17 +142,16 @@ AFRAME.registerComponent('css-style', {
 		if (c[3] > 0) {
 			this.el.setAttribute('xylabel', 'color', style.color);
 		}
-		let align = '';
-		if (style.textAlign == 'center') {
-			align = 'center';
+		let align = style.textAlign;
+		if (align == 'start') {
+			align = 'left';
 		}
-		if (style.textAlign == 'right' || style.textAlign == 'end') {
+		if (align == 'end') {
 			align = 'right';
 		}
 		if (align) {
 			this.el.setAttribute('xylabel', 'align', align);
 		}
-
 	},
 	/** @param {CSSStyleDeclaration} style 	 */
 	_updateSize(style) {
@@ -246,7 +246,7 @@ AFRAME.registerComponent('css-container', {
 			direction: style.flexDirection,
 			spacing: this._parseSize(style.columnGap),
 			alignContent: style.alignContent,
-			justifyItems: style.justifyItems,
+			justifyItems: ['space-between', 'space-around'].includes(style.justifyContent) ? style.justifyContent : style.justifyItems,
 			alignItems: style.alignItems,
 		});
 	},

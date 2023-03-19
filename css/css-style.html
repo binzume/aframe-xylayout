@@ -28,17 +28,22 @@
             <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
         </a-entity>
 
-        <a-xywindow position="0 0 -12" title="CSS Styles" xywindow="background:true" css-container style="width:60cm;height:80cm;flex-wrap:wrap;column-gap:1cm">
-                <a-css-entity style="width:15cm;height:15cm;background-color: cyan;border-radius:3cm;"></a-css-entity>
-                <a-css-entity style="width:15cm;height:10cm;background-color: blue;color: yellow;">Hello,</a-css-entity>
-                <a-css-entity style="width:15cm;height:22cm;background-color: red;color: green;">world</a-css-entity>
-                <a-css-entity style="width:15cm;height:22cm;border:3px solid red;">...</a-css-entity>
-                <a-css-entity class="test-button" style="width:15cm;height:20cm">aaa</a-css-entity>
-                <a-css-entity class="test-button"></a-css-entity>
-                <a-css-entity class="test-button">  </a-css-entity>
-                <a-css-entity class="test-button"></a-css-entity>
-                <a-css-entity class="test-button" style="content:'ABC'"></a-css-entity>
-                <a-css-entity class="test-button" style="content:'ABC'">123</a-css-entity>
+        <a-xywindow position="0 1 -6" title="CSS Styles" xywindow="background:true" css-container style="width:60cm;height:50cm;flex-wrap:wrap;column-gap:1cm;justify-content:space-between;">
+                <a-css-entity style="width:10cm;height:10cm;background-color: cyan"></a-css-entity>
+                <a-css-entity style="width:10cm;height:10cm;background-color: cyan;border-radius:3cm;"></a-css-entity>
+                <a-css-entity style="width:10cm;height:10cm;background-color: cyan;border-radius:5cm;"></a-css-entity>
+                <a-css-entity style="width:10cm;height:10cm;background-color: cyan;border-top-right-radius:5cm;"></a-css-entity>
+                <a-css-entity style="width:10cm;height:10cm;background-color: cyan;border-top-left-radius:5cm;"></a-css-entity>
+                <a-css-entity style="width:10cm;height:10cm;background-color: cyan;border-bottom-right-radius:5cm;"></a-css-entity>
+                <a-css-entity style="width:10cm;height:10cm;background-color: cyan;border-bottom-left-radius:5cm;"></a-css-entity>
+                <a-css-entity style="width:10cm;height:10cm;background-color: blue;color: yellow;text-align:center;">Hello,</a-css-entity>
+                <a-css-entity style="width:10cm;height:15cm;background-color: red;color: green;text-align:center;">world</a-css-entity>
+                <a-css-entity style="width:10cm;height:10cm;background-color: black;border:3px solid red;">...</a-css-entity>
+                <a-css-entity class="cssbutton">btn1</a-css-entity>
+                <a-css-entity class="cssbutton">btn2</a-css-entity>
+                <a-css-entity class="cssbutton" style="width:10cm;height:10cm">btn3</a-css-entity>
+                <a-css-entity class="cssbutton">btn4</a-css-entity>
+                <a-css-entity class="cssbutton" style="content:'ABC'"></a-css-entity>
                 <a-xybutton css-style class="test-button">Button</a-xybutton>
         </a-xywindow>
 
