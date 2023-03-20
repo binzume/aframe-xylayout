@@ -30,3 +30,9 @@ xycontainer:
 - align-items
 - justify-items
 - justify-content
+
+xyitem:
+
+- position: fixed
+- flex-grow
+- flex-shrink

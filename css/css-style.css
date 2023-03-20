@@ -9,7 +9,7 @@ a-scene {
 }
 
 
-.cssbutton {
+.xrbutton {
     pointer-events: all;
     background-color: #222;
     border-radius: 5mm;
@@ -20,8 +20,8 @@ a-scene {
     height: 5cm;
 }
 
-.cssbutton._hover {
-    background-color: #333;
+.xrbutton._hover {
+    background-color: #368;
 }
 
 

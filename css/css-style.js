@@ -21,6 +21,7 @@ AFRAME.registerGeometry('css-rounded-rect', {
 		shape.quadraticCurveTo(w, -h, w - data.radiusBR, -h);
 		shape.lineTo(-w + data.radiusBL, -h);
 		shape.quadraticCurveTo(-w, -h, -w, -h + data.radiusBL);
+		// @ts-ignore
 		this.geometry = new THREE.ShapeGeometry(shape);
 	}
 });
@@ -112,6 +113,11 @@ AFRAME.registerComponent('css-style', {
 		this._updateText(style);
 		this._updateSize(style);
 		this.el.setAttribute('visible', style.visibility != 'hidden');
+		if (this.el.childElementCount > 0) {
+			this._updateLayout(style);
+		} else {
+			this.el.removeAttribute('xycontainer');
+		}
 		// if geom and not css-rounded>
 	},
 	/** @param {CSSStyleDeclaration} style */
@@ -128,8 +134,9 @@ AFRAME.registerComponent('css-style', {
 	},
 	_updateText(style) {
 		let text = null;
-		if (this.el.childNodes.length == 1 && this.el.childNodes[0].nodeType == Node.TEXT_NODE) {
-			text = this.el.childNodes[0].textContent.trim();
+		let first = this.el.firstChild
+		if (first && first.nodeType == Node.TEXT_NODE) {
+			text = first.textContent.trim();
 		}
 		if (!text) {
 			let m = /^["'](.*)["']$/.exec(style.content);
@@ -155,12 +162,14 @@ AFRAME.registerComponent('css-style', {
 	},
 	/** @param {CSSStyleDeclaration} style 	 */
 	_updateSize(style) {
-		let w = this._parseSize(style.width), h = this._parseSize(style.height);
+		let w = this._parseSize(style.width, this.el.parentElement), h = this._parseSize(style.height, this.el.parentElement, true);
 		if (w > 0 || h > 0) {
 			this.el.setAttribute('xyrect', { width: w, height: h });
 		}
-		if (style.position == 'fixed') {
-			this.el.setAttribute('xyitem', { fixed: true });
+		let fixed = style.position == 'fixed';
+		let grow = parseInt(style.flexGrow), shrink = parseInt(style.flexShrink);
+		if (fixed || grow || shrink) {
+			this.el.setAttribute('xyitem', { fixed: fixed, grow: grow, shrink: shrink });
 		}
 
 		let bgcol = this._parseColor(style.backgroundColor);
@@ -187,12 +196,37 @@ AFRAME.registerComponent('css-style', {
 			this.el.removeAttribute('css-borderline');
 		}
 	},
-	_parseSizePx(s) {
+	_updateLayout(style) {
+		if (style.position == 'fixed') {
+			this.el.setAttribute('xyitem', { fixed: true });
+		}
+		this.el.setAttribute('xycontainer', {
+			wrap: style.flexWrap,
+			direction: style.flexDirection,
+			spacing: this._parseSize(style.columnGap),
+			alignContent: style.alignContent,
+			justifyItems: ['space-between', 'space-around'].includes(style.justifyContent) ? style.justifyContent : style.justifyItems,
+			alignItems: style.alignItems,
+		});
+	},
+	/**
+	 * 
+	 * @param {string} s 
+	 * @param {Element} parent 
+	 * @param {boolean} v 
+	 * @returns {number}
+	 */
+	_parseSizePx(s, parent = null, v = false) {
+		if (s.endsWith('%') && parent) {
+			// if "display: none"
+			let style = getComputedStyle(parent, null);
+			return this._parseSizePx(v ? style.height : style.width, parent.parentElement, v) * parseFloat(s.substring(0, s.length - 1)) * 0.01;
+		}
 		let m = /^\s*([\d\.]+)px\s*$/.exec(s);
 		return m ? parseFloat(m[1]) : 0;
 	},
-	_parseSize(s) {
-		return this._parseSizePx(s) * 2.54 / 96 / 10;
+	_parseSize(s, parent = null, v = false) {
+		return this._parseSizePx(s, parent, v) * 2.54 / 96 / 10;
 	},
 	_parseString(s) {
 		let m = /^\s*"(.*)"\s*$/.exec(s);
@@ -214,52 +248,6 @@ AFRAME.registerComponent('css-style', {
 	}
 });
 
-
-AFRAME.registerComponent('css-container', {
-	/** @type {MutationObserver} */
-	_observer: null,
-	init() {
-		this._observer = new MutationObserver((mutationsList, _observer) => {
-			if (mutationsList.find(r => r.attributeName == 'class' || r.attributeName == 'style')) {
-				this._layout();
-			}
-		});
-		this._observer.observe(this.el, { attributes: true });
-	},
-	update() {
-		this._layout();
-	},
-	remove() {
-		this._observer.disconnect();
-	},
-	_layout() {
-		let style = getComputedStyle(this.el, null);
-		let w = this._parseSize(style.width), h = this._parseSize(style.height);
-		if (w > 0 || h > 0) {
-			this.el.setAttribute('xyrect', { width: w, height: h });
-		}
-		if (style.position == 'fixed') {
-			this.el.setAttribute('xyitem', { fixed: true });
-		}
-		this.el.setAttribute('xycontainer', {
-			wrap: style.flexWrap,
-			direction: style.flexDirection,
-			spacing: this._parseSize(style.columnGap),
-			alignContent: style.alignContent,
-			justifyItems: ['space-between', 'space-around'].includes(style.justifyContent) ? style.justifyContent : style.justifyItems,
-			alignItems: style.alignItems,
-		});
-	},
-	_parseSizePx(s) {
-		let m = /^\s*([\d\.]+)px\s*$/.exec(s);
-		return m ? parseFloat(m[1]) : 0;
-	},
-	_parseSize(s) {
-		return this._parseSizePx(s) * 2.54 / 96 / 10;
-	},
-});
-
-
 AFRAME.registerPrimitive('a-css-entity', {
 	defaultComponents: {
 		xyrect: {},
@@ -268,16 +256,16 @@ AFRAME.registerPrimitive('a-css-entity', {
 });
 
 
-// install
 (function () {
 	if (!XYTheme) {
 		return;
 	}
 	let orgget = XYTheme.get.bind(XYTheme);
 	XYTheme.get = (el) => {
-		if (!el.hasAttribute('css-style')) {
+		if (!el.hasAttribute('css-style') || el.tagName == 'A-XYWINDOW') {
 			return orgget(el);
 		}
+		// Overrrides xywidget style
 		let t = Object.assign({}, XYTheme.defaultTheme);
 		t.createButton = (width, height, parentEl, params, hasLabel, buttonEl) => {
 			buttonEl = buttonEl || document.createElement('a-entity');
