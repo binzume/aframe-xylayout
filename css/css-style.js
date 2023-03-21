@@ -112,7 +112,7 @@ AFRAME.registerComponent('css-style', {
 		this._updateMaterial(style);
 		this._updateText(style);
 		this._updateSize(style);
-		this.el.setAttribute('visible', style.visibility != 'hidden');
+		this.el.setAttribute('visible', style.getPropertyValue('--visibility') != 'hidden');
 		if (this.el.childElementCount > 0) {
 			this._updateLayout(style);
 		} else {
@@ -131,8 +131,15 @@ AFRAME.registerComponent('css-style', {
 		if (imageUrl) {
 			this.el.setAttribute('material', 'src', imageUrl);
 		}
+		if (this.el.components.xyinput) {
+			let ccol = this._parseColor(style.caretColor);
+			ccol[3] > 0 && this.el.setAttribute('xyinput', 'caretColor', style.caretColor);
+		}
 	},
 	_updateText(style) {
+		if (this.el.components.xyinput) {
+			return;
+		}
 		let text = null;
 		let first = this.el.firstChild
 		if (first && first.nodeType == Node.TEXT_NODE) {
