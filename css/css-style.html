@@ -6,9 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>CSS style examples</title>
     <link rel="stylesheet" type="text/css" href="css-style.css" />
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="../aframe-xylayout.js"></script>
-    <script src="../aframe-xywidget.js?"></script>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="../dist/xylayout-all.min.js"></script>
     <script src="css-style.js"></script>
 </head>
 
@@ -16,16 +15,11 @@
     <a-scene>
         <a-entity cursor="rayOrigin: mouse; fuse:false" raycaster="objects:.collidable;far:5500"></a-entity>
 
-        <a-assets>
-            <a-mixin id="box_animation"
-                animation__mouseenter="startEvents: mouseenter; property: rotation; from:0 0 0; to: 0 360 0; dur: 500">
-            </a-mixin>
-        </a-assets>
-
         <a-entity id="cameraRig" wasd-controls>
             <a-camera position="0 1.5 0" look-controls="enabled:false"></a-camera>
-            <a-entity laser-controls="hand: right" raycaster="far:Infinity;objects:.collidable"></a-entity>
-            <a-entity laser-controls="hand: left" raycaster="far:Infinity;objects:.collidable"></a-entity>
+            <a-entity laser-controls="hand: right" raycaster="objects:.collidable"></a-entity>
+            <a-entity laser-controls="hand: left" raycaster="objects:.collidable"></a-entity>
+            <a-xykeyboard ime="true" scale="0.3 0.3 0.3" position="0 1.1 -3" rotation="-30 0 0"></a-xykeyboard>
         </a-entity>
 
         <a-xywindow position="0 1 -6" title="CSS Styles" xywindow="background:true" css-style style="width:60cm;height:50cm;flex-wrap:wrap;column-gap:1cm;justify-content:space-between;">
