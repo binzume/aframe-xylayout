@@ -1,13 +1,11 @@
 a-scene {
-    overflow: hidden;
+    overflow: clip;
 }
 
-[css-style], a-css-entity, a-css-container {
+:where(a-scene>:not(:is(canvas, div))) {
+    opacity: 0;
     pointer-events: none;
-    display: none;
-    --collider-class: 'collidable';
 }
-
 
 .xrbutton {
     pointer-events: all;
@@ -25,8 +23,8 @@ a-scene {
 }
 
 
-.test-button {
-    --hover-alt-class: 'aa';
+a-xywindow a-xybutton {
+    --hover-alt-class: 'active';
     pointer-events: all;
     background-color: red;
     border-radius: 5mm;
@@ -41,7 +39,19 @@ a-scene {
     text-align: center;
 }
 
-.test-button.aa {
+a-xywindow a-xybutton.active {
     background-color: rgba(0,255,0,1);
     color: yellow;
+    transform: rotateZ(30deg) scale3d(1.5,1.5,1) translateZ(10px);
+}
+
+a-xyinput {
+    pointer-events: all;
+    background-color: white;
+    caret-color: blue;
+    border-radius: 5mm;
+    border: 3px solid  #aaa;
+
+    width: 10cm;
+    height: 5cm;
 }

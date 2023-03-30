@@ -80,9 +80,11 @@ AFRAME.registerComponent('css-style', {
 	},
 	/** @type {MutationObserver} */
 	_observer: null,
+	_transformed: false,
 	init() {
 		let el = this.el;
-		let style = getComputedStyle(el, null);
+		// let internals = el.attachInternals();
+		let style = getComputedStyle(el);
 		if (style.pointerEvents != 'none') {
 			let cname = this._parseString(style.getPropertyValue('--collider-class')) || 'collidable';
 			let hover = this._parseString(style.getPropertyValue('--hover-alt-class')) || '_hover';
@@ -108,7 +110,7 @@ AFRAME.registerComponent('css-style', {
 		this._observer.disconnect();
 	},
 	_updateStyle() {
-		let style = getComputedStyle(this.el, null);
+		let style = getComputedStyle(this.el);
 		this._updateMaterial(style);
 		this._updateText(style);
 		this._updateSize(style);
@@ -118,10 +120,11 @@ AFRAME.registerComponent('css-style', {
 		} else {
 			this.el.removeAttribute('xycontainer');
 		}
-		// if geom and not css-rounded>
+		this._updateTransform(style);
 	},
 	/** @param {CSSStyleDeclaration} style */
 	_updateMaterial(style) {
+		// TODO check css-rounded-rect
 		let bgcol = this._parseColor(style.backgroundColor);
 		if (bgcol[3] > 0) {
 			// TODO alpha
@@ -216,17 +219,36 @@ AFRAME.registerComponent('css-style', {
 			alignItems: style.alignItems,
 		});
 	},
+	/** @param {CSSStyleDeclaration} style 	 */
+	_updateTransform(style) {
+		this._transformed ||= style.transform != 'none';
+		if (this._transformed) {
+			let t = new DOMMatrix(style.transform);
+			let tr = new THREE.Vector3();
+			let rot = new THREE.Quaternion();
+			let sc = new THREE.Vector3();
+			new THREE.Matrix4().set(
+				t.m11, t.m21, t.m31, t.m41,
+				t.m12, t.m22, t.m32, t.m42,
+				t.m13, t.m23, t.m33, t.m43,
+				t.m14, t.m24, t.m34, t.m44,
+			).decompose(tr, rot, sc);
+			this.el.object3D.quaternion.copy(rot);
+			this.el.object3D.scale.copy(sc);
+			this.el.object3D.position.setZ(tr.z * 2.54 / 96 / 10);
+		}
+	},
 	/**
-	 * 
-	 * @param {string} s 
-	 * @param {Element} parent 
-	 * @param {boolean} v 
-	 * @returns {number}
-	 */
+ * 
+ * @param {string} s 
+ * @param {Element} parent 
+ * @param {boolean} v 
+ * @returns {number}
+ */
 	_parseSizePx(s, parent = null, v = false) {
 		if (s.endsWith('%') && parent) {
 			// if "display: none"
-			let style = getComputedStyle(parent, null);
+			let style = getComputedStyle(parent);
 			return this._parseSizePx(v ? style.height : style.width, parent.parentElement, v) * parseFloat(s.substring(0, s.length - 1)) * 0.01;
 		}
 		let m = /^\s*([\d\.]+)px\s*$/.exec(s);
