@@ -10,14 +10,17 @@ Supported styles:
 - border-color
 - border-width
 - border-radius
+- border-style
 - border-top-left-radius
 - border-top-right-radius
 - border-bottom-right-radius
 - border-bottom-left-radius
 
+- transform
+- transition
+
 xylabel:
 
-- content
 - text-align
 - color
 

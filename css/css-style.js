@@ -31,6 +31,7 @@ AFRAME.registerComponent('css-borderline', {
 		height: { default: 1, min: 0 },
 		width: { default: 1, min: 0 },
 		color: { default: '' },
+		style: { default: 'solid' },
 		linewidth: { default: 1, min: 0 },
 		radiusBL: { default: 0.05, min: 0 },
 		radiusBR: { default: 0.05, min: 0 },
@@ -51,8 +52,16 @@ AFRAME.registerComponent('css-borderline', {
 		path.lineTo(-w + data.radiusBL, -h);
 		path.quadraticCurveTo(-w, -h, -w, -h + data.radiusBL);
 		let geometry = new THREE.BufferGeometry().setFromPoints(path.getPoints());
-		let material = new THREE.LineBasicMaterial({ linewidth: data.linewidth, color: data.color });
+		let lw = data.linewidth, c = data.color, ls = lw * 2.54 / 96 / 10;
+		let material = data.style == 'dotted' ?
+			new THREE.LineDashedMaterial({ linewidth: lw, color: c, gapSize: ls, dashSize: ls }) :
+			data.style == 'dashed' ?
+				new THREE.LineDashedMaterial({ linewidth: lw, color: c, gapSize: ls, dashSize: ls * 3 }) :
+				new THREE.LineBasicMaterial({ linewidth: lw, color: c });
 		let line = new THREE.Line(geometry, material);
+		if (data.style != 'solid') {
+			line.computeLineDistances();
+		}
 		line.position.set(0, 0, 0.001);
 		line.raycast = () => { }; // disable raycast
 		this.el.setObject3D('css-borderline', line);
@@ -218,6 +227,7 @@ AFRAME.registerComponent('css-style', {
 			this.el.setAttribute('css-borderline', {
 				width: w, height: h, linewidth: bw,
 				color: style.borderColor,
+				style: style.borderStyle,
 				radiusBL: this._parseSize(style.borderBottomLeftRadius),
 				radiusBR: this._parseSize(style.borderBottomRightRadius),
 				radiusTL: this._parseSize(style.borderTopLeftRadius),
