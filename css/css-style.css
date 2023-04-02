@@ -11,7 +11,7 @@ a-scene {
     pointer-events: all;
     background-color: #222;
     border-radius: 5mm;
-    border: 3px solid  #aaa;
+    border: 3px solid #aaa;
     color: #fff;
     text-align: center;
     width: 10cm;
@@ -28,7 +28,7 @@ a-scene {
     background-color: cyan;
     border-radius: 5mm;
 
-    border: 3px solid  green;
+    border: 3px solid green;
 
     color: red;
     width: 10cm;
@@ -38,9 +38,23 @@ a-scene {
 }
 
 #mywindow .test-button.active {
-    background-color: rgba(0,255,0,0.5);
+    background-color: rgba(0, 255, 0, 0.5);
     color: yellow;
-    transform: rotateZ(30deg) scale3d(1.5,1.5,1) translateZ(10px);
+    transform: rotateZ(30deg) scale3d(1.5, 1.5, 1) translateZ(10px);
+}
+
+#mywindow .anim-rotate {
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 #mywindow a-xyinput {
@@ -48,7 +62,7 @@ a-scene {
     background-color: white;
     caret-color: blue;
     border-radius: 5mm;
-    border: 3px solid  #aaa;
+    border: 3px solid #aaa;
 
     width: 10cm;
     height: 5cm;
