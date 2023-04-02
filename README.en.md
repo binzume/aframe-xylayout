@@ -13,6 +13,7 @@ Live demos:
 - [Flexbox like layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
 - [UI Components](https://binzume.github.io/aframe-xylayout/examples/widgets.html) (including multi byte characters support)
 - [Virtual keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html) (Japanese input method is available)
+- [CSS example](https://binzume.github.io/aframe-xylayout/examples/css-style.html)
 
 ![Layout example](./examples/layout.png)
 ![UI example](./examples/ui.png)
@@ -326,6 +327,49 @@ Sends [KeyboardEvent](https://developer.mozilla.org/docs/Web/API/KeyboardEvent) 
 ### xyime
 
 A component used internally by `xykeyboard`.
+
+# CSS style component
+
+Using `css` component, you can apply CSS styles.
+
+- visibility
+- width
+- height
+- background-color
+- background-image
+- border-color
+- border-width
+- border-radius
+- border-style
+- border-top-left-radius
+- border-top-right-radius
+- border-bottom-right-radius
+- border-bottom-left-radius
+
+- transform
+- transition (Not supported in WebXR session)
+- animation (Not supported in WebXR session)
+
+xylabel:
+
+- text-align
+- color
+
+xycontainer:
+
+- flex-direction
+- flex-wrap
+- column-gap
+- align-content
+- align-items
+- justify-items
+- justify-content
+
+xyitem:
+
+- position: fixed
+- flex-grow
+- flex-shrink
 
 # License
 

@@ -308,6 +308,52 @@ Attributes:
 | ---- | ---- | ------- | ---- |
 | ime | boolean | false | 漢字変換を有効にする |
 
+## CSS Support
+
+# CSS style components
+
+`css` コンポーネントを使うと、一部のCSSを適用できます。
+
+- visibility
+- width
+- height
+- background-color
+- background-image
+- border-color
+- border-width
+- border-radius
+- border-style
+- border-top-left-radius
+- border-top-right-radius
+- border-bottom-right-radius
+- border-bottom-left-radius
+
+- transform
+- transition (WebXRセッション中は停止します)
+- animation (WebXRセッション中は停止します)
+
+xylabel:
+
+- text-align
+- color
+
+xycontainer:
+
+- flex-direction
+- flex-wrap
+- column-gap
+- align-content
+- align-items
+- justify-items
+- justify-content
+
+xyitem:
+
+- position: fixed
+- flex-grow
+- flex-shrink
+
+
 # License
 
 MIT License
