@@ -81,9 +81,9 @@ AFRAME.registerComponent('css-style', {
 	/** @type {MutationObserver} */
 	_observer: null,
 	_transformed: false,
+	_transition: false,
 	init() {
 		let el = this.el;
-		// let internals = el.attachInternals();
 		let style = getComputedStyle(el);
 		if (style.pointerEvents != 'none') {
 			let cname = this._parseString(style.getPropertyValue('--collider-class')) || 'collidable';
@@ -96,6 +96,21 @@ AFRAME.registerComponent('css-style', {
 				el.classList.remove(hover);
 			});
 		}
+		// Maybe dom-overlay feature is required in immersive session?
+		el.addEventListener('transitionstart', ev => {
+			this._transition = true;
+			this.play();
+		});
+		el.addEventListener('transitionend', ev => {
+			this._transition = false;
+		});
+		el.addEventListener('animationstart', ev => {
+			this._transition = true;
+			this.play();
+		});
+		el.addEventListener('animationend', ev => {
+			this._transition = false;
+		});
 
 		this._observer = new MutationObserver((mutationsList, _observer) => {
 			if (mutationsList.find(r => r.attributeName == 'class' || r.attributeName == 'style')) {
@@ -103,8 +118,14 @@ AFRAME.registerComponent('css-style', {
 			}
 		});
 		this._observer.observe(this.el, { attributes: true });
-
 		this._updateStyle();
+	},
+	tick() {
+		if (this._transition) {
+			this._updateStyle();
+			return;
+		}
+		this.pause();
 	},
 	remove() {
 		this._observer.disconnect();
@@ -239,12 +260,12 @@ AFRAME.registerComponent('css-style', {
 		}
 	},
 	/**
- * 
- * @param {string} s 
- * @param {Element} parent 
- * @param {boolean} v 
- * @returns {number}
- */
+	 * 
+	 * @param {string} s 
+	 * @param {Element} parent 
+	 * @param {boolean} v 
+	 * @returns {number}
+	 */
 	_parseSizePx(s, parent = null, v = false) {
 		if (s.endsWith('%') && parent) {
 			// if "display: none"

@@ -2,12 +2,12 @@ a-scene {
     overflow: clip;
 }
 
-:where(a-scene>:not(:is(canvas, div))) {
+:where(a-scene>:not(canvas, div)) {
     opacity: 0;
     pointer-events: none;
 }
 
-.xrbutton {
+#mywindow .xrbutton {
     pointer-events: all;
     background-color: #222;
     border-radius: 5mm;
@@ -18,18 +18,16 @@ a-scene {
     height: 5cm;
 }
 
-.xrbutton._hover {
+#mywindow .xrbutton._hover {
     background-color: #368;
 }
 
-
-a-xywindow a-xybutton {
+#mywindow a-xybutton {
     --hover-alt-class: 'active';
     pointer-events: all;
     background-color: red;
     border-radius: 5mm;
     border-top-left-radius: 0px;
-    background-image: url("../examples/ui.png");
 
     border: 3px solid  green;
 
@@ -37,15 +35,16 @@ a-xywindow a-xybutton {
     width: 10cm;
     height: 5cm;
     text-align: center;
+    transition: 1s all;
 }
 
-a-xywindow a-xybutton.active {
+#mywindow a-xybutton.active {
     background-color: rgba(0,255,0,1);
     color: yellow;
     transform: rotateZ(30deg) scale3d(1.5,1.5,1) translateZ(10px);
 }
 
-a-xyinput {
+#mywindow a-xyinput {
     pointer-events: all;
     background-color: white;
     caret-color: blue;
