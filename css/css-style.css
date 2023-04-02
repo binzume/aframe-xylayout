@@ -7,7 +7,7 @@ a-scene {
     pointer-events: none;
 }
 
-#mywindow .xrbutton {
+#mywindow a-xybutton {
     pointer-events: all;
     background-color: #222;
     border-radius: 5mm;
@@ -18,27 +18,27 @@ a-scene {
     height: 5cm;
 }
 
-#mywindow .xrbutton._hover {
+#mywindow a-xybutton._hover {
     background-color: #368;
 }
 
-#mywindow a-xybutton {
+#mywindow .test-button {
     --hover-alt-class: 'active';
     pointer-events: all;
-    background-color: red;
+    background-color: cyan;
     border-radius: 5mm;
 
     border: 3px solid  green;
 
-    color: green;
+    color: red;
     width: 10cm;
     height: 5cm;
     text-align: center;
     transition: 1s all;
 }
 
-#mywindow a-xybutton.active {
-    background-color: rgba(0,255,0,1);
+#mywindow .test-button.active {
+    background-color: rgba(0,255,0,0.5);
     color: yellow;
     transform: rotateZ(30deg) scale3d(1.5,1.5,1) translateZ(10px);
 }

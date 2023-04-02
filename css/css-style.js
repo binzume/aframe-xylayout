@@ -156,9 +156,9 @@ AFRAME.registerComponent('css-style', {
 	_updateMaterial(style) {
 		// TODO check css-rounded-rect
 		let bgcol = this._parseColor(style.backgroundColor);
-		if (bgcol[3] > 0) {
-			// TODO alpha
-			this.el.setAttribute('material', 'color', style.backgroundColor);
+		let bw = this._parseSizePx(style.borderWidth);
+		if (bgcol[3] > 0 || bw > 0) {
+			this.el.setAttribute('material', { 'color': style.backgroundColor, 'opacity': bgcol[3] });
 		}
 		let imageUrl = this._parseUrl(style.backgroundImage);
 		if (imageUrl) {
