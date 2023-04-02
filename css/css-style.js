@@ -84,9 +84,7 @@ AFRAME.registerComponent('css-borderline', {
 
 
 AFRAME.registerComponent('css-style', {
-	schema: {
-		enabled: { default: true },
-	},
+	schema: {},
 	/** @type {MutationObserver} */
 	_observer: null,
 	_transformed: false,
@@ -158,11 +156,11 @@ AFRAME.registerComponent('css-style', {
 		let bgcol = this._parseColor(style.backgroundColor);
 		let bw = this._parseSizePx(style.borderWidth);
 		if (bgcol[3] > 0 || bw > 0) {
-			this.el.setAttribute('material', { 'color': style.backgroundColor, 'opacity': bgcol[3] });
-		}
-		let imageUrl = this._parseUrl(style.backgroundImage);
-		if (imageUrl) {
-			this.el.setAttribute('material', 'src', imageUrl);
+			this.el.setAttribute('material', {
+				color: style.backgroundColor,
+				opacity: bgcol[3],
+				src: this._parseUrl(style.backgroundImage) || ''
+			});
 		}
 		if (this.el.components.xyinput) {
 			let ccol = this._parseColor(style.caretColor);
@@ -326,11 +324,10 @@ AFRAME.registerPrimitive('a-css-entity', {
 			return orgget(el);
 		}
 		// Overrrides xywidget style
-		let t = Object.assign({}, XYTheme.defaultTheme);
-		t.createButton = (width, height, parentEl, params, hasLabel, buttonEl) => {
-			buttonEl = buttonEl || document.createElement('a-entity');
-			return buttonEl;
-		};
-		return t;
+		return Object.assign({}, XYTheme.defaultTheme, {
+			createButton(width, height, parentEl, params, hasLabel, buttonEl) {
+				return buttonEl || document.createElement('a-entity');
+			}
+		});
 	};
 })();
