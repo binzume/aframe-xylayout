@@ -11,7 +11,7 @@ Live demos:
 - [Flexbox like Layout](https://binzume.github.io/aframe-xylayout/examples/layout.html)
 - [UI Components](https://binzume.github.io/aframe-xylayout/examples/widgets.html) (マルチバイト文字列対応)
 - [Virtual keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html) (日本語入力対応)
-- [CSS example](https://binzume.github.io/aframe-xylayout/css/css-style.html) (CSSでスタイルを指定)
+- [CSS example](https://binzume.github.io/aframe-xylayout/examples/css-style.html) (CSSでスタイルを指定)
 
 ![Layout example](./examples/layout.png)
 ![UI example](./examples/ui.png)

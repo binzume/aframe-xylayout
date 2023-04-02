@@ -20,6 +20,9 @@ const XYTheme = {
         },
         collidableClass: 'collidable',
         createButton(width, height, parentEl, params, hasLabel, buttonEl) {
+            if (buttonEl && buttonEl.hasAttribute('css')) {
+                return buttonEl;
+            }
             let getParam = (p) => params && params[p] || this.button[p];
             buttonEl = buttonEl || document.createElement('a-entity');
             if (!buttonEl.hasAttribute('geometry')) {
@@ -860,7 +863,7 @@ AFRAME.registerComponent('xylist', {
     events: {
         click(ev) {
             // @ts-ignore
-            for (let p of (ev.path || ev.composedPath())) {
+            for (let p of ev.composedPath()) {
                 let index = p.dataset.listPosition;
                 if (index != null && index >= 0) {
                     this.el.emit('clickitem', { index: index, ev: ev }, false);

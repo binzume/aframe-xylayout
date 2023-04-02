@@ -83,7 +83,7 @@ AFRAME.registerComponent('css-borderline', {
 });
 
 
-AFRAME.registerComponent('css-style', {
+AFRAME.registerComponent('css', {
 	schema: {},
 	/** @type {MutationObserver} */
 	_observer: null,
@@ -162,13 +162,11 @@ AFRAME.registerComponent('css-style', {
 				src: this._parseUrl(style.backgroundImage) || ''
 			});
 		}
-		if (this.el.components.xyinput) {
-			let ccol = this._parseColor(style.caretColor);
-			ccol[3] > 0 && this.el.setAttribute('xyinput', 'caretColor', style.caretColor);
-		}
 	},
 	_updateText(style) {
 		if (this.el.components.xyinput) {
+			let ccol = this._parseColor(style.caretColor);
+			ccol[3] > 0 && this.el.setAttribute('xyinput', 'caretColor', style.caretColor);
 			return;
 		}
 		let text = null;
@@ -250,7 +248,7 @@ AFRAME.registerComponent('css-style', {
 	},
 	/** @param {CSSStyleDeclaration} style 	 */
 	_updateTransform(style) {
-		this._transformed ||= style.transform != 'none';
+		this._transformed = this._transformed || style.transform != 'none';
 		if (this._transformed) {
 			let t = new DOMMatrix(style.transform);
 			let tr = new THREE.Vector3();
@@ -309,25 +307,6 @@ AFRAME.registerComponent('css-style', {
 AFRAME.registerPrimitive('a-css-entity', {
 	defaultComponents: {
 		xyrect: {},
-		'css-style': {}
+		css: {}
 	}
 });
-
-
-(function () {
-	if (!XYTheme) {
-		return;
-	}
-	let orgget = XYTheme.get.bind(XYTheme);
-	XYTheme.get = (el) => {
-		if (!el.hasAttribute('css-style') || el.tagName == 'A-XYWINDOW') {
-			return orgget(el);
-		}
-		// Overrrides xywidget style
-		return Object.assign({}, XYTheme.defaultTheme, {
-			createButton(width, height, parentEl, params, hasLabel, buttonEl) {
-				return buttonEl || document.createElement('a-entity');
-			}
-		});
-	};
-})();

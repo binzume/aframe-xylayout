@@ -25,15 +25,9 @@ AFRAME.registerComponent('xyinput', {
         this._caretObj = new THREE.Mesh(new THREE.PlaneGeometry(0.04, xyrect.height * 0.9));
         el.setObject3D('caret', this._caretObj);
 
-        el.classList.add('collidable');
-        let updateGeometory = () => {
-            el.setAttribute('geometry', {
-                primitive: 'xy-rounded-rect', width: xyrect.width, height: xyrect.height
-            });
-        };
-        updateGeometory();
+        XYTheme.get(el).createButton(xyrect.width, xyrect.height, null, { color: data.bgColor, hoverColor: data.bgColor }, false, el);
+
         el.setAttribute('tabindex', 0);
-        el.addEventListener('xyresize', updateGeometory);
         let oncopy = (ev) => {
             ev.clipboardData.setData('text/plain', el.value);
             ev.preventDefault();
@@ -106,7 +100,6 @@ AFRAME.registerComponent('xyinput', {
             color: s ? "black" : "#aaa",
             value: (data.type == 'password' ? '*'.repeat(len) : s) || data.placeholder
         });
-        el.setAttribute('material', { color: data.bgColor });
         this._caretObj.material.color = new THREE.Color(data.caretColor);
         this._updateCursor(cursor);
     },
