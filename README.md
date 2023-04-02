@@ -13,9 +13,9 @@ Live demos:
 - [Virtual keyboard](https://binzume.github.io/aframe-xylayout/examples/keyboard.html) (日本語入力対応)
 - [CSS example](https://binzume.github.io/aframe-xylayout/examples/css-style.html) (CSSでスタイルを指定)
 
-![Layout example](./examples/layout.png)
-![UI example](./examples/ui.png)
-![CSS example](./examples/css-style.png)
+[![Layout example](./examples/layout.png)](https://binzume.github.io/aframe-xylayout/examples/layout.html)
+[![UI example](./examples/ui.png)](https://binzume.github.io/aframe-xylayout/examples/widgets.html)
+[![CSS example](./examples/css-style.png)](https://binzume.github.io/aframe-xylayout/examples/css-style.html)
 
 ## Usage
 
