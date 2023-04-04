@@ -59,6 +59,7 @@ a-scene {
 
 #mywindow a-xyinput {
     pointer-events: all;
+    color: black;
     background-color: white;
     caret-color: blue;
     border-radius: 5mm;

@@ -19,7 +19,7 @@ Live demos:
 
 ## Usage
 
-Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (35kB)
+Use [xylayout-all.min.js](./dist/xylayout-all.min.js) (40kB)
 
 AFrameのあとに`xylayout-all.min.js`を読み込んでください．
 
@@ -293,8 +293,9 @@ Attributes:
 | value | string |  | 内容 |
 | type | string |  | '', 'number', 'password' |
 | placeholder | string |  | プレースホルダーテキスト |
-| caretColor  | color | | キャッレット色 |
+| color  | color | black | 文字色 |
 | bgColor  | color | white | 背景色 |
+| caretColor  | color | #0088ff | キャッレット色 |
 
 ※ このコンポーネントはDOM要素にも `value` 属性を追加します
 
@@ -313,6 +314,11 @@ Attributes:
 # CSS style components
 
 `css` コンポーネントを使うと、一部のCSSを適用できます。
+immersiveなセッション中はブラウザ側でDOM関連のアニメーションが停止するので、transitionとanimationaを使う場合は注意。
+
+```html
+  <a-entity css style="width:10cm;height:10cm;background-color: #f0f"></a-entity>
+```
 
 - visibility
 - width
@@ -329,13 +335,18 @@ Attributes:
 - border-bottom-left-radius
 
 - transform
-- transition (WebXRセッション中は停止します)
-- animation (WebXRセッション中は停止します)
+- transition (immersive WebXRセッション中は停止します)
+- animation (immersive WebXRセッション中は停止します)
+- pointer-events (none以外に設定するとclassListに collidable を追加してイベントをlistenします)
 
 xylabel:
 
 - text-align
 - color
+
+xyinput:
+
+- caret-color
 
 xycontainer:
 
