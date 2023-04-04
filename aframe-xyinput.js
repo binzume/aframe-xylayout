@@ -7,6 +7,7 @@ AFRAME.registerComponent('xyinput', {
         type: { default: "" },
         placeholder: { default: "" },
         caretColor: { default: "#0088ff" },
+        color: { default: "black" },
         bgColor: { default: "white" },
     },
     init() {
@@ -97,7 +98,7 @@ AFRAME.registerComponent('xyinput', {
             cursor = len;
         }
         el.setAttribute('xylabel', {
-            color: s ? "black" : "#aaa",
+            color: s ? data.color : "#aaa",
             value: (data.type == 'password' ? '*'.repeat(len) : s) || data.placeholder
         });
         this._caretObj.material.color = new THREE.Color(data.caretColor);
