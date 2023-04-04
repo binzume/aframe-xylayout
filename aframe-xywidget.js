@@ -20,7 +20,7 @@ const XYTheme = {
         },
         collidableClass: 'collidable',
         createButton(width, height, parentEl, params, hasLabel, buttonEl) {
-            if (buttonEl && buttonEl.hasAttribute('css')) {
+            if (buttonEl && buttonEl.hasAttribute('style')) {
                 return buttonEl;
             }
             let getParam = (p) => params && params[p] || this.button[p];

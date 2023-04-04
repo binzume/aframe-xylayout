@@ -330,7 +330,11 @@ A component used internally by `xykeyboard`.
 
 # CSS style component
 
-Using `css` component, you can apply CSS styles.
+Using `style` component, you can apply CSS styles.
+
+```html
+  <a-entity style="width:10cm;height:10cm;background-color: #f0f"></a-entity>
+```
 
 - visibility
 - width
@@ -349,11 +353,16 @@ Using `css` component, you can apply CSS styles.
 - transform
 - transition (Not supported in WebXR session)
 - animation (Not supported in WebXR session)
+- pointer-events
 
 xylabel:
 
 - text-align
 - color
+
+xyinput:
+
+- caret-color
 
 xycontainer:
 
@@ -370,6 +379,7 @@ xyitem:
 - position: fixed
 - flex-grow
 - flex-shrink
+
 
 # License
 

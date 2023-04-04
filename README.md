@@ -311,13 +311,11 @@ Attributes:
 
 ## CSS Support
 
-# CSS style components
-
-`css` コンポーネントを使うと、一部のCSSを適用できます。
+`style` コンポーネントを使うと、一部のCSSを適用できます。外部スタイルシートも普通に使えます。
 immersiveなセッション中はブラウザ側でDOM関連のアニメーションが停止するので、transitionとanimationaを使う場合は注意。
 
 ```html
-  <a-entity css style="width:10cm;height:10cm;background-color: #f0f"></a-entity>
+  <a-entity style="width:10cm;height:10cm;background-color: #f0f"></a-entity>
 ```
 
 - visibility

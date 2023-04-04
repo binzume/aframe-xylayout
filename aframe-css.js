@@ -84,9 +84,9 @@ AFRAME.registerComponent('css-borderline', {
 });
 
 
-AFRAME.registerComponent('css', {
+AFRAME.registerComponent('style', {
     dependencies: ['xyrect'],
-	schema: {},
+	schema: {default: ""},
 	/** @type {MutationObserver} */
 	_observer: null,
 	_transformed: false,
@@ -289,11 +289,5 @@ AFRAME.registerComponent('css', {
 			}
 		}
 		return [0, 0, 0, 0];
-	}
-});
-
-AFRAME.registerPrimitive('a-css-entity', {
-	defaultComponents: {
-		css: {}
 	}
 });
