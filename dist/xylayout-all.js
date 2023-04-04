@@ -129,9 +129,11 @@ AFRAME.registerComponent("css-borderline", {
     }
 });
 
-AFRAME.registerComponent("css", {
+AFRAME.registerComponent("style", {
     dependencies: [ "xyrect" ],
-    schema: {},
+    schema: {
+        default: ""
+    },
     _observer: null,
     _transformed: false,
     _transition: false,
@@ -325,12 +327,6 @@ AFRAME.registerComponent("css", {
             }
         }
         return [ 0, 0, 0, 0 ];
-    }
-});
-
-AFRAME.registerPrimitive("a-css-entity", {
-    defaultComponents: {
-        css: {}
     }
 });
 
@@ -1228,7 +1224,7 @@ const XYTheme = {
         },
         collidableClass: "collidable",
         createButton(width, height, parentEl, params, hasLabel, buttonEl) {
-            if (buttonEl && buttonEl.hasAttribute("css")) {
+            if (buttonEl && buttonEl.hasAttribute("style")) {
                 return buttonEl;
             }
             let getParam = p => params && params[p] || this.button[p];
