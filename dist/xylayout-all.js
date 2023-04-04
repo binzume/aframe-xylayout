@@ -96,7 +96,7 @@ AFRAME.registerComponent("css-borderline", {
         let geometry = new THREE.BufferGeometry().setFromPoints(path.getPoints());
         let lw = data.linewidth, c = data.color;
         let lstyle = data.style;
-        let ls = lw * 2.54 / 96 / 10;
+        let ls = lw * 2.54 / 96 / 100;
         let material = lstyle == "solid" ? new THREE.LineBasicMaterial({
             linewidth: lw,
             color: c
@@ -296,7 +296,7 @@ AFRAME.registerComponent("style", {
             new THREE.Matrix4().set(t.m11, t.m21, t.m31, t.m41, t.m12, t.m22, t.m32, t.m42, t.m13, t.m23, t.m33, t.m43, t.m14, t.m24, t.m34, t.m44).decompose(tr, rot, sc);
             el.object3D.quaternion.copy(rot);
             el.object3D.scale.copy(sc);
-            el.object3D.position.setZ(tr.z * 2.54 / 96 / 10);
+            el.object3D.position.setZ(tr.z * 2.54 / 96 / 100);
         }
     },
     _parseSizePx(s, parent = null, v = false) {
@@ -308,7 +308,7 @@ AFRAME.registerComponent("style", {
         return m ? parseFloat(m[1]) : 0;
     },
     _parseSize(s, parent = null, v = false) {
-        return this._parseSizePx(s, parent, v) * 2.54 / 96 / 10;
+        return this._parseSizePx(s, parent, v) * 2.54 / 96 / 100;
     },
     _parseString(s) {
         let m = /^\s*"(.*)"\s*$/.exec(s);
