@@ -56,7 +56,7 @@ AFRAME.registerComponent('css-borderline', {
 		let geometry = new THREE.BufferGeometry().setFromPoints(path.getPoints());
 		let lw = data.linewidth, c = data.color;
 		let lstyle = data.style;
-		let ls = lw * 2.54 / 96 / 10;
+		let ls = lw * 2.54 / 96 / 100;
 		let material = lstyle == 'solid' ?
 			new THREE.LineBasicMaterial({ linewidth: lw, color: c }) :
 			new THREE.LineDashedMaterial({ linewidth: lw, color: c, gapSize: ls, dashSize: lstyle == 'dashed' ? ls * 3 : ls });
@@ -250,7 +250,7 @@ AFRAME.registerComponent('style', {
 			).decompose(tr, rot, sc);
 			el.object3D.quaternion.copy(rot);
 			el.object3D.scale.copy(sc);
-			el.object3D.position.setZ(tr.z * 2.54 / 96 / 10);
+			el.object3D.position.setZ(tr.z * 2.54 / 96 / 100);
 		}
 	},
 	/**
@@ -270,7 +270,7 @@ AFRAME.registerComponent('style', {
 		return m ? parseFloat(m[1]) : 0;
 	},
 	_parseSize(s, parent = null, v = false) {
-		return this._parseSizePx(s, parent, v) * 2.54 / 96 / 10;
+		return this._parseSizePx(s, parent, v) * 2.54 / 96 / 100;
 	},
 	_parseString(s) {
 		let m = /^\s*"(.*)"\s*$/.exec(s);

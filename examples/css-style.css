@@ -10,12 +10,12 @@ a-scene {
 #mywindow a-xybutton {
     pointer-events: all;
     background-color: #222;
-    border-radius: 5mm;
+    border-radius: 50mm;
     border: 3px solid #aaa;
     color: #fff;
     text-align: center;
-    width: 10cm;
-    height: 5cm;
+    width: 100cm;
+    height: 50cm;
 }
 
 #mywindow a-xybutton._hover {
@@ -26,13 +26,13 @@ a-scene {
     --hover-alt-class: 'active';
     pointer-events: all;
     background-color: cyan;
-    border-radius: 5mm;
+    border-radius: 50mm;
 
     border: 3px solid green;
 
     color: red;
-    width: 10cm;
-    height: 5cm;
+    width: 100cm;
+    height: 50cm;
     text-align: center;
     transition: 1s all;
 }
@@ -62,9 +62,6 @@ a-scene {
     color: black;
     background-color: white;
     caret-color: blue;
-    border-radius: 5mm;
+    border-radius: 50mm;
     border: 3px solid #aaa;
-
-    width: 10cm;
-    height: 5cm;
 }
