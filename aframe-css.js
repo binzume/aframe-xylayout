@@ -4,23 +4,24 @@ AFRAME.registerGeometry('css-rounded-rect', {
 	schema: {
 		height: { default: 1, min: 0 },
 		width: { default: 1, min: 0 },
-		radiusBL: { default: 0.05, min: 0 },
-		radiusBR: { default: 0.05, min: 0 },
-		radiusTL: { default: 0.05, min: 0 },
-		radiusTR: { default: 0.05, min: 0 },
+		radiusBL: { default: 0, min: 0 },
+		radiusBR: { default: 0, min: 0 },
+		radiusTL: { default: 0, min: 0 },
+		radiusTR: { default: 0, min: 0 },
 	},
 	init(data) {
 		let shape = new THREE.Shape();
 		let w = (data.width || 0.01) / 2, h = (data.height || 0.01) / 2;
-		shape.moveTo(-w, -h + data.radiusBL);
-		shape.lineTo(-w, h - data.radiusTL);
-		shape.quadraticCurveTo(-w, h, -w + data.radiusTL, h);
-		shape.lineTo(w - data.radiusTR, h);
-		shape.quadraticCurveTo(w, h, w, h - data.radiusTR);
-		shape.lineTo(w, -h + data.radiusBR);
-		shape.quadraticCurveTo(w, -h, w - data.radiusBR, -h);
-		shape.lineTo(-w + data.radiusBL, -h);
-		shape.quadraticCurveTo(-w, -h, -w, -h + data.radiusBL);
+		let tl = data.radiusTL, tr = data.radiusTR, bl = data.radiusBL, br = data.radiusBR;
+		shape.moveTo(-w, -h + bl);
+		shape.lineTo(-w, h - tl);
+		tl && shape.quadraticCurveTo(-w, h, -w + tl, h);
+		shape.lineTo(w - tr, h);
+		tr && shape.quadraticCurveTo(w, h, w, h - tr);
+		shape.lineTo(w, -h + br);
+		br && shape.quadraticCurveTo(w, -h, w - br, -h);
+		shape.lineTo(-w + bl, -h);
+		bl && shape.quadraticCurveTo(-w, -h, -w, -h + bl);
 		// @ts-ignore
 		this.geometry = new THREE.ShapeGeometry(shape);
 	}
@@ -33,57 +34,58 @@ AFRAME.registerComponent('css-borderline', {
 		color: { default: '' },
 		style: { default: 'solid' },
 		linewidth: { default: 1, min: 0 },
-		radiusBL: { default: 0.05, min: 0 },
-		radiusBR: { default: 0.05, min: 0 },
-		radiusTL: { default: 0.05, min: 0 },
-		radiusTR: { default: 0.05, min: 0 },
+		radiusBL: { default: 0, min: 0 },
+		radiusBR: { default: 0, min: 0 },
+		radiusTL: { default: 0, min: 0 },
+		radiusTR: { default: 0, min: 0 },
 	},
 	update() {
 		let data = this.data;
 		let path = new THREE.Path();
 		let w = (data.width || 0.01) / 2, h = (data.height || 0.01) / 2;
-		path.moveTo(-w, -h + data.radiusBL);
-		path.lineTo(-w, h - data.radiusTL);
-		path.quadraticCurveTo(-w, h, -w + data.radiusTL, h);
-		path.lineTo(w - data.radiusBR, h);
-		path.quadraticCurveTo(w, h, w, h - data.radiusBR);
-		path.lineTo(w, -h + data.radiusBR);
-		path.quadraticCurveTo(w, -h, w - data.radiusBR, -h);
-		path.lineTo(-w + data.radiusBL, -h);
-		path.quadraticCurveTo(-w, -h, -w, -h + data.radiusBL);
+		let tl = data.radiusTL, tr = data.radiusTR, bl = data.radiusBL, br = data.radiusBR;
+		path.moveTo(-w, -h + bl);
+		path.lineTo(-w, h - tl);
+		tl && path.quadraticCurveTo(-w, h, -w + tl, h);
+		path.lineTo(w - tr, h);
+		tr && path.quadraticCurveTo(w, h, w, h - tr);
+		path.lineTo(w, -h + br);
+		br && path.quadraticCurveTo(w, -h, w - br, -h);
+		path.lineTo(-w + bl, -h);
+		bl && path.quadraticCurveTo(-w, -h, -w, -h + bl);
 		let geometry = new THREE.BufferGeometry().setFromPoints(path.getPoints());
-		let lw = data.linewidth, c = data.color, ls = lw * 2.54 / 96 / 10;
-		let material = data.style == 'dotted' ?
-			new THREE.LineDashedMaterial({ linewidth: lw, color: c, gapSize: ls, dashSize: ls }) :
-			data.style == 'dashed' ?
-				new THREE.LineDashedMaterial({ linewidth: lw, color: c, gapSize: ls, dashSize: ls * 3 }) :
-				new THREE.LineBasicMaterial({ linewidth: lw, color: c });
+		let lw = data.linewidth, c = data.color;
+		let lstyle = data.style;
+		let ls = lw * 2.54 / 96 / 10;
+		let material = lstyle == 'solid' ?
+			new THREE.LineBasicMaterial({ linewidth: lw, color: c }) :
+			new THREE.LineDashedMaterial({ linewidth: lw, color: c, gapSize: ls, dashSize: lstyle == 'dashed' ? ls * 3 : ls });
 		let line = new THREE.Line(geometry, material);
-		if (data.style != 'solid') {
+		if (lstyle != 'solid') {
 			line.computeLineDistances();
 		}
 		line.position.set(0, 0, 0.001);
 		line.raycast = () => { }; // disable raycast
 		this.el.setObject3D('css-borderline', line);
-		this._disposeObj();
-		this._line = line;
+		this._setLineObj(line);
 	},
 	remove() {
 		this.el.removeObject3D('css-borderline');
-		this._disposeObj();
+		this._setLineObj(null);
 	},
 	_line: null,
-	_disposeObj() {
+	_setLineObj(obj) {
 		if (this._line) {
 			this._line.material.dispose();
 			this._line.geometry.dispose();
-			this._line = null;
 		}
+		this._line = obj;
 	}
 });
 
 
 AFRAME.registerComponent('css', {
+    dependencies: ['xyrect'],
 	schema: {},
 	/** @type {MutationObserver} */
 	_observer: null,
@@ -96,131 +98,110 @@ AFRAME.registerComponent('css', {
 			let cname = this._parseString(style.getPropertyValue('--collider-class')) || 'collidable';
 			let hover = this._parseString(style.getPropertyValue('--hover-alt-class')) || '_hover';
 			el.classList.add(cname);
-			el.addEventListener('mouseenter', ev => {
-				el.classList.add(hover);
-			});
-			el.addEventListener('mouseleave', ev => {
-				el.classList.remove(hover);
-			});
+			el.addEventListener('mouseenter', ev => el.classList.add(hover));
+			el.addEventListener('mouseleave', ev => el.classList.remove(hover));
 		}
 		// Maybe dom-overlay feature is required in immersive session?
-		el.addEventListener('transitionstart', ev => {
-			this._transition = true;
-			this.play();
-		});
-		el.addEventListener('transitionend', ev => {
-			this._transition = false;
-		});
-		el.addEventListener('animationstart', ev => {
-			this._transition = true;
-			this.play();
-		});
-		el.addEventListener('animationend', ev => {
-			this._transition = false;
-		});
+		let transitionstart = (ev) => { this._transition = true; this.play(); };
+		let transitionend = (ev) => this._transition = false;
+		el.addEventListener('transitionstart', transitionstart);
+		el.addEventListener('transitionend', transitionend);
+		el.addEventListener('animationstart', transitionstart);
+		el.addEventListener('animationend', transitionend);
 
 		this._observer = new MutationObserver((mutationsList, _observer) => {
-			if (mutationsList.find(r => r.attributeName == 'class' || r.attributeName == 'style')) {
+			if (mutationsList.find(r => ['class', 'style'].includes(r.attributeName))) {
 				this._updateStyle();
 			}
 		});
-		this._observer.observe(this.el, { attributes: true });
+		this._observer.observe(el, { attributes: true });
 		this._updateStyle();
 	},
 	tick() {
 		if (this._transition) {
 			this._updateStyle();
-			return;
+		} else {
+			this.pause();
 		}
-		this.pause();
 	},
 	remove() {
 		this._observer.disconnect();
 	},
 	_updateStyle() {
-		let style = getComputedStyle(this.el);
-		this._updateMaterial(style);
-		this._updateText(style);
-		this._updateSize(style);
-		this.el.setAttribute('visible', style.getPropertyValue('--visibility') != 'hidden');
-		if (this.el.childElementCount > 0) {
-			this._updateLayout(style);
+		let el = this.el;
+		let style = getComputedStyle(el);
+		this._updateGeometry(el, style);
+		el.setAttribute('visible', style.visibility != 'hidden');
+		if (el.childElementCount > 0) {
+			this._updateLayout(el, style);
 		} else {
-			this.el.removeAttribute('xycontainer');
+			el.removeAttribute('xycontainer');
+			if (el.components.xyinput) {
+				el.setAttribute('xyinput', { caretColor: style.caretColor, color: style.color });
+			} else {
+				this._updateText(el, style);
+			}
 		}
-		this._updateTransform(style);
+		this._updateTransform(el, style);
 	},
-	/** @param {CSSStyleDeclaration} style */
-	_updateMaterial(style) {
-		// TODO check css-rounded-rect
-		let bgcol = this._parseColor(style.backgroundColor);
-		let bw = this._parseSizePx(style.borderWidth);
-		if (bgcol[3] > 0 || bw > 0) {
-			this.el.setAttribute('material', {
-				color: style.backgroundColor,
-				opacity: bgcol[3],
-				src: this._parseUrl(style.backgroundImage) || ''
-			});
-		}
-	},
-	_updateText(style) {
-		if (this.el.components.xyinput) {
-			let ccol = this._parseColor(style.caretColor);
-			ccol[3] > 0 && this.el.setAttribute('xyinput', 'caretColor', style.caretColor);
-			return;
-		}
-		let text = null;
-		let first = this.el.firstChild
-		if (first && first.nodeType == Node.TEXT_NODE) {
-			text = first.textContent.trim();
-		}
+	/**
+	 * @param {import('aframe').Entity} el
+	 * @param {CSSStyleDeclaration} style
+	 */
+	_updateText(el, style) {
+		let text = this._parseString(style.content);
 		if (!text) {
-			let m = /^["'](.*)["']$/.exec(style.content);
-			text = m ? m[1] : '';
+			text = el.textContent.trim();
 		}
-		if (text != null) {
-			this.el.setAttribute('xylabel', 'value', text);
-		}
-		let c = this._parseColor(style.color);
-		if (c[3] > 0) {
-			this.el.setAttribute('xylabel', 'color', style.color);
-		}
-		let align = style.textAlign;
-		if (align == 'start') {
-			align = 'left';
-		}
-		if (align == 'end') {
-			align = 'right';
-		}
-		if (align) {
-			this.el.setAttribute('xylabel', 'align', align);
+		if (text || el.hasAttribute('xylabel')) {
+			let align = style.textAlign;
+			if (align == 'start') {
+				align = 'left';
+			}
+			if (align == 'end') {
+				align = 'right';
+			}
+			let attrs = { value: text, align: align };
+			let c = this._parseColor(style.color);
+			if (c[3] > 0) {
+				attrs.color = style.color;
+			}
+			el.setAttribute('xylabel', attrs);
 		}
 	},
-	/** @param {CSSStyleDeclaration} style 	 */
-	_updateSize(style) {
-		let w = this._parseSize(style.width, this.el.parentElement), h = this._parseSize(style.height, this.el.parentElement, true);
+	/**
+	 * @param {import('aframe').Entity} el
+	 * @param {CSSStyleDeclaration} style
+	 */
+	_updateGeometry(el, style) {
+		let w = this._parseSize(style.width, el.parentElement), h = this._parseSize(style.height, el.parentElement, true);
 		if (w > 0 || h > 0) {
-			this.el.setAttribute('xyrect', { width: w, height: h });
+			el.setAttribute('xyrect', { width: w, height: h });
 		}
 		let fixed = style.position == 'fixed';
 		let grow = parseInt(style.flexGrow), shrink = parseInt(style.flexShrink);
 		if (fixed || grow || shrink) {
-			this.el.setAttribute('xyitem', { fixed: fixed, grow: grow, shrink: shrink });
+			el.setAttribute('xyitem', { fixed: fixed, grow: grow, shrink: shrink });
 		}
 
 		let bgcol = this._parseColor(style.backgroundColor);
 		let bw = this._parseSizePx(style.borderWidth);
-		if (bgcol[3] > 0 || bw > 0) {
-			this.el.setAttribute('geometry', {
+		if (bgcol[3] > 0 || style.pointerEvents != 'none') {
+			el.setAttribute('geometry', {
 				primitive: 'css-rounded-rect', width: w, height: h,
 				radiusBL: this._parseSize(style.borderBottomLeftRadius),
 				radiusBR: this._parseSize(style.borderBottomRightRadius),
 				radiusTL: this._parseSize(style.borderTopLeftRadius),
 				radiusTR: this._parseSize(style.borderTopRightRadius)
 			});
+			el.setAttribute('material', {
+				color: style.backgroundColor,
+				opacity: bgcol[3],
+				src: this._parseUrl(style.backgroundImage) || ''
+			});
 		}
 		if (bw > 0) {
-			this.el.setAttribute('css-borderline', {
+			el.setAttribute('css-borderline', {
 				width: w, height: h, linewidth: bw,
 				color: style.borderColor,
 				style: style.borderStyle,
@@ -230,14 +211,18 @@ AFRAME.registerComponent('css', {
 				radiusTR: this._parseSize(style.borderTopRightRadius)
 			});
 		} else {
-			this.el.removeAttribute('css-borderline');
+			el.removeAttribute('css-borderline');
 		}
 	},
-	_updateLayout(style) {
+	/**
+	 * @param {import('aframe').Entity} el
+	 * @param {CSSStyleDeclaration} style
+	 */
+	_updateLayout(el, style) {
 		if (style.position == 'fixed') {
-			this.el.setAttribute('xyitem', { fixed: true });
+			el.setAttribute('xyitem', { fixed: true });
 		}
-		this.el.setAttribute('xycontainer', {
+		el.setAttribute('xycontainer', {
 			wrap: style.flexWrap,
 			direction: style.flexDirection,
 			spacing: this._parseSize(style.columnGap),
@@ -246,8 +231,11 @@ AFRAME.registerComponent('css', {
 			alignItems: style.alignItems,
 		});
 	},
-	/** @param {CSSStyleDeclaration} style 	 */
-	_updateTransform(style) {
+	/**
+	 * @param {import('aframe').Entity} el
+	 * @param {CSSStyleDeclaration} style
+	 */
+	_updateTransform(el, style) {
 		this._transformed = this._transformed || style.transform != 'none';
 		if (this._transformed) {
 			let t = new DOMMatrix(style.transform);
@@ -260,9 +248,9 @@ AFRAME.registerComponent('css', {
 				t.m13, t.m23, t.m33, t.m43,
 				t.m14, t.m24, t.m34, t.m44,
 			).decompose(tr, rot, sc);
-			this.el.object3D.quaternion.copy(rot);
-			this.el.object3D.scale.copy(sc);
-			this.el.object3D.position.setZ(tr.z * 2.54 / 96 / 10);
+			el.object3D.quaternion.copy(rot);
+			el.object3D.scale.copy(sc);
+			el.object3D.position.setZ(tr.z * 2.54 / 96 / 10);
 		}
 	},
 	/**
@@ -306,7 +294,6 @@ AFRAME.registerComponent('css', {
 
 AFRAME.registerPrimitive('a-css-entity', {
 	defaultComponents: {
-		xyrect: {},
 		css: {}
 	}
 });
