@@ -29,15 +29,16 @@ AFRAME.registerGeometry("css-rounded-rect", {
         let shape = new THREE.Shape();
         let w = (data.width || .01) / 2, h = (data.height || .01) / 2;
         let tl = data.radiusTL, tr = data.radiusTR, bl = data.radiusBL, br = data.radiusBR;
+        let hpi = Math.PI / 2;
         shape.moveTo(-w, -h + bl);
         shape.lineTo(-w, h - tl);
-        tl && shape.quadraticCurveTo(-w, h, -w + tl, h);
+        tl && shape.arc(tl, 0, tl, hpi * 2, hpi * 1, true);
         shape.lineTo(w - tr, h);
-        tr && shape.quadraticCurveTo(w, h, w, h - tr);
+        tr && shape.arc(0, -tr, tr, hpi * 1, hpi * 0, true);
         shape.lineTo(w, -h + br);
-        br && shape.quadraticCurveTo(w, -h, w - br, -h);
+        br && shape.arc(-br, 0, br, hpi * 0, hpi * 3, true);
         shape.lineTo(-w + bl, -h);
-        bl && shape.quadraticCurveTo(-w, -h, -w, -h + bl);
+        bl && shape.arc(0, bl, bl, hpi * 3, hpi * 2, true);
         this.geometry = new THREE.ShapeGeometry(shape);
     }
 });
@@ -84,15 +85,16 @@ AFRAME.registerComponent("css-borderline", {
         let path = new THREE.Path();
         let w = (data.width || .01) / 2, h = (data.height || .01) / 2;
         let tl = data.radiusTL, tr = data.radiusTR, bl = data.radiusBL, br = data.radiusBR;
+        let hpi = Math.PI / 2;
         path.moveTo(-w, -h + bl);
         path.lineTo(-w, h - tl);
-        tl && path.quadraticCurveTo(-w, h, -w + tl, h);
+        tl && path.arc(tl, 0, tl, hpi * 2, hpi * 1, true);
         path.lineTo(w - tr, h);
-        tr && path.quadraticCurveTo(w, h, w, h - tr);
+        tr && path.arc(0, -tr, tr, hpi * 1, hpi * 0, true);
         path.lineTo(w, -h + br);
-        br && path.quadraticCurveTo(w, -h, w - br, -h);
+        br && path.arc(-br, 0, br, hpi * 0, hpi * 3, true);
         path.lineTo(-w + bl, -h);
-        bl && path.quadraticCurveTo(-w, -h, -w, -h + bl);
+        bl && path.arc(0, bl, bl, hpi * 3, hpi * 2, true);
         let geometry = new THREE.BufferGeometry().setFromPoints(path.getPoints());
         let lw = data.linewidth, c = data.color;
         let lstyle = data.style;
@@ -236,6 +238,14 @@ AFRAME.registerComponent("style", {
                 grow: grow,
                 shrink: shrink
             });
+        }
+        let g = el.getAttribute("geometry");
+        if (g && g.primitive != "css-rounded-rect") {
+            el.setAttribute("material", {
+                color: style.color,
+                opacity: this._parseColor(style.color)[3]
+            });
+            return;
         }
         let bgcol = this._parseColor(style.backgroundColor);
         let bw = this._parseSizePx(style.borderWidth);
