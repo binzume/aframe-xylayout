@@ -515,6 +515,7 @@ AFRAME.registerComponent('xy-drag-control', {
 AFRAME.registerComponent('xywindow', {
     schema: {
         title: { default: '' },
+        titleHeight: { default: .5 },
         closable: { default: true },
         background: { default: false }
     },
@@ -544,12 +545,13 @@ AFRAME.registerComponent('xywindow', {
             });
         }
 
-        let titleBar = this._titleBar = theme.createButton(1, 0.5, controls, windowStyle.titleBar, true);
+        let titleSize = this.data.titleHeight;
+        let titleBar = this._titleBar = theme.createButton(1, titleSize, controls, windowStyle.titleBar, true);
         titleBar.setAttribute('xy-drag-control', { target: el, autoRotate: true });
         this._buttons = [];
 
         if (this.data.closable) {
-            let closeButton = theme.createButton(0.5, 0.5, controls, windowStyle.closeButton, true);
+            let closeButton = theme.createButton(titleSize, titleSize, controls, windowStyle.closeButton, true);
             closeButton.setAttribute('xylabel', {
                 value: 'X', align: 'center'
             });
@@ -565,26 +567,28 @@ AFRAME.registerComponent('xywindow', {
     update(oldData) {
         let el = this.el;
         let data = this.data;
+        let title = data.title;
+        let titleSize = data.titleHeight;
         let { width, height } = el.components.xyrect;
         let titleBar = this._titleBar;
         let background = this._background;
         let buttonsWidth = 0;
-        let tiyleY = height / 2 + 0.3;
+        let titleY = height / 2 + 0.3;
         for (let b of this._buttons) {
-            b.object3D.position.set(width / 2 - 0.25 - buttonsWidth, tiyleY, 0);
-            buttonsWidth += 0.52;
+            b.object3D.position.set((width - titleSize) / 2 - buttonsWidth, titleY, 0);
+            buttonsWidth += titleSize * 1.04;
         }
-        if (data.title != oldData.title) {
-            let titleW = width - buttonsWidth - 0.1;
-            titleBar.setAttribute('xyrect', { width: titleW, height: 0.45 });
+        if (title != oldData.title) {
+            let titleW = width - buttonsWidth - titleSize / 5;
+            titleBar.setAttribute('xyrect', { width: titleW, height: titleSize * 0.9 });
             titleBar.setAttribute('xylabel', {
-                value: data.title, wrapCount: Math.max(10, titleW / 0.2), xOffset: 0.1
+                value: title, wrapCount: Math.max(10, titleW / (titleSize * 0.4)), xOffset: titleSize / 5
             });
         }
         titleBar.setAttribute('geometry', { width: width - buttonsWidth });
-        titleBar.object3D.position.set(-buttonsWidth / 2, tiyleY, 0);
+        titleBar.object3D.position.set(-buttonsWidth / 2, titleY, 0);
         if (background) {
-            background.object3D.scale.set(width + 0.1, height + 0.7, 1);
+            background.object3D.scale.set(width + 0.1, height + titleSize * 1.4, 1);
         }
     }
 });
