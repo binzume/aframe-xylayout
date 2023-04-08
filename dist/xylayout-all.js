@@ -1,48 +1,3 @@
-AFRAME.registerGeometry("css-rounded-rect", {
-    schema: {
-        height: {
-            default: 1,
-            min: 0
-        },
-        width: {
-            default: 1,
-            min: 0
-        },
-        radiusBL: {
-            default: 0,
-            min: 0
-        },
-        radiusBR: {
-            default: 0,
-            min: 0
-        },
-        radiusTL: {
-            default: 0,
-            min: 0
-        },
-        radiusTR: {
-            default: 0,
-            min: 0
-        }
-    },
-    init(data) {
-        let shape = new THREE.Shape();
-        let w = (data.width || .01) / 2, h = (data.height || .01) / 2;
-        let tl = data.radiusTL, tr = data.radiusTR, bl = data.radiusBL, br = data.radiusBR;
-        let hpi = Math.PI / 2;
-        shape.moveTo(-w, -h + bl);
-        shape.lineTo(-w, h - tl);
-        tl && shape.arc(tl, 0, tl, hpi * 2, hpi * 1, true);
-        shape.lineTo(w - tr, h);
-        tr && shape.arc(0, -tr, tr, hpi * 1, hpi * 0, true);
-        shape.lineTo(w, -h + br);
-        br && shape.arc(-br, 0, br, hpi * 0, hpi * 3, true);
-        shape.lineTo(-w + bl, -h);
-        bl && shape.arc(0, bl, bl, hpi * 3, hpi * 2, true);
-        this.geometry = new THREE.ShapeGeometry(shape);
-    }
-});
-
 AFRAME.registerComponent("css-borderline", {
     schema: {
         height: {
@@ -226,8 +181,8 @@ AFRAME.registerComponent("style", {
         let w = this._parseSize(style.width, el.parentElement), h = this._parseSize(style.height, el.parentElement, true);
         if (w > 0 || h > 0) {
             el.setAttribute("xyrect", {
-                width: w,
-                height: h
+                width: w + this._parseSize(style.paddingInline) * 2,
+                height: h + this._parseSize(style.paddingBlock) * 2
             });
         }
         let fixed = style.position == "fixed";
@@ -240,7 +195,7 @@ AFRAME.registerComponent("style", {
             });
         }
         let g = el.getAttribute("geometry");
-        if (g && g.primitive != "css-rounded-rect") {
+        if (g && g.primitive != "xy-rounded-rect") {
             el.setAttribute("material", {
                 color: style.color,
                 opacity: this._parseColor(style.color)[3]
@@ -251,7 +206,7 @@ AFRAME.registerComponent("style", {
         let bw = this._parseSizePx(style.borderWidth);
         if (bgcol[3] > 0 || style.pointerEvents != "none") {
             el.setAttribute("geometry", {
-                primitive: "css-rounded-rect",
+                primitive: "xy-rounded-rect",
                 width: w,
                 height: h,
                 radiusBL: this._parseSize(style.borderBottomLeftRadius),
@@ -990,7 +945,12 @@ AFRAME.registerComponent("xycontainer", {
         if (direction == "none") {
             return;
         }
-        let containerRect = this.el.components.xyrect;
+        let containerRect = this.el.components.xyrect.data ? this.el.components.xyrect : {
+            data: {
+                height: -1,
+                width: -1
+            }
+        };
         let children = this.el.children;
         let isVertical = direction == "vertical" || direction == "column";
         let padding = data.padding;
@@ -1216,7 +1176,10 @@ const XYTheme = {
             color: "#222",
             labelColor: "#fff",
             hoverColor: "#333",
-            geometry: "xy-rounded-rect",
+            geometry: {
+                primitive: "xy-rounded-rect",
+                radius: .05
+            },
             hoverHaptic: .3,
             hoverHapticMs: 10
         },
@@ -1229,7 +1192,17 @@ const XYTheme = {
                 color: "#111"
             },
             background: {
-                color: "#111"
+                color: "#111",
+                side: "double",
+                transparent: true,
+                opacity: .8
+            }
+        },
+        thumb: {
+            color: "white",
+            hoverColor: "#ccf",
+            geometry: {
+                primitive: "circle"
             }
         },
         collidableClass: "collidable",
@@ -1240,11 +1213,10 @@ const XYTheme = {
             let getParam = p => params && params[p] || this.button[p];
             buttonEl = buttonEl || document.createElement("a-entity");
             if (!buttonEl.hasAttribute("geometry")) {
-                buttonEl.setAttribute("geometry", {
-                    primitive: getParam("geometry"),
+                buttonEl.setAttribute("geometry", Object.assign({
                     width: width,
                     height: height
-                });
+                }, getParam("geometry")));
             }
             buttonEl.classList.add(this.collidableClass);
             buttonEl.addEventListener("mouseenter", ev => {
@@ -1261,16 +1233,16 @@ const XYTheme = {
                     } else {}
                 }
             });
+            buttonEl.addEventListener("mouseleave", ev => {
+                buttonEl.setAttribute("material", {
+                    color: getParam("color")
+                });
+            });
             buttonEl.addEventListener("xyresize", ev => {
                 let r = ev.detail.xyrect;
                 buttonEl.setAttribute("geometry", {
                     width: r.width,
                     height: r.height
-                });
-            });
-            buttonEl.addEventListener("mouseleave", ev => {
-                buttonEl.setAttribute("material", {
-                    color: getParam("color")
                 });
             });
             buttonEl.setAttribute("material", {
@@ -1297,23 +1269,41 @@ AFRAME.registerGeometry("xy-rounded-rect", {
             min: 0
         },
         radius: {
-            default: .05,
+            default: 0,
+            min: 0
+        },
+        radiusBL: {
+            default: 0,
+            min: 0
+        },
+        radiusBR: {
+            default: 0,
+            min: 0
+        },
+        radiusTL: {
+            default: 0,
+            min: 0
+        },
+        radiusTR: {
+            default: 0,
             min: 0
         }
     },
     init(data) {
         let shape = new THREE.Shape();
-        let radius = data.radius;
-        let w = (data.width || .01) / 2, h = (data.height || .01) / 2;
-        shape.moveTo(-w, -h + radius);
-        shape.lineTo(-w, h - radius);
-        shape.quadraticCurveTo(-w, h, -w + radius, h);
-        shape.lineTo(w - radius, h);
-        shape.quadraticCurveTo(w, h, w, h - radius);
-        shape.lineTo(w, -h + radius);
-        shape.quadraticCurveTo(w, -h, w - radius, -h);
-        shape.lineTo(-w + radius, -h);
-        shape.quadraticCurveTo(-w, -h, -w, -h + radius);
+        let w = (data.width || .01) / 2, h = (data.height || .01) / 2, r = data.radius;
+        let tl = data.radiusTL || r, tr = data.radiusTR || r, bl = data.radiusBL || r, br = data.radiusBR || r;
+        console.log(tl, r);
+        let hpi = Math.PI / 2;
+        shape.moveTo(-w, -h + bl);
+        shape.lineTo(-w, h - tl);
+        tl && shape.arc(tl, 0, tl, hpi * 2, hpi * 1, true);
+        shape.lineTo(w - tr, h);
+        tr && shape.arc(0, -tr, tr, hpi * 1, hpi * 0, true);
+        shape.lineTo(w, -h + br);
+        br && shape.arc(-br, 0, br, hpi * 0, hpi * 3, true);
+        shape.lineTo(-w + bl, -h);
+        bl && shape.arc(0, bl, bl, hpi * 3, hpi * 2, true);
         this.geometry = new THREE.ShapeGeometry(shape);
     }
 });
@@ -1510,7 +1500,8 @@ AFRAME.registerComponent("xytoggle", {
             get: () => this.data.value,
             set: v => el.setAttribute("xytoggle", "value", v)
         });
-        this._thumb = el.appendChild(document.createElement("a-circle"));
+        let theme = XYTheme.get(el);
+        this._thumb = theme.createButton(0, 0, el, theme.thumb);
         el.addEventListener("xyresize", ev => this.update());
     },
     update() {
@@ -1827,12 +1818,7 @@ AFRAME.registerComponent("xywindow", {
         controlsObj.position.set(0, 0, .02);
         if (this.data.background) {
             let background = this._background = controls.appendChild(document.createElement("a-plane"));
-            background.setAttribute("material", {
-                color: windowStyle.background.color,
-                side: "double",
-                transparent: true,
-                opacity: .8
-            });
+            background.setAttribute("material", windowStyle.background);
             background.object3D.position.set(0, .25, -.04);
             el.addEventListener("object3dset", ev => {
                 let children = el.object3D.children;
@@ -1929,9 +1915,12 @@ AFRAME.registerComponent("xyrange", {
     init() {
         let data = this.data;
         let el = this.el;
-        let thumb = this._thumb = XYTheme.get(el).createButton(0, 0, el, {
-            geometry: "circle"
-        });
+        let theme = XYTheme.get(el);
+        let thumb = this._thumb = theme.createButton(0, 0, el, theme.thumb);
+        theme.createButton(0, 0, null, {
+            color: data.color0,
+            hoverColor: data.color0
+        }, false, el);
         let plane = new THREE.PlaneGeometry(1, 1);
         let bar = this._bar = new THREE.Mesh(plane);
         let prog = this._prog = new THREE.Mesh(plane);
