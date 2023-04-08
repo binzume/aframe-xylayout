@@ -1,33 +1,4 @@
 
-
-AFRAME.registerGeometry('css-rounded-rect', {
-	schema: {
-		height: { default: 1, min: 0 },
-		width: { default: 1, min: 0 },
-		radiusBL: { default: 0, min: 0 },
-		radiusBR: { default: 0, min: 0 },
-		radiusTL: { default: 0, min: 0 },
-		radiusTR: { default: 0, min: 0 },
-	},
-	init(data) {
-		let shape = new THREE.Shape();
-		let w = (data.width || 0.01) / 2, h = (data.height || 0.01) / 2;
-		let tl = data.radiusTL, tr = data.radiusTR, bl = data.radiusBL, br = data.radiusBR;
-		let hpi = Math.PI / 2;
-		shape.moveTo(-w, -h + bl);
-		shape.lineTo(-w, h - tl);
-		tl && shape.arc(tl, 0, tl, hpi * 2, hpi * 1, true);
-		shape.lineTo(w - tr, h);
-		tr && shape.arc(0, -tr, tr, hpi * 1, hpi * 0, true);
-		shape.lineTo(w, -h + br);
-		br && shape.arc(-br, 0, br, hpi * 0, hpi * 3, true);
-		shape.lineTo(-w + bl, -h);
-		bl && shape.arc(0, bl, bl, hpi * 3, hpi * 2, true);
-		// @ts-ignore
-		this.geometry = new THREE.ShapeGeometry(shape);
-	}
-});
-
 AFRAME.registerComponent('css-borderline', {
 	schema: {
 		height: { default: 1, min: 0 },
@@ -178,7 +149,10 @@ AFRAME.registerComponent('style', {
 	_updateGeometry(el, style) {
 		let w = this._parseSize(style.width, el.parentElement), h = this._parseSize(style.height, el.parentElement, true);
 		if (w > 0 || h > 0) {
-			el.setAttribute('xyrect', { width: w, height: h });
+			el.setAttribute('xyrect', {
+				width: w + this._parseSize(style.paddingInline) * 2,
+				height: h + this._parseSize(style.paddingBlock) * 2
+			});
 		}
 		let fixed = style.position == 'fixed';
 		let grow = parseInt(style.flexGrow), shrink = parseInt(style.flexShrink);
@@ -186,7 +160,7 @@ AFRAME.registerComponent('style', {
 			el.setAttribute('xyitem', { fixed: fixed, grow: grow, shrink: shrink });
 		}
 		let g = el.getAttribute('geometry');
-		if (g && g.primitive != 'css-rounded-rect') {
+		if (g && g.primitive != 'xy-rounded-rect') {
 			el.setAttribute('material', {
 				color: style.color,
 				opacity: this._parseColor(style.color)[3],
@@ -197,7 +171,7 @@ AFRAME.registerComponent('style', {
 		let bw = this._parseSizePx(style.borderWidth);
 		if (bgcol[3] > 0 || style.pointerEvents != 'none') {
 			el.setAttribute('geometry', {
-				primitive: 'css-rounded-rect', width: w, height: h,
+				primitive: 'xy-rounded-rect', width: w, height: h,
 				radiusBL: this._parseSize(style.borderBottomLeftRadius),
 				radiusBR: this._parseSize(style.borderBottomRightRadius),
 				radiusTL: this._parseSize(style.borderTopLeftRadius),
