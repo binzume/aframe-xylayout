@@ -74,6 +74,7 @@ AFRAME.registerComponent('style', {
 			el.addEventListener('mouseenter', ev => el.classList.add(hover));
 			el.addEventListener('mouseleave', ev => el.classList.remove(hover));
 		}
+		// TODO: el.addEventListener('xyresize', (ev) => this._updateGeometry());
 		// Maybe dom-overlay feature is required in immersive session?
 		let transitionstart = (ev) => { this._transition = true; this.play(); };
 		let transitionend = (ev) => this._transition = false;
@@ -83,7 +84,7 @@ AFRAME.registerComponent('style', {
 		el.addEventListener('animationend', transitionend);
 
 		this._observer = new MutationObserver((mutationsList, _observer) => {
-			if (mutationsList.find(r => ['class', 'style'].includes(r.attributeName))) {
+			if (mutationsList.some(r => ['class', 'style', 'value'].includes(r.attributeName))) {
 				this._updateStyle();
 			}
 		});
