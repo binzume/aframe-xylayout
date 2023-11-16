@@ -330,7 +330,7 @@ AFRAME.registerComponent("xyinput", {
             get: () => data.value,
             set: v => el.setAttribute("xyinput", "value", "" + v)
         });
-        this._caretObj = new THREE.Mesh(new THREE.PlaneGeometry(.04, xyrect.height * .9));
+        this._caretObj = new THREE.Mesh(new THREE.PlaneGeometry(.1, .9));
         el.setObject3D("caret", this._caretObj);
         XYTheme.get(el).createButton(xyrect.width, xyrect.height, null, {
             color: data.bgColor,
@@ -418,13 +418,15 @@ AFRAME.registerComponent("xyinput", {
         caretObj.visible = false;
         if (document.activeElement == this.el) {
             setTimeout(() => {
-                caretObj.position.set(this._caretpos(p), 0, .02);
+                let h = this.el.components.xyrect.height;
+                caretObj.scale.set(h, h, 1);
+                caretObj.position.set(this._caretpos(p) + h * .05, 0, .02);
                 caretObj.visible = true;
             }, 0);
         }
     },
     _caretpos(cursorPos) {
-        return this.el.components.xylabel.getPos(cursorPos) + .04;
+        return this.el.components.xylabel.getPos(cursorPos);
     }
 });
 
@@ -1209,25 +1211,13 @@ const XYTheme = {
                 return buttonEl;
             }
             let getParam = p => params && params[p] || this.button[p];
-            if (!buttonEl.hasAttribute("geometry")) {
-                buttonEl.setAttribute("geometry", Object.assign({
-                    primitive: "xy-rounded-rect",
-                    width: width,
-                    height: height,
-                    radius: Math.min(width, height) * .1
-                }, getParam("geometry")));
-            }
-            buttonEl.setAttribute("material", {
-                color: getParam("color")
-            });
-            if (hasLabel) {
-                buttonEl.setAttribute("xylabel", {
-                    color: getParam("labelColor")
-                });
-            }
             if (!update) {
                 if (parentEl) {
                     parentEl.append(buttonEl);
+                    if (parentEl.hasAttribute("style")) {
+                        buttonEl.setAttribute("style", "");
+                        return buttonEl;
+                    }
                 }
                 buttonEl.classList.add(this.collidableClass);
                 buttonEl.addEventListener("mouseenter", ev => {
@@ -1255,6 +1245,22 @@ const XYTheme = {
                         width: r.width,
                         height: r.height
                     });
+                });
+            }
+            if (!buttonEl.hasAttribute("geometry")) {
+                buttonEl.setAttribute("geometry", Object.assign({
+                    primitive: "xy-rounded-rect",
+                    width: width,
+                    height: height,
+                    radius: Math.min(width, height) * .1
+                }, getParam("geometry")));
+            }
+            buttonEl.setAttribute("material", {
+                color: getParam("color")
+            });
+            if (hasLabel) {
+                buttonEl.setAttribute("xylabel", {
+                    color: getParam("labelColor")
                 });
             }
             return buttonEl;
@@ -1366,6 +1372,7 @@ AFRAME.registerComponent("xylabel", {
             delete textData["resolution"];
             delete textData["renderingMode"];
             el.setAttribute("text", textData);
+            el.components.text.data.mode = "pre";
             setTimeout(() => {
                 let textObj = el.getObject3D("text");
                 if (textObj) {
