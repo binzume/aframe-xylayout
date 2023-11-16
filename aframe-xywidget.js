@@ -131,6 +131,7 @@ AFRAME.registerComponent('xylabel', {
         }
         if (data.renderingMode == 'auto' && !/[\u0100-\uDFFF]/.test(value)) {
             let textData = Object.assign({}, data, {
+                // whiteSpace: 'pre',
                 wrapCount: wrapCount,
                 width: w,
                 height: h,
@@ -138,6 +139,7 @@ AFRAME.registerComponent('xylabel', {
             delete textData['resolution'];
             delete textData['renderingMode'];
             el.setAttribute('text', textData);
+            el.components.text.data.mode='pre'; // workaround
             setTimeout(() => {
                 let textObj = el.getObject3D('text');
                 if (textObj) {
